@@ -1,0 +1,18 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      baseUrl:
+        type: string
+        description: SwarmX API base URL
+        default: https://swarmx.io
+    required: []
+  commandFunction: |-
+    (config) => ({
+      command: "npx",
+      args: ["-y", "swarms-x402"],
+      env: {
+        SWARMX_BASE_URL: config.baseUrl || "https://swarmx.io"
+      }
+    })

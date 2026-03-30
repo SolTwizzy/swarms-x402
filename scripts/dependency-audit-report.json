@@ -1,0 +1,205 @@
+{
+  "audit_date": "2026-03-27",
+  "summary": {
+    "total_dependencies": 4,
+    "total_peer_dependencies": 2,
+    "total_dev_dependencies": 4,
+    "critical_issues": 2,
+    "warnings": 4,
+    "ok": 4
+  },
+  "dependencies": {
+    "@dexterai/x402": {
+      "installed": "2.0.0",
+      "latest": "2.0.0",
+      "specifier": "^2.0.0",
+      "status": "OK",
+      "notes": "On latest version. Published 2026-03-15. No newer versions available.",
+      "used_in": [
+        "src/client/index.ts",
+        "src/actions/delegateToSwarmWithPayment.ts",
+        "src/actions/discoverServices.ts",
+        "src/server/x402ServerService.ts",
+        "src/services/x402WalletService.ts"
+      ]
+    },
+    "drizzle-orm": {
+      "installed": "0.45.1",
+      "latest": "0.45.2",
+      "specifier": "^0.45.1",
+      "status": "OK",
+      "notes": "Minor patch behind (0.45.1 vs 0.45.2). Safe to update.",
+      "used_in": [
+        "src/schemas/budgetState.ts",
+        "src/schemas/endpointScores.ts",
+        "src/schemas/paymentHistory.ts"
+      ]
+    },
+    "swarms-ts": {
+      "installed": "0.1.0-alpha.10",
+      "latest": "0.1.0-alpha.10",
+      "specifier": "^0.1.0-alpha.10",
+      "status": "WARNING",
+      "severity": "medium",
+      "notes": "On latest version but SDK is ABANDONED — last publish was 2025-07-31 (8 months ago). We only use it for TypeScript types (AgentSpec, SwarmRunParams). All actual API calls bypass the SDK and use direct fetch to api.swarms.world. The SDK has wrong/outdated endpoints. RECOMMENDATION: Keep for type imports only, or extract the 2 type definitions locally and drop the dependency entirely.",
+      "used_in": [
+        "src/services/swarmsService.ts (types only: AgentSpec, SwarmRunParams)",
+        "src/actions/delegateToSwarm.ts (types only: AgentSpec)"
+      ]
+    },
+    "zod": {
+      "installed": "3.25.76",
+      "latest": "4.3.6",
+      "specifier": "^3.22.0",
+      "status": "CRITICAL",
+      "severity": "high",
+      "notes": "ZOD 4 IS OUT (4.3.6) — installed 3.25.76 is the latest v3 but the specifier ^3.22.0 will never reach v4. Zod 4 has breaking changes (new API surface, different error format). No immediate action needed since v3 is still maintained, but should plan migration. The installed version (3.25.76) is much newer than the specifier (^3.22.0) suggests — semver resolved correctly.",
+      "used_in": [
+        "src/actions/payForService.ts",
+        "src/actions/runSwarmAgent.ts",
+        "src/actions/delegateToSwarm.ts",
+        "src/actions/delegateToSwarmWithPayment.ts"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@elizaos/core": {
+      "installed": "2.0.0-alpha.32",
+      "latest_tag": "2.0.0-alpha.77",
+      "alpha_tag": "2.0.0-alpha.109",
+      "next_tag": "2.0.0-alpha.32",
+      "specifier": "2.0.0-alpha.32 (pinned exact)",
+      "status": "CRITICAL",
+      "severity": "high",
+      "notes": "77 ALPHA VERSIONS BEHIND the 'latest' tag (alpha.32 vs alpha.109). The 'next' dist-tag still points at alpha.32, but 'latest' moved to alpha.77 and active development is at alpha.109 (published today, 2026-03-27). This means: (1) the ElizaOS ecosystem has moved far ahead, (2) newer plugins may require alpha.77+, (3) our PR #322 targets alpha.32 which may be stale. However, since the peerDep is pinned exact, upgrading requires testing for breaking API changes across 77 alpha releases. The core APIs we use (Service, Action, Route, Provider, IAgentRuntime, UUID) are likely stable but ElizaOS alphas frequently break.",
+      "used_in": "21+ files across src/"
+    },
+    "viem": {
+      "installed": "N/A (transitive via @dexterai/x402)",
+      "latest": "2.47.6",
+      "specifier": "^2.0.0 (optional peer)",
+      "status": "WARNING",
+      "notes": "Listed as optional peer dependency but NEVER directly imported anywhere in src/. Only used transitively by @dexterai/x402. Could be removed from peerDependencies since we don't use it directly.",
+      "used_in": []
+    }
+  },
+  "devDependencies": {
+    "typescript": {
+      "installed": "5.9.3",
+      "latest": "6.0.2",
+      "specifier": "^5.3.0",
+      "status": "WARNING",
+      "notes": "TypeScript 6.0 is out. Major version bump — may have breaking changes in compiler behavior. The specifier ^5.3.0 won't auto-upgrade to 6.x. Current 5.9.3 is fine for now but TS6 should be evaluated."
+    },
+    "vitest": {
+      "installed": "1.6.1",
+      "latest": "4.1.2",
+      "specifier": "^1.0.0",
+      "status": "WARNING",
+      "notes": "3 major versions behind (1.x vs 4.x). Vitest 2, 3, and 4 all shipped. Tests still pass on v1 but newer versions have better performance, new APIs, and security fixes. The specifier ^1.0.0 locks to 1.x."
+    },
+    "tsx": {
+      "installed": "4.21.0",
+      "latest": "4.21.0",
+      "status": "OK",
+      "notes": "On latest."
+    },
+    "@types/node": {
+      "installed": "unknown (specifier ^20.0.0)",
+      "latest": "25.5.0",
+      "specifier": "^20.0.0",
+      "status": "OK",
+      "notes": "Semver range is fine. Using ^20 with Bun runtime is acceptable."
+    }
+  },
+  "unused_dependencies": {
+    "viem": {
+      "in_package_json": "peerDependencies (optional)",
+      "imported_in_src": false,
+      "recommendation": "Remove from peerDependencies — only used transitively by @dexterai/x402"
+    }
+  },
+  "swarms_ts_analysis": {
+    "sdk_status": "ABANDONED",
+    "last_publish": "2025-07-31",
+    "months_stale": 8,
+    "total_versions": 10,
+    "all_alpha": true,
+    "why_bypassed": "SDK had wrong/outdated API endpoints. We use direct fetch to api.swarms.world/v1/*",
+    "types_used": ["AgentSpec", "SwarmRunParams", "SwarmRunResponse (custom)"],
+    "recommendation": "OPTION A: Keep as type-only dependency (current approach works). OPTION B: Copy the 2 type definitions into src/types.ts and remove swarms-ts entirely, reducing install size and eliminating a stale dependency."
+  },
+  "elizaos_core_analysis": {
+    "pinned_version": "2.0.0-alpha.32",
+    "latest_stable_tag": "2.0.0-alpha.77",
+    "bleeding_edge": "2.0.0-alpha.109",
+    "versions_behind": 77,
+    "pr_322_status": "OPEN",
+    "pr_322_checks": "SUCCESS (CodeRabbit passed)",
+    "risk_of_upgrade": "HIGH — 77 alpha versions with likely breaking changes to Service, Action, Route APIs",
+    "recommendation": "Do NOT upgrade blindly. Test with alpha.77 first (the 'latest' tag). Check if the ElizaOS plugin registry requires a specific version. Our PR #322 is still open and passing checks on alpha.32."
+  },
+  "dexterai_x402_analysis": {
+    "version": "2.0.0",
+    "status": "CURRENT",
+    "major_jump": "1.x → 2.0.0 on 2026-03-15",
+    "api_compatibility": "We are using the 2.0.0 API correctly (wrapFetch, createBudgetAccount, getPaymentReceipt, X402Error, searchAPIs, createX402Server)",
+    "recommendation": "No action needed. On latest version."
+  },
+  "test_status": {
+    "total_files": 25,
+    "passed_files": 23,
+    "failed_files": 1,
+    "skipped_files": 1,
+    "total_tests": 392,
+    "passed_tests": 384,
+    "failed_tests": 3,
+    "skipped_tests": 5,
+    "failed_file": "tests/routes/tradingRoutes.test.ts",
+    "failure_reason": "3 tests expect 400 status but get 503 — likely a regression in token-price endpoint validation"
+  },
+  "recommendations_prioritized": [
+    {
+      "priority": 1,
+      "action": "Fix 3 failing tests in tradingRoutes.test.ts (503 vs 400 status mismatch)",
+      "effort": "low",
+      "risk": "none"
+    },
+    {
+      "priority": 2,
+      "action": "Evaluate dropping swarms-ts: extract AgentSpec + SwarmRunParams types locally",
+      "effort": "low",
+      "risk": "none"
+    },
+    {
+      "priority": 3,
+      "action": "Remove viem from peerDependencies (not directly imported)",
+      "effort": "trivial",
+      "risk": "none"
+    },
+    {
+      "priority": 4,
+      "action": "Upgrade vitest from 1.x to 4.x (3 major versions behind)",
+      "effort": "medium",
+      "risk": "low — may need test config adjustments"
+    },
+    {
+      "priority": 5,
+      "action": "Test @elizaos/core upgrade to alpha.77 in a branch",
+      "effort": "high",
+      "risk": "high — 77 alpha versions of potential breaking changes"
+    },
+    {
+      "priority": 6,
+      "action": "Plan Zod v4 migration when stable",
+      "effort": "medium",
+      "risk": "medium — new API surface"
+    },
+    {
+      "priority": 7,
+      "action": "Evaluate TypeScript 6.0 upgrade",
+      "effort": "medium",
+      "risk": "medium — new major version"
+    }
+  ]
+}

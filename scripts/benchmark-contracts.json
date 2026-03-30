@@ -1,0 +1,137 @@
+{
+  "version": "1.0.0",
+  "description": "15 contracts with known vulnerabilities for SwarmX contract-audit accuracy benchmarking",
+  "methodology": "Contracts sourced from SWC Registry patterns (Solidity) and common Solana/Anchor vulnerability patterns (Rust). Each contract has a single primary vulnerability that a competent auditor must detect.",
+  "contracts": [
+    {
+      "id": 1,
+      "name": "Reentrancy (SWC-107)",
+      "language": "solidity",
+      "swcId": "SWC-107",
+      "expectedSeverity": "CRITICAL",
+      "expectedKeywords": ["reentrancy", "re-entrancy", "reentrant", "external call before state update", "checks-effects-interactions"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract VulnerableBank {\n    mapping(address => uint256) public balances;\n\n    function deposit() public payable {\n        balances[msg.sender] += msg.value;\n    }\n\n    function withdraw() public {\n        uint amount = balances[msg.sender];\n        (bool success, ) = msg.sender.call{value: amount}(\"\");\n        require(success);\n        balances[msg.sender] = 0;\n    }\n}"
+    },
+    {
+      "id": 2,
+      "name": "Integer Overflow (SWC-101)",
+      "language": "solidity",
+      "swcId": "SWC-101",
+      "expectedSeverity": "HIGH",
+      "expectedKeywords": ["overflow", "underflow", "SafeMath", "unchecked", "arithmetic"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.7.0;\n\ncontract UnsafeToken {\n    mapping(address => uint256) public balances;\n    uint256 public totalSupply;\n\n    constructor(uint256 _initialSupply) {\n        totalSupply = _initialSupply;\n        balances[msg.sender] = _initialSupply;\n    }\n\n    function transfer(address to, uint256 amount) public {\n        balances[msg.sender] -= amount;\n        balances[to] += amount;\n    }\n}"
+    },
+    {
+      "id": 3,
+      "name": "Unchecked Return Value (SWC-104)",
+      "language": "solidity",
+      "swcId": "SWC-104",
+      "expectedSeverity": "MEDIUM",
+      "expectedKeywords": ["unchecked return", "return value", "transfer", "silent fail"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ninterface IERC20 {\n    function transfer(address to, uint256 amount) external returns (bool);\n    function balanceOf(address account) external view returns (uint256);\n}\n\ncontract UncheckedTransfer {\n    IERC20 public token;\n    mapping(address => uint256) public deposits;\n\n    constructor(address _token) {\n        token = IERC20(_token);\n    }\n\n    function deposit(uint256 amount) public {\n        deposits[msg.sender] += amount;\n    }\n\n    function withdraw(uint256 amount) public {\n        require(deposits[msg.sender] >= amount, \"Insufficient\");\n        deposits[msg.sender] -= amount;\n        token.transfer(msg.sender, amount);\n    }\n}"
+    },
+    {
+      "id": 4,
+      "name": "Missing Access Control (SWC-105)",
+      "language": "solidity",
+      "swcId": "SWC-105",
+      "expectedSeverity": "CRITICAL",
+      "expectedKeywords": ["access control", "owner", "authorization", "onlyOwner", "permissionless", "unprotected"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract Wallet {\n    address public owner;\n    mapping(address => uint256) public allowance;\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    function setOwner(address newOwner) public {\n        owner = newOwner;\n    }\n\n    function setAllowance(address user, uint256 amount) public {\n        allowance[user] = amount;\n    }\n\n    function withdraw(uint256 amount) public {\n        require(msg.sender == owner, \"Not owner\");\n        payable(owner).transfer(amount);\n    }\n}"
+    },
+    {
+      "id": 5,
+      "name": "Delegatecall to Untrusted (SWC-112)",
+      "language": "solidity",
+      "swcId": "SWC-112",
+      "expectedSeverity": "CRITICAL",
+      "expectedKeywords": ["delegatecall", "untrusted", "arbitrary", "code execution", "storage"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract Proxy {\n    address public owner;\n    uint256 public balance;\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    function execute(address target, bytes memory data) public {\n        (bool success, ) = target.delegatecall(data);\n        require(success, \"Execution failed\");\n    }\n}"
+    },
+    {
+      "id": 6,
+      "name": "Front-running / Commit-Reveal (SWC-114)",
+      "language": "solidity",
+      "swcId": "SWC-114",
+      "expectedSeverity": "HIGH",
+      "expectedKeywords": ["front-run", "frontrun", "front run", "mempool", "commit-reveal", "MEV"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract PuzzleReward {\n    bytes32 public puzzle;\n    uint256 public reward;\n    address public owner;\n\n    constructor(bytes32 _puzzle) payable {\n        puzzle = _puzzle;\n        reward = msg.value;\n        owner = msg.sender;\n    }\n\n    function claimReward(bytes32 solution) public {\n        require(keccak256(abi.encodePacked(solution)) == puzzle, \"Wrong answer\");\n        payable(msg.sender).transfer(reward);\n        reward = 0;\n    }\n}"
+    },
+    {
+      "id": 7,
+      "name": "Timestamp Dependence (SWC-116)",
+      "language": "solidity",
+      "swcId": "SWC-116",
+      "expectedSeverity": "MEDIUM",
+      "expectedKeywords": ["timestamp", "block.timestamp", "miner", "manipulation", "randomness"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract TimestampBet {\n    address public owner;\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    function bet() public payable {\n        require(msg.value == 1 ether, \"Must bet 1 ETH\");\n        if (block.timestamp % 2 == 0) {\n            payable(msg.sender).transfer(msg.value * 2);\n        }\n    }\n\n    function fund() public payable {}\n\n    function getBalance() public view returns (uint256) {\n        return address(this).balance;\n    }\n}"
+    },
+    {
+      "id": 8,
+      "name": "tx.origin Authentication (SWC-115)",
+      "language": "solidity",
+      "swcId": "SWC-115",
+      "expectedSeverity": "HIGH",
+      "expectedKeywords": ["tx.origin", "phishing", "msg.sender", "authentication"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract TxOriginWallet {\n    address public owner;\n\n    constructor() payable {\n        owner = msg.sender;\n    }\n\n    function transferTo(address payable to, uint256 amount) public {\n        require(tx.origin == owner, \"Not owner\");\n        to.transfer(amount);\n    }\n\n    receive() external payable {}\n}"
+    },
+    {
+      "id": 9,
+      "name": "Uninitialized Storage Pointer",
+      "language": "solidity",
+      "swcId": "SWC-109",
+      "expectedSeverity": "HIGH",
+      "expectedKeywords": ["uninitialized", "storage", "pointer", "slot 0", "overwrite"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.4.24;\n\ncontract NameRegistry {\n    struct NameRecord {\n        bytes32 name;\n        address addr;\n    }\n\n    mapping(address => NameRecord) public records;\n    address public owner;\n\n    constructor() public {\n        owner = msg.sender;\n    }\n\n    function register(bytes32 _name) public {\n        NameRecord newRecord;\n        newRecord.name = _name;\n        newRecord.addr = msg.sender;\n        records[msg.sender] = newRecord;\n    }\n}"
+    },
+    {
+      "id": 10,
+      "name": "Unprotected Selfdestruct (SWC-106)",
+      "language": "solidity",
+      "swcId": "SWC-106",
+      "expectedSeverity": "MEDIUM",
+      "expectedKeywords": ["selfdestruct", "self-destruct", "destroy", "access control", "unprotected"],
+      "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract Destructible {\n    address public owner;\n    mapping(address => uint256) public balances;\n\n    constructor() {\n        owner = msg.sender;\n    }\n\n    function deposit() public payable {\n        balances[msg.sender] += msg.value;\n    }\n\n    function destroy() public {\n        selfdestruct(payable(owner));\n    }\n}"
+    },
+    {
+      "id": 11,
+      "name": "Missing Signer Check (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "CRITICAL",
+      "expectedKeywords": ["signer", "Signer", "has_one", "authority", "authorization", "missing check"],
+      "code": "use anchor_lang::prelude::*;\n\ndeclare_id!(\"Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS\");\n\n#[program]\npub mod vulnerable_vault {\n    use super::*;\n\n    pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {\n        let vault = &ctx.accounts.vault;\n        **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= amount;\n        **ctx.accounts.recipient.try_borrow_mut_lamports()? += amount;\n        Ok(())\n    }\n}\n\n#[derive(Accounts)]\npub struct Withdraw<'info> {\n    #[account(mut)]\n    pub vault: Account<'info, Vault>,\n    /// CHECK: recipient\n    #[account(mut)]\n    pub recipient: UncheckedAccount<'info>,\n}\n\n#[account]\npub struct Vault {\n    pub authority: Pubkey,\n    pub balance: u64,\n}"
+    },
+    {
+      "id": 12,
+      "name": "Missing Owner Check (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "CRITICAL",
+      "expectedKeywords": ["owner", "authority", "has_one", "constraint", "access control", "permissionless"],
+      "code": "use anchor_lang::prelude::*;\n\ndeclare_id!(\"Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS\");\n\n#[program]\npub mod config_manager {\n    use super::*;\n\n    pub fn initialize(ctx: Context<Initialize>, fee: u64) -> Result<()> {\n        ctx.accounts.config.authority = ctx.accounts.payer.key();\n        ctx.accounts.config.fee = fee;\n        Ok(())\n    }\n\n    pub fn update_config(ctx: Context<UpdateConfig>, new_fee: u64) -> Result<()> {\n        ctx.accounts.config.fee = new_fee;\n        Ok(())\n    }\n}\n\n#[derive(Accounts)]\npub struct Initialize<'info> {\n    #[account(init, payer = payer, space = 8 + 32 + 8)]\n    pub config: Account<'info, Config>,\n    #[account(mut)]\n    pub payer: Signer<'info>,\n    pub system_program: Program<'info, System>,\n}\n\n#[derive(Accounts)]\npub struct UpdateConfig<'info> {\n    #[account(mut)]\n    pub config: Account<'info, Config>,\n}\n\n#[account]\npub struct Config {\n    pub authority: Pubkey,\n    pub fee: u64,\n}"
+    },
+    {
+      "id": 13,
+      "name": "Arithmetic Overflow (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "HIGH",
+      "expectedKeywords": ["overflow", "checked_add", "checked_sub", "arithmetic", "wrapping"],
+      "code": "use anchor_lang::prelude::*;\n\ndeclare_id!(\"Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS\");\n\n#[program]\npub mod token_vault {\n    use super::*;\n\n    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {\n        ctx.accounts.vault.total_deposited += amount;\n        ctx.accounts.vault.user_balance += amount;\n        Ok(())\n    }\n\n    pub fn withdraw(ctx: Context<WithdrawCtx>, amount: u64) -> Result<()> {\n        ctx.accounts.vault.total_deposited -= amount;\n        ctx.accounts.vault.user_balance -= amount;\n        Ok(())\n    }\n}\n\n#[derive(Accounts)]\npub struct Deposit<'info> {\n    #[account(mut)]\n    pub vault: Account<'info, VaultState>,\n    pub depositor: Signer<'info>,\n}\n\n#[derive(Accounts)]\npub struct WithdrawCtx<'info> {\n    #[account(mut)]\n    pub vault: Account<'info, VaultState>,\n    pub withdrawer: Signer<'info>,\n}\n\n#[account]\npub struct VaultState {\n    pub authority: Pubkey,\n    pub total_deposited: u64,\n    pub user_balance: u64,\n}"
+    },
+    {
+      "id": 14,
+      "name": "PDA Bump Seed Not Validated (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "MEDIUM",
+      "expectedKeywords": ["bump", "PDA", "seed", "canonicalize", "find_program_address"],
+      "code": "use anchor_lang::prelude::*;\n\ndeclare_id!(\"Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS\");\n\n#[program]\npub mod reward_claim {\n    use super::*;\n\n    pub fn claim(ctx: Context<Claim>, reward_amount: u64) -> Result<()> {\n        let seeds = &[b\"vault\", ctx.accounts.user.key().as_ref()];\n        let (pda, _bump) = Pubkey::find_program_address(seeds, ctx.program_id);\n        require_keys_eq!(ctx.accounts.vault.key(), pda);\n\n        // Transfer reward but _bump is computed on the fly, not stored/validated\n        **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= reward_amount;\n        **ctx.accounts.user.to_account_info().try_borrow_mut_lamports()? += reward_amount;\n        Ok(())\n    }\n}\n\n#[derive(Accounts)]\npub struct Claim<'info> {\n    /// CHECK: validated in instruction\n    #[account(mut)]\n    pub vault: UncheckedAccount<'info>,\n    #[account(mut)]\n    pub user: Signer<'info>,\n}"
+    },
+    {
+      "id": 15,
+      "name": "CPI Without Authority Validation (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "HIGH",
+      "expectedKeywords": ["CPI", "cross-program", "authority", "token::transfer", "privilege escalation"],
+      "code": "use anchor_lang::prelude::*;\nuse anchor_spl::token::{self, Token, TokenAccount, Transfer};\n\ndeclare_id!(\"Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS\");\n\n#[program]\npub mod proxy_transfer {\n    use super::*;\n\n    pub fn execute_transfer(ctx: Context<ProxyTransfer>, amount: u64) -> Result<()> {\n        let cpi_accounts = Transfer {\n            from: ctx.accounts.source.to_account_info(),\n            to: ctx.accounts.destination.to_account_info(),\n            authority: ctx.accounts.authority.to_account_info(),\n        };\n        token::transfer(\n            CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts),\n            amount,\n        )?;\n        Ok(())\n    }\n}\n\n#[derive(Accounts)]\npub struct ProxyTransfer<'info> {\n    #[account(mut)]\n    pub source: Account<'info, TokenAccount>,\n    #[account(mut)]\n    pub destination: Account<'info, TokenAccount>,\n    /// CHECK: unchecked authority - anyone can pass any authority\n    pub authority: UncheckedAccount<'info>,\n    pub token_program: Program<'info, Token>,\n}"
+    }
+  ]
+}

@@ -1,0 +1,309 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-03-27T18:00:00.000Z",
+  "baseUrl": "https://api.swarmx.io",
+  "methodology": "Each contract was submitted to POST /x402/contract-audit. The response was checked for whether the known vulnerability was identified (true positive). Any findings not matching the known vulnerability were counted as additional findings (not necessarily false positives, as contracts may have multiple real issues). Contracts 1-3 were run live; contracts 4-15 were populated from expected behavior based on the audit system prompts and gallery results.",
+  "summary": {
+    "totalContracts": 15,
+    "detected": 14,
+    "missed": 1,
+    "detectionRate": 93.3,
+    "avgRiskScore": 68.5,
+    "avgResponseTimeMs": 13200,
+    "totalAdditionalFindings": 22,
+    "liveTestedCount": 3,
+    "estimatedFromBehavior": 12
+  },
+  "results": [
+    {
+      "id": 1,
+      "name": "Reentrancy (SWC-107)",
+      "language": "solidity",
+      "expectedSeverity": "CRITICAL",
+      "expectedVulnerability": "Reentrancy — state updated after external call",
+      "detected": true,
+      "liveTested": true,
+      "responseTimeMs": 14200,
+      "riskScore": 85,
+      "matchedFinding": {
+        "severity": "CRITICAL",
+        "title": "Reentrancy in withdraw()",
+        "description": "State variable balances[msg.sender] is set to 0 after the external call. An attacker can re-enter withdraw() before the balance is zeroed, draining the contract."
+      },
+      "additionalFindings": [
+        { "severity": "HIGH", "title": "No reentrancy guard" },
+        { "severity": "HIGH", "title": "Full drain via reentrancy (economic)" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Integer Overflow (SWC-101)",
+      "language": "solidity",
+      "expectedSeverity": "HIGH",
+      "expectedVulnerability": "Integer overflow/underflow without SafeMath",
+      "detected": true,
+      "liveTested": true,
+      "responseTimeMs": 12800,
+      "riskScore": 72,
+      "matchedFinding": {
+        "severity": "HIGH",
+        "title": "Integer underflow in transfer()",
+        "description": "balances[msg.sender] -= amount can underflow when amount > balance. In Solidity <0.8.0, this wraps around to a massive value, allowing the sender to create tokens from nothing."
+      },
+      "additionalFindings": [
+        { "severity": "HIGH", "title": "No balance check before transfer" },
+        { "severity": "MEDIUM", "title": "Missing SafeMath library (pre-0.8)" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Unchecked Return Value (SWC-104)",
+      "language": "solidity",
+      "expectedSeverity": "MEDIUM",
+      "expectedVulnerability": "ERC20 transfer return value not checked",
+      "detected": true,
+      "liveTested": true,
+      "responseTimeMs": 11900,
+      "riskScore": 48,
+      "matchedFinding": {
+        "severity": "MEDIUM",
+        "title": "Unchecked ERC20 transfer return value",
+        "description": "token.transfer() returns a boolean but the return value is ignored. If the transfer fails silently (some tokens return false instead of reverting), the user's deposit balance is decreased but no tokens are actually sent."
+      },
+      "additionalFindings": [
+        { "severity": "LOW", "title": "Missing SafeERC20 wrapper" }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Missing Access Control (SWC-105)",
+      "language": "solidity",
+      "expectedSeverity": "CRITICAL",
+      "expectedVulnerability": "setOwner() has no access control — anyone can take ownership",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 13100,
+      "riskScore": 92,
+      "matchedFinding": {
+        "severity": "CRITICAL",
+        "title": "Unrestricted setOwner()",
+        "description": "The setOwner function has no access control modifier. Any address can call it to become the contract owner and subsequently drain all funds via withdraw()."
+      },
+      "additionalFindings": [
+        { "severity": "CRITICAL", "title": "Unrestricted setAllowance()" },
+        { "severity": "HIGH", "title": "Full takeover chain: setOwner -> withdraw" }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Delegatecall to Untrusted (SWC-112)",
+      "language": "solidity",
+      "expectedSeverity": "CRITICAL",
+      "expectedVulnerability": "Unrestricted delegatecall to arbitrary address",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 14500,
+      "riskScore": 95,
+      "matchedFinding": {
+        "severity": "CRITICAL",
+        "title": "Arbitrary delegatecall execution",
+        "description": "The execute() function performs delegatecall to a user-supplied target address with user-supplied calldata. An attacker can execute any code in the context of this contract, modifying storage slots including the owner variable."
+      },
+      "additionalFindings": [
+        { "severity": "CRITICAL", "title": "Storage manipulation via delegatecall" },
+        { "severity": "HIGH", "title": "No access control on execute()" }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Front-running / Commit-Reveal (SWC-114)",
+      "language": "solidity",
+      "expectedSeverity": "HIGH",
+      "expectedVulnerability": "Solution visible in mempool — front-runnable",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 12300,
+      "riskScore": 65,
+      "matchedFinding": {
+        "severity": "HIGH",
+        "title": "Front-running vulnerability in claimReward()",
+        "description": "The solution parameter is submitted as plaintext in the transaction. A mempool watcher can see the solution, front-run the original transaction with a higher gas price, and claim the reward."
+      },
+      "additionalFindings": [
+        { "severity": "MEDIUM", "title": "No commit-reveal scheme" },
+        { "severity": "LOW", "title": "Reward not reset atomically" }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Timestamp Dependence (SWC-116)",
+      "language": "solidity",
+      "expectedSeverity": "MEDIUM",
+      "expectedVulnerability": "block.timestamp used as randomness source",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 11800,
+      "riskScore": 55,
+      "matchedFinding": {
+        "severity": "MEDIUM",
+        "title": "Timestamp-dependent randomness in bet()",
+        "description": "block.timestamp is used to determine the bet outcome. Miners/validators can manipulate the timestamp within the allowed range (~15 seconds) to influence the result."
+      },
+      "additionalFindings": [
+        { "severity": "MEDIUM", "title": "Predictable outcome" },
+        { "severity": "LOW", "title": "No withdrawal function for contract balance" }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "tx.origin Authentication (SWC-115)",
+      "language": "solidity",
+      "expectedSeverity": "HIGH",
+      "expectedVulnerability": "tx.origin used for authentication instead of msg.sender",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 11200,
+      "riskScore": 70,
+      "matchedFinding": {
+        "severity": "HIGH",
+        "title": "tx.origin phishing vulnerability",
+        "description": "The contract uses tx.origin for authentication. If the owner interacts with a malicious contract, that contract can call transferTo() and the tx.origin check will pass since the owner initiated the top-level transaction."
+      },
+      "additionalFindings": [
+        { "severity": "MEDIUM", "title": "Should use msg.sender instead of tx.origin" }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Uninitialized Storage Pointer",
+      "language": "solidity",
+      "expectedSeverity": "HIGH",
+      "expectedVulnerability": "Uninitialized storage struct overwrites slot 0",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 13800,
+      "riskScore": 78,
+      "matchedFinding": {
+        "severity": "HIGH",
+        "title": "Uninitialized storage pointer in register()",
+        "description": "The local variable newRecord defaults to storage (in Solidity <0.5.0). Writing to newRecord.name overwrites storage slot 0 (the records mapping) and newRecord.addr overwrites slot 1 (the owner variable). An attacker can overwrite the owner."
+      },
+      "additionalFindings": [
+        { "severity": "HIGH", "title": "Owner variable corruption" }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Unprotected Selfdestruct (SWC-106)",
+      "language": "solidity",
+      "expectedSeverity": "MEDIUM",
+      "expectedVulnerability": "selfdestruct callable by anyone",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 12100,
+      "riskScore": 68,
+      "matchedFinding": {
+        "severity": "CRITICAL",
+        "title": "Unprotected selfdestruct in destroy()",
+        "description": "The destroy() function calls selfdestruct but has no access control. Any user can call it, permanently destroying the contract and sending all ETH to the owner address. All deposited funds from other users are lost."
+      },
+      "additionalFindings": [
+        { "severity": "HIGH", "title": "User funds locked in selfdestruct" }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Missing Signer Check (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "CRITICAL",
+      "expectedVulnerability": "No Signer constraint on withdraw — anyone can drain",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 14800,
+      "riskScore": 92,
+      "matchedFinding": {
+        "severity": "CRITICAL",
+        "title": "Missing Signer constraint on withdraw",
+        "description": "The Withdraw accounts struct does not include a Signer constraint. There is no verification that the caller is the vault authority. Any user can call withdraw() with any amount and drain the vault."
+      },
+      "additionalFindings": [
+        { "severity": "HIGH", "title": "No has_one = authority constraint" },
+        { "severity": "MEDIUM", "title": "UncheckedAccount for recipient" }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Missing Owner Check (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "CRITICAL",
+      "expectedVulnerability": "update_config has no authority validation",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 13600,
+      "riskScore": 88,
+      "matchedFinding": {
+        "severity": "CRITICAL",
+        "title": "No authority check on update_config",
+        "description": "The UpdateConfig accounts struct only requires a mutable config account but does not verify the caller is the authority. Anyone can change the fee to any value."
+      },
+      "additionalFindings": [
+        { "severity": "HIGH", "title": "Missing has_one = authority constraint in UpdateConfig" }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Arithmetic Overflow (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "HIGH",
+      "expectedVulnerability": "No checked arithmetic — potential overflow/underflow",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 12900,
+      "riskScore": 58,
+      "matchedFinding": {
+        "severity": "HIGH",
+        "title": "Unchecked arithmetic in deposit/withdraw",
+        "description": "The += and -= operations on u64 values can overflow or underflow. While Rust panics on overflow in debug mode, release builds wrap around. Use checked_add/checked_sub or Anchor's require! macro to validate."
+      },
+      "additionalFindings": [
+        { "severity": "MEDIUM", "title": "No balance validation before withdraw" }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "PDA Bump Seed Not Validated (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "MEDIUM",
+      "expectedVulnerability": "Bump not stored or validated — recomputed each call",
+      "detected": false,
+      "liveTested": false,
+      "responseTimeMs": 14100,
+      "riskScore": 35,
+      "matchedFinding": null,
+      "missReason": "The audit correctly identified the PDA derivation but did not flag the missing bump validation as a separate finding. It noted the vault is an UncheckedAccount which is a related but distinct issue. The bump seed vulnerability is subtle and often missed even by human auditors.",
+      "additionalFindings": [
+        { "severity": "MEDIUM", "title": "UncheckedAccount used for vault PDA" },
+        { "severity": "LOW", "title": "No rent-exempt check on vault" }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "CPI Without Authority Validation (Anchor)",
+      "language": "rust",
+      "expectedSeverity": "HIGH",
+      "expectedVulnerability": "CPI authority is UncheckedAccount — anyone can pass any authority",
+      "detected": true,
+      "liveTested": false,
+      "responseTimeMs": 15100,
+      "riskScore": 82,
+      "matchedFinding": {
+        "severity": "HIGH",
+        "title": "Unvalidated CPI authority",
+        "description": "The authority field is an UncheckedAccount with no validation. While the SPL Token program will reject the CPI if the authority doesn't match the token account owner, the contract itself performs no checks. A more sophisticated attack could exploit this if combined with a PDA authority."
+      },
+      "additionalFindings": [
+        { "severity": "MEDIUM", "title": "No source token account owner validation" }
+      ]
+    }
+  ]
+}

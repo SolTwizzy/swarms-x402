@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.swarmx/swarms-x402",
+  "title": "SwarmX",
+  "description": "Multi-agent AI orchestration with native x402 micropayments. 39 MCP tools for crypto analysis, smart contract audit, DeFi yield optimization, code review, research reports, and real-time Solana trading data. Pay per call with USDC.",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swarmx-org/swarms-x402.git"
+  },
+  "packages": [
+    {
+      "registry_name": "npm",
+      "name": "swarms-x402",
+      "version": "0.1.0"
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://swarmx.io/mcp"
+    }
+  ]
+}

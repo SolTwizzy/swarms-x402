@@ -1,0 +1,77 @@
+{
+  "name": "swarms-x402",
+  "version": "0.1.0",
+  "mcpName": "io.swarmx/swarms-x402",
+  "description": "ElizaOS plugin for x402 HTTP payment protocol + Swarms multi-agent orchestration",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js",
+      "default": "./dist/client/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js",
+      "default": "./dist/mcp/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swarmx-org/swarms-x402.git"
+  },
+  "homepage": "https://github.com/swarmx-org/swarms-x402#readme",
+  "bugs": {
+    "url": "https://github.com/swarmx-org/swarms-x402/issues"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:smoke": "RUN_SMOKE=true vitest run --testPathPattern smoke",
+    "example": "tsx examples/basic-agent.ts",
+    "start:server": "bun run server.ts",
+    "demo:code-review": "bun run scripts/demo-code-review.ts",
+    "demo:research": "bun run scripts/demo-research.ts",
+    "mcp:manifest": "bun run src/mcp/manifest.ts",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": ["elizaos", "plugin", "x402", "swarms", "payments", "ai-agents", "crypto"],
+  "license": "MIT",
+  "dependencies": {
+    "@dexterai/x402": "^2.0.0",
+    "drizzle-orm": "^0.45.1",
+    "postgres": "^3.4.8",
+    "swarms-ts": "^0.1.0-alpha.10",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@elizaos/core": "2.0.0-alpha.32",
+    "viem": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "viem": {
+      "optional": true
+    }
+  }
+}

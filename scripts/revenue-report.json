@@ -1,0 +1,1820 @@
+{
+  "generatedAt": "2026-03-27T20:33:53.852Z",
+  "userSegments": [
+    {
+      "name": "Solana Trading Bots",
+      "description": "High-frequency automated trading systems using Jito bundles, Jupiter, and MEV strategies on Solana",
+      "estimatedSize": "50,000-100,000 active bots",
+      "frequency": "High (100-10,000+ calls/day per bot)",
+      "willingness": "High — already spend on Jito tips ($210M/month peak), RPC nodes ($49-999/mo)",
+      "priceRange": "$0.001-$0.01 per call (price-sensitive at volume)",
+      "keyNeeds": [
+        "Sub-second latency",
+        "Wallet analysis for copy-trading",
+        "Token safety scanning before buys",
+        "Sentiment signals for meme coin entry/exit",
+        "High uptime (99.9%+)"
+      ],
+      "evidence": [
+        "3B+ Jito bundles processed in the past year",
+        "95% of Solana stake runs Jito client",
+        "Solana DEX volume $1.2T annually, 40% from new token activity",
+        "Single sandwich bot did 1.55M txns in 30 days ($13.4M profit)",
+        "Jupiter processes millions of successful transactions daily"
+      ]
+    },
+    {
+      "name": "ElizaOS Agents",
+      "description": "AI agents built on the ElizaOS framework, deployed as chatbots, trading agents, NPCs, and business automation",
+      "estimatedSize": "5,000-15,000 active agents (est. from npm + GitHub activity)",
+      "frequency": "Medium (10-500 calls/day per agent)",
+      "willingness": "Medium — already integrated into plugin ecosystem, convenience-driven",
+      "priceRange": "$0.01-$0.05 per call (value-driven)",
+      "keyNeeds": [
+        "Plugin-based integration (drop-in npm package)",
+        "Multi-agent orchestration (Swarms templates)",
+        "Research + analysis for autonomous decision-making",
+        "Memory-aware context across sessions",
+        "Budget controls (auto-pay limits)"
+      ],
+      "evidence": [
+        "17,389 GitHub stars on elizaOS/eliza",
+        "102,714 @elizaos/core npm downloads last month",
+        "27,678 @elizaos/core npm downloads last week",
+        "@elizaos/core at v1.7.2 (active development)",
+        "Doodles using ElizaOS for Dreamnet metaverse agents",
+        "elizaos-plugin topic on GitHub shows growing ecosystem"
+      ]
+    },
+    {
+      "name": "Data Aggregators & Platforms",
+      "description": "Bulk data consumers building dashboards, analytics platforms, and data pipelines that aggregate multiple x402 endpoints",
+      "estimatedSize": "500-2,000 active platforms",
+      "frequency": "Very High (1,000-100,000 calls/day)",
+      "willingness": "High — but need volume discounts to justify cost at scale",
+      "priceRange": "$0.0005-$0.005 per call (volume-discounted)",
+      "keyNeeds": [
+        "Bulk pricing / volume discounts",
+        "API reliability (SLA guarantees)",
+        "Consistent response formats (JSON schemas)",
+        "Historical data access",
+        "Multi-endpoint bundling"
+      ],
+      "evidence": [
+        "Birdeye, Helius, DeFiLlama all aggregate and resell data",
+        "Helius Developer tier: $49/mo for 10M credits",
+        "x402 ecosystem: 90+ services, 500K+ weekly txns",
+        "Alfred's Digital Bazaar: 100+ endpoints from a single provider"
+      ]
+    },
+    {
+      "name": "Individual Developers",
+      "description": "Solo devs and small teams exploring AI agent development, prototyping, and learning",
+      "estimatedSize": "10,000-50,000 developers",
+      "frequency": "Low (1-50 calls/day)",
+      "willingness": "Low-Medium — need free tier or very low cost to start, convert later",
+      "priceRange": "$0.001-$0.02 per call (need free tier)",
+      "keyNeeds": [
+        "Free tier / trial credits",
+        "Clear documentation",
+        "SDKs in multiple languages",
+        "Example code and templates",
+        "Low barrier to first payment"
+      ],
+      "evidence": [
+        "swarms-ts has only 28 npm downloads/month — early market",
+        "Swarms GitHub has 6.1K stars",
+        "Gartner predicts 40% of enterprise apps deploy multi-agent swarms by end of 2026",
+        "OpenAI Agents SDK launched March 2026 — growing interest",
+        "SolSignal offers 10 free scans/day to attract developers"
+      ]
+    }
+  ],
+  "paymentModels": [
+    {
+      "name": "Per-Call Pricing (Current)",
+      "description": "Each API call costs a fixed USDC amount, paid via x402 HTTP 402 flow. Current SwarmX model.",
+      "x402Compatible": true,
+      "implementation": "Already implemented. x402Gate() returns 402 with price header, client pays, server verifies.",
+      "pros": [
+        "Zero commitment for users — pay only for what you use",
+        "Simple mental model — price is transparent per call",
+        "Native x402 pattern — no middleware needed",
+        "Works across all user segments",
+        "Instant settlement via Dexter (0 fees for first 20K/day)"
+      ],
+      "cons": [
+        "Unpredictable revenue for operator",
+        "High-volume users pay more than subscription would cost",
+        "Each call has blockchain settlement overhead (even if sub-cent)",
+        "No lock-in — users can switch providers instantly"
+      ],
+      "recommendedSegments": [
+        "Individual Developers",
+        "ElizaOS Agents"
+      ],
+      "examplePricing": {
+        "Single-agent AI tasks": "$0.001-$0.005/call (95% margin via direct OpenAI)",
+        "Solana data lookups": "$0.005-$0.02/call",
+        "Multi-agent research": "$0.03-$0.10/call (40-60% margin via Swarms)",
+        "Premium reports": "$0.10-$1.00/call"
+      }
+    },
+    {
+      "name": "Volume Discount Tiers",
+      "description": "Discounted per-call rates based on cumulative usage within a billing period. Track via on-chain settlement count.",
+      "x402Compatible": true,
+      "implementation": "Use x402 V2 dynamic getAmount callback. Server checks caller's 30-day settlement count from payment history DB, returns discounted price. Already have Drizzle ORM tables for tracking.",
+      "pros": [
+        "Incentivizes higher volume — rewards loyal users",
+        "Keeps pay-per-call simplicity",
+        "Competitive with subscription at scale",
+        "Data aggregators specifically need this"
+      ],
+      "cons": [
+        "Complexity in price calculation per request",
+        "Need reliable settlement counting (DB dependency)",
+        "Potential for gaming via multiple wallets",
+        "Reduced per-call revenue at high tiers"
+      ],
+      "recommendedSegments": [
+        "Data Aggregators & Platforms",
+        "Solana Trading Bots"
+      ],
+      "examplePricing": {
+        "0-99 calls/month": "Standard price (no discount)",
+        "100-999 calls/month": "10% discount",
+        "1,000-9,999 calls/month": "20% discount",
+        "10,000+ calls/month": "30% discount"
+      }
+    },
+    {
+      "name": "Access Pass (Time-Based)",
+      "description": "Pay a fixed amount for unlimited (or high-limit) access over a time period. Dexter SDK supports X402_ACCESS_PASS_TIER.",
+      "x402Compatible": true,
+      "implementation": "Dexter X402_ACCESS_PASS_TIER env var. Client purchases access pass NFT/token, server checks validity. Pass stored on-chain or in DB with expiry timestamp.",
+      "pros": [
+        "Predictable cost for users — budget certainty",
+        "Predictable revenue for operators",
+        "Reduces per-call friction for high-frequency users",
+        "Familiar SaaS model (monthly subscription)",
+        "Lock-in effect — users commit for duration"
+      ],
+      "cons": [
+        "Complex to implement on-chain (NFT or token-gated)",
+        "Risk of underpricing if user volume exceeds projections",
+        "Less native to x402 per-call philosophy",
+        "Requires refund/cancellation policy"
+      ],
+      "recommendedSegments": [
+        "Solana Trading Bots",
+        "Data Aggregators & Platforms"
+      ],
+      "examplePricing": {
+        "Basic Pass (1 week)": "$5 — up to 1,000 calls across all single-agent endpoints",
+        "Pro Pass (1 month)": "$25 — up to 10,000 calls across all endpoints",
+        "Enterprise Pass (1 month)": "$100 — unlimited calls, priority queue, SLA"
+      }
+    },
+    {
+      "name": "Tiered Quality Pricing",
+      "description": "Same endpoint at different quality/speed tiers. Like Jupiter regular vs Pro quotes, or Claude Haiku vs Opus pricing.",
+      "x402Compatible": true,
+      "implementation": "Query param or separate endpoints: /x402/research?tier=basic ($0.01) vs /x402/research?tier=pro ($0.05). Basic uses single-agent direct OpenAI, Pro uses multi-agent Swarms orchestration.",
+      "pros": [
+        "Captures value at every price sensitivity level",
+        "Users self-select into appropriate tier",
+        "Higher tiers have higher margins per call",
+        "Can use cheaper models for basic tier (GPT-4.1 nano at $0.10/M tokens)"
+      ],
+      "cons": [
+        "More endpoints to maintain and document",
+        "Users may always choose cheapest tier",
+        "Quality difference must be clearly demonstrable",
+        "Naming/branding complexity"
+      ],
+      "recommendedSegments": [
+        "ElizaOS Agents",
+        "Individual Developers",
+        "Solana Trading Bots"
+      ],
+      "examplePricing": {
+        "Basic Summarize (GPT-4.1 nano)": "$0.001/call — fast, good enough for most uses",
+        "Pro Summarize (GPT-4.1)": "$0.005/call — better quality, longer context",
+        "Basic Research (single-agent)": "$0.01/call — quick answer",
+        "Pro Research (multi-agent Swarms)": "$0.05/call — thorough, multiple perspectives",
+        "Premium Research (extended pipeline)": "$0.25/call — deep research with citations"
+      }
+    }
+  ],
+  "competitorLandscape": {
+    "totalEndpoints": 80,
+    "endpoints": [
+      {
+        "name": "Jupiter DEX Quote (Pro)",
+        "url": "https://x402.dexter.cash/api/jupiter/quote/pro",
+        "price": 0.1,
+        "quality": 92,
+        "calls": 3334871,
+        "seller": "Dexter AI",
+        "category": "Tools",
+        "network": "solana",
+        "estimatedRevenue": 333487.10000000003
+      },
+      {
+        "name": "DeFi Supported Chains List",
+        "url": "https://defi-dx.hugen.tokyo/defi/chains",
+        "price": 0.005,
+        "quality": 94,
+        "calls": 238,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.19
+      },
+      {
+        "name": "Infinite Story: Add Word",
+        "url": "https://x402.dexter.cash/api/games/story/append",
+        "price": 0.01,
+        "quality": 92,
+        "calls": 1523256,
+        "seller": "Dexter AI",
+        "category": "Social",
+        "network": "solana",
+        "estimatedRevenue": 15232.56
+      },
+      {
+        "name": "DeFi DEX Volume History",
+        "url": "https://defi-dx.hugen.tokyo/defi/dex/volume",
+        "price": 0.005,
+        "quality": 90,
+        "calls": 235,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.175
+      },
+      {
+        "name": "Solscan Trending Tokens",
+        "url": "https://x402.dexter.cash/api/tools/solscan/trending",
+        "price": 0.05,
+        "quality": 88,
+        "calls": 987,
+        "seller": "Dexter",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 49.35
+      },
+      {
+        "name": "Lobsters Scout API",
+        "url": "https://scout-dx.hugen.tokyo/scout/lobsters",
+        "price": 0.005,
+        "quality": 88,
+        "calls": 239,
+        "seller": "Scout Dx",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 1.195
+      },
+      {
+        "name": "Jupiter Swap Quote",
+        "url": "https://x402.dexter.cash/api/jupiter/quote",
+        "price": 0.05,
+        "quality": 92,
+        "calls": 2434,
+        "seller": "Dexter",
+        "category": "DeFi",
+        "network": "solana",
+        "estimatedRevenue": 121.7
+      },
+      {
+        "name": "Dev.to Scout",
+        "url": "https://scout-dx.hugen.tokyo/scout/devto",
+        "price": 0.005,
+        "quality": 88,
+        "calls": 236,
+        "seller": "Scout Dx",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 1.18
+      },
+      {
+        "name": "Image Model - Nano Banana",
+        "url": "https://api.xona-agent.com/image/nano-banana",
+        "price": 0.1,
+        "quality": 90,
+        "calls": 218,
+        "seller": "Xona Agent",
+        "category": "AI",
+        "network": "solana",
+        "estimatedRevenue": 21.8
+      },
+      {
+        "name": "DeFi Stablecoin Circulating Supply API",
+        "url": "https://defi-dx.hugen.tokyo/defi/stablecoins",
+        "price": 0.005,
+        "quality": 88,
+        "calls": 237,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.185
+      },
+      {
+        "name": "x402 Scan Leaderboard",
+        "url": "https://x402.dexter.cash/api/tools/x402/scan/stats",
+        "price": 0.05,
+        "quality": 88,
+        "calls": 99,
+        "seller": "Dexter AI",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 4.95
+      },
+      {
+        "name": "Stablecoin Circulation by Chain",
+        "url": "https://defi-dx.hugen.tokyo/defi/stablecoin/chains",
+        "price": 0.005,
+        "quality": 87,
+        "calls": 235,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.175
+      },
+      {
+        "name": "Dexter x402 v2 Pay Test",
+        "url": "https://x402.dexter.cash/api/v2-test",
+        "price": 0.01,
+        "quality": 88,
+        "calls": 67,
+        "seller": "Dexter AI",
+        "category": "Tools",
+        "network": "solana",
+        "estimatedRevenue": 0.67
+      },
+      {
+        "name": "ScoutDX Research Access",
+        "url": "https://scout-dx.hugen.tokyo/scout/research",
+        "price": 0.25,
+        "quality": 78,
+        "calls": 235,
+        "seller": "Scout Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 58.75
+      },
+      {
+        "name": "Designer AI",
+        "url": "https://api.xona-agent.com/image/designer",
+        "price": 0.08,
+        "quality": 88,
+        "calls": 86,
+        "seller": "Xona Agent",
+        "category": "AI",
+        "network": "solana",
+        "estimatedRevenue": 6.88
+      },
+      {
+        "name": "StackScout",
+        "url": "https://scout-dx.hugen.tokyo/scout/stackoverflow",
+        "price": 0.005,
+        "quality": 78,
+        "calls": 237,
+        "seller": "Scout Dx",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 1.185
+      },
+      {
+        "name": "Solscan Trending Pro",
+        "url": "https://x402.dexter.cash/api/tools/solscan/trending/pro",
+        "price": 0.1,
+        "quality": 88,
+        "calls": 168,
+        "seller": "Dexter",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 16.8
+      },
+      {
+        "name": "PyPI Scout",
+        "url": "https://scout-dx.hugen.tokyo/scout/pypi",
+        "price": 0.005,
+        "quality": 72,
+        "calls": 238,
+        "seller": "Scout Dx",
+        "category": "Tools",
+        "network": "base",
+        "estimatedRevenue": 1.19
+      },
+      {
+        "name": "Grok Imagine",
+        "url": "https://api.xona-agent.com/image/grok-imagine",
+        "price": 0.04,
+        "quality": 92,
+        "calls": 56,
+        "seller": "Xona Agent",
+        "category": "AI",
+        "network": "solana",
+        "estimatedRevenue": 2.24
+      },
+      {
+        "name": "DeFi Protocol Atlas",
+        "url": "https://defi-dx.hugen.tokyo/defi/protocols",
+        "price": 0.005,
+        "quality": 72,
+        "calls": 237,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.185
+      },
+      {
+        "name": "Onchain Entity Insights",
+        "url": "https://x402.dexter.cash/onchain/entity",
+        "price": 0.05,
+        "quality": 78,
+        "calls": 83,
+        "seller": "Dexter AI",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 4.15
+      },
+      {
+        "name": "Solana Token Discovery",
+        "url": "https://api.xona-agent.com/token/solana-discovery",
+        "price": 0.01,
+        "quality": 86,
+        "calls": 25,
+        "seller": "Xona Agent",
+        "category": "Data",
+        "network": "solana",
+        "estimatedRevenue": 0.25
+      },
+      {
+        "name": "TokenInsight Report",
+        "url": "https://intel-dx.hugen.tokyo/intel/token-report",
+        "price": 0.5,
+        "quality": 58,
+        "calls": 232,
+        "seller": "Intel Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 116
+      },
+      {
+        "name": "Contract Insight",
+        "url": "https://intel-dx.hugen.tokyo/intel/contract-report",
+        "price": 0.5,
+        "quality": 58,
+        "calls": 227,
+        "seller": "Intel Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 113.5
+      },
+      {
+        "name": "USDC-Paid TODO Fetch",
+        "url": "https://3of7zkdv.nx.link/todos/1",
+        "price": 0.00001,
+        "quality": 95,
+        "calls": 0,
+        "seller": "3of7zkdv",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "x402 Paywall",
+        "url": "https://hyreagent.fun/api/x402/test",
+        "price": 0.001,
+        "quality": 92,
+        "calls": 7,
+        "seller": "Hyre Agent",
+        "category": "Data",
+        "network": "solana",
+        "estimatedRevenue": 0.007
+      },
+      {
+        "name": "JSONRecon Extractor",
+        "url": "https://jsonrecon.com/extract",
+        "price": 0.01,
+        "quality": 92,
+        "calls": 0,
+        "seller": "Jsonrecon",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Digital Experiences Catalog",
+        "url": "https://ty9d9wdq.nx.link/api/digital-experiences",
+        "price": 0,
+        "quality": 92,
+        "calls": 0,
+        "seller": "Ty9d9wdq",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "KittyFact API",
+        "url": "https://api.x402.jobs/@rawgroundbeef/a-cat-fact",
+        "price": 0.01,
+        "quality": 92,
+        "calls": 0,
+        "seller": "Jobs",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Heurist TokenGuard",
+        "url": "https://mesh.heurist.xyz/x402/agents/GoplusAnalysisAgent/fetch_security_details",
+        "price": 0.01,
+        "quality": 90,
+        "calls": 0,
+        "seller": "Mesh",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "IP Insight",
+        "url": "https://hh7tr41c.nx.link/ip",
+        "price": 0.000001,
+        "quality": 90,
+        "calls": 0,
+        "seller": "Hh7tr41c",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Polymarket Paywalled Markets",
+        "url": "https://api.paysponge.com/x402/purchase/svc_d5y7k40sm2ntn45xr/polymarket/markets",
+        "price": 0.01,
+        "quality": 90,
+        "calls": 0,
+        "seller": "PaySponge",
+        "category": "Trading",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "x402 Solana CoinPrice",
+        "url": "https://x402factory.ai/solana/coinprice",
+        "price": 0.001,
+        "quality": 88,
+        "calls": 0,
+        "seller": "X402factory",
+        "category": "Data",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Pond Wallet Analyzer",
+        "url": "https://mesh.heurist.xyz/x402/agents/PondWalletAnalysisAgent/analyze_base_wallet",
+        "price": 0.002,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Mesh",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Twitter User Lookup",
+        "url": "https://api.portalsprotocol.com/twitter/user",
+        "price": 0.001,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Portalsprotocol",
+        "category": "Social",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "PumpFun Graduates (Heurist)",
+        "url": "https://mesh.heurist.xyz/x402/solana/agents/PumpFunTokenAgent/query_latest_graduated_tokens",
+        "price": 0.01,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Mesh",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Heurist Smart Mentions Feed",
+        "url": "https://mesh.heurist.xyz/x402/agents/MoniTwitterInsightAgent/get_smart_mentions_feed",
+        "price": 0.01,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Mesh",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "x402 Solana XProfile",
+        "url": "https://x402factory.ai/solana/xprofile",
+        "price": 0.001,
+        "quality": 88,
+        "calls": 0,
+        "seller": "X402factory",
+        "category": "Social",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Heurist Trending Tokens",
+        "url": "https://mesh.heurist.xyz/x402/agents/TrendingTokenAgent/get_trending_tokens",
+        "price": 0.002,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Mesh",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Kalshi TradeStream Access",
+        "url": "https://api.paysponge.com/x402/purchase/svc_d5y7k40sm2ntn45xr/kalshi/trades",
+        "price": 0.01,
+        "quality": 88,
+        "calls": 0,
+        "seller": "PaySponge",
+        "category": "Trading",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Sally Health Advisor",
+        "url": "https://mesh.heurist.xyz/x402/solana/agents/SallyHealthAgent/ask_health_advice",
+        "price": 0.01,
+        "quality": 86,
+        "calls": 0,
+        "seller": "Mesh",
+        "category": "AI",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "WalletSight Report",
+        "url": "https://intel-dx.hugen.tokyo/intel/wallet-report",
+        "price": 0.5,
+        "quality": 60,
+        "calls": 231,
+        "seller": "Intel Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 115.5
+      },
+      {
+        "name": "x402 v2 Paid Test",
+        "url": "https://www.ritmex.one/x402/test",
+        "price": 0.001,
+        "quality": 85,
+        "calls": 0,
+        "seller": "Ritmex",
+        "category": "Tools",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Heurist X User Timeline",
+        "url": "https://mesh.heurist.xyz/x402/solana/agents/TwitterIntelligenceAgent/user_timeline",
+        "price": 0.01,
+        "quality": 85,
+        "calls": 0,
+        "seller": "Mesh",
+        "category": "Social",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "x402Factory Solana GPT Agent",
+        "url": "https://x402factory.ai/solana/llm/gpt/T6G59ANZRFBKRHXTHG",
+        "price": 0.027516,
+        "quality": 88,
+        "calls": 0,
+        "seller": "X402factory",
+        "category": "AI",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "TokenFinder",
+        "url": "https://yddkctoq.nx.link/v1/tokens",
+        "price": 0.0001,
+        "quality": 82,
+        "calls": 0,
+        "seller": "Yddkctoq",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "TrendPulse Headlines",
+        "url": "https://api.syraa.fun/trending-headline",
+        "price": 0.1,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Syraa",
+        "category": "Data",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Json2Excel Pro",
+        "url": "https://api2ls.com/api/json2excel",
+        "price": 0.1,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Api2ls",
+        "category": "Tools",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Sundown Digest",
+        "url": "https://api.syraa.fun/sundown-digest",
+        "price": 0.1,
+        "quality": 88,
+        "calls": 0,
+        "seller": "Syraa",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "x402 Sentiment Analyzer",
+        "url": "https://hyreagent.fun/api/x402/sentiment/analyze",
+        "price": 0.03,
+        "quality": 88,
+        "calls": 4,
+        "seller": "Hyre Agent",
+        "category": "AI",
+        "network": "solana",
+        "estimatedRevenue": 0.12
+      },
+      {
+        "name": "SolSignal API (Token Safety)",
+        "url": "solsignal-api.onrender.com",
+        "price": 0.01,
+        "quality": 0,
+        "calls": 0,
+        "seller": "SolSignal",
+        "category": "Crypto Security",
+        "network": "solana",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Alfred's Digital Bazaar",
+        "url": "httpay.xyz",
+        "price": 0.1,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Alfred",
+        "category": "Utility APIs",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Gotobi Calendar API",
+        "url": "gotobi.hugen.tokyo",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "FX Intelligence",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Weather API",
+        "url": "weather.hugen.tokyo",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "Weather",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Scout MCP (Multi-Source Search)",
+        "url": "scout.hugen.tokyo",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "Search",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Obol (AI Code Generation)",
+        "url": "obol.sh",
+        "price": 5,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Obol",
+        "category": "AI Code",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "DeFi Intelligence API",
+        "url": "defi.hugen.tokyo",
+        "price": 0.005,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "DeFi Security",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Visual API (Screenshot/PDF)",
+        "url": "visual.hugen.tokyo",
+        "price": 0.01,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "Media",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "MoonMaker API (Crypto Signals)",
+        "url": "api.moonmaker.cc",
+        "price": 0.02,
+        "quality": 0,
+        "calls": 0,
+        "seller": "MoonMaker",
+        "category": "Crypto Signals",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "zeroreader AI API (29 Models)",
+        "url": "api.zeroreader.com",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "zeroreader",
+        "category": "AI Models",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Content Intelligence API",
+        "url": "content.hugen.tokyo",
+        "price": 0.003,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "Content",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Intel API (Crypto Due Diligence)",
+        "url": "intel.hugen.tokyo",
+        "price": 0.5,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "Due Diligence",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Tick Aggregator API (FX Data)",
+        "url": "tick.hugen.tokyo",
+        "price": 0.005,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "FX Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "PortsideLabs Places API",
+        "url": "portsidelabs",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "PortsideLabs",
+        "category": "Location",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "PortsideLabs KoinChappie",
+        "url": "portsidelabs",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "PortsideLabs",
+        "category": "Crypto Signals",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "AskClaude (Claude AI)",
+        "url": "askclaude",
+        "price": 0.03,
+        "quality": 0,
+        "calls": 0,
+        "seller": "AskClaude",
+        "category": "AI LLM",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "BlockRun.AI (LLM Gateway)",
+        "url": "blockrun.ai",
+        "price": 0.01,
+        "quality": 0,
+        "calls": 0,
+        "seller": "BlockRun",
+        "category": "AI LLM",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "GPU-Bridge (GPU Inference)",
+        "url": "gpubridge.xyz",
+        "price": 0.05,
+        "quality": 0,
+        "calls": 0,
+        "seller": "GPU-Bridge",
+        "category": "GPU Compute",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Augur (Prediction)",
+        "url": "augur",
+        "price": 0.1,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Augur",
+        "category": "Predictions",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Stakevia (Staking Reports)",
+        "url": "stakevia",
+        "price": 1,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Stakevia",
+        "category": "Reports",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Mycelia Signal (Price Feeds)",
+        "url": "mycelia",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Mycelia",
+        "category": "Price Feeds",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Mailcheck API",
+        "url": "mailcheck.hugen.tokyo",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "Email Validation",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Domain Intelligence API",
+        "url": "domain.hugen.tokyo",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "hugen",
+        "category": "Domain Analysis",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Agent Arena (Agent Registry)",
+        "url": "agentarena.site",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "AgentArena",
+        "category": "Agent Registry",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Firecrawl (Web Scraping)",
+        "url": "firecrawl",
+        "price": 0.01,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Firecrawl",
+        "category": "Web Scraping",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Pinata (IPFS Uploads)",
+        "url": "pinata",
+        "price": 0.01,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Pinata",
+        "category": "Storage",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "dTelecom STT",
+        "url": "dtelecom",
+        "price": 0.01,
+        "quality": 0,
+        "calls": 0,
+        "seller": "dTelecom",
+        "category": "Speech-to-Text",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "DiamondClaws (DeFi Data)",
+        "url": "diamondclaws",
+        "price": 0.001,
+        "quality": 0,
+        "calls": 0,
+        "seller": "DiamondClaws",
+        "category": "DeFi Data",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "ShieldAPI MCP (Security)",
+        "url": "shieldapi",
+        "price": 0.005,
+        "quality": 0,
+        "calls": 0,
+        "seller": "ShieldAPI",
+        "category": "Security",
+        "network": "base",
+        "estimatedRevenue": 0
+      },
+      {
+        "name": "Robtex (Network Intel)",
+        "url": "robtex",
+        "price": 0.005,
+        "quality": 0,
+        "calls": 0,
+        "seller": "Robtex",
+        "category": "Network Intelligence",
+        "network": "base",
+        "estimatedRevenue": 0
+      }
+    ],
+    "topByRevenue": [
+      {
+        "name": "Jupiter DEX Quote (Pro)",
+        "url": "https://x402.dexter.cash/api/jupiter/quote/pro",
+        "price": 0.1,
+        "quality": 92,
+        "calls": 3334871,
+        "seller": "Dexter AI",
+        "category": "Tools",
+        "network": "solana",
+        "estimatedRevenue": 333487.10000000003
+      },
+      {
+        "name": "Infinite Story: Add Word",
+        "url": "https://x402.dexter.cash/api/games/story/append",
+        "price": 0.01,
+        "quality": 92,
+        "calls": 1523256,
+        "seller": "Dexter AI",
+        "category": "Social",
+        "network": "solana",
+        "estimatedRevenue": 15232.56
+      },
+      {
+        "name": "Jupiter Swap Quote",
+        "url": "https://x402.dexter.cash/api/jupiter/quote",
+        "price": 0.05,
+        "quality": 92,
+        "calls": 2434,
+        "seller": "Dexter",
+        "category": "DeFi",
+        "network": "solana",
+        "estimatedRevenue": 121.7
+      },
+      {
+        "name": "TokenInsight Report",
+        "url": "https://intel-dx.hugen.tokyo/intel/token-report",
+        "price": 0.5,
+        "quality": 58,
+        "calls": 232,
+        "seller": "Intel Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 116
+      },
+      {
+        "name": "WalletSight Report",
+        "url": "https://intel-dx.hugen.tokyo/intel/wallet-report",
+        "price": 0.5,
+        "quality": 60,
+        "calls": 231,
+        "seller": "Intel Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 115.5
+      },
+      {
+        "name": "Contract Insight",
+        "url": "https://intel-dx.hugen.tokyo/intel/contract-report",
+        "price": 0.5,
+        "quality": 58,
+        "calls": 227,
+        "seller": "Intel Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 113.5
+      },
+      {
+        "name": "ScoutDX Research Access",
+        "url": "https://scout-dx.hugen.tokyo/scout/research",
+        "price": 0.25,
+        "quality": 78,
+        "calls": 235,
+        "seller": "Scout Dx",
+        "category": "Analytics",
+        "network": "base",
+        "estimatedRevenue": 58.75
+      },
+      {
+        "name": "Solscan Trending Tokens",
+        "url": "https://x402.dexter.cash/api/tools/solscan/trending",
+        "price": 0.05,
+        "quality": 88,
+        "calls": 987,
+        "seller": "Dexter",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 49.35
+      },
+      {
+        "name": "Image Model - Nano Banana",
+        "url": "https://api.xona-agent.com/image/nano-banana",
+        "price": 0.1,
+        "quality": 90,
+        "calls": 218,
+        "seller": "Xona Agent",
+        "category": "AI",
+        "network": "solana",
+        "estimatedRevenue": 21.8
+      },
+      {
+        "name": "Solscan Trending Pro",
+        "url": "https://x402.dexter.cash/api/tools/solscan/trending/pro",
+        "price": 0.1,
+        "quality": 88,
+        "calls": 168,
+        "seller": "Dexter",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 16.8
+      }
+    ],
+    "topByVolume": [
+      {
+        "name": "Jupiter DEX Quote (Pro)",
+        "url": "https://x402.dexter.cash/api/jupiter/quote/pro",
+        "price": 0.1,
+        "quality": 92,
+        "calls": 3334871,
+        "seller": "Dexter AI",
+        "category": "Tools",
+        "network": "solana",
+        "estimatedRevenue": 333487.10000000003
+      },
+      {
+        "name": "Infinite Story: Add Word",
+        "url": "https://x402.dexter.cash/api/games/story/append",
+        "price": 0.01,
+        "quality": 92,
+        "calls": 1523256,
+        "seller": "Dexter AI",
+        "category": "Social",
+        "network": "solana",
+        "estimatedRevenue": 15232.56
+      },
+      {
+        "name": "Jupiter Swap Quote",
+        "url": "https://x402.dexter.cash/api/jupiter/quote",
+        "price": 0.05,
+        "quality": 92,
+        "calls": 2434,
+        "seller": "Dexter",
+        "category": "DeFi",
+        "network": "solana",
+        "estimatedRevenue": 121.7
+      },
+      {
+        "name": "Solscan Trending Tokens",
+        "url": "https://x402.dexter.cash/api/tools/solscan/trending",
+        "price": 0.05,
+        "quality": 88,
+        "calls": 987,
+        "seller": "Dexter",
+        "category": "Analytics",
+        "network": "solana",
+        "estimatedRevenue": 49.35
+      },
+      {
+        "name": "Lobsters Scout API",
+        "url": "https://scout-dx.hugen.tokyo/scout/lobsters",
+        "price": 0.005,
+        "quality": 88,
+        "calls": 239,
+        "seller": "Scout Dx",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 1.195
+      },
+      {
+        "name": "DeFi Supported Chains List",
+        "url": "https://defi-dx.hugen.tokyo/defi/chains",
+        "price": 0.005,
+        "quality": 94,
+        "calls": 238,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.19
+      },
+      {
+        "name": "PyPI Scout",
+        "url": "https://scout-dx.hugen.tokyo/scout/pypi",
+        "price": 0.005,
+        "quality": 72,
+        "calls": 238,
+        "seller": "Scout Dx",
+        "category": "Tools",
+        "network": "base",
+        "estimatedRevenue": 1.19
+      },
+      {
+        "name": "DeFi Stablecoin Circulating Supply API",
+        "url": "https://defi-dx.hugen.tokyo/defi/stablecoins",
+        "price": 0.005,
+        "quality": 88,
+        "calls": 237,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.185
+      },
+      {
+        "name": "StackScout",
+        "url": "https://scout-dx.hugen.tokyo/scout/stackoverflow",
+        "price": 0.005,
+        "quality": 78,
+        "calls": 237,
+        "seller": "Scout Dx",
+        "category": "Data",
+        "network": "base",
+        "estimatedRevenue": 1.185
+      },
+      {
+        "name": "DeFi Protocol Atlas",
+        "url": "https://defi-dx.hugen.tokyo/defi/protocols",
+        "price": 0.005,
+        "quality": 72,
+        "calls": 237,
+        "seller": "Defi Dx",
+        "category": "DeFi",
+        "network": "base",
+        "estimatedRevenue": 1.185
+      }
+    ],
+    "categoryBreakdown": {
+      "Tools": {
+        "count": 5,
+        "avgPrice": 0.0432,
+        "totalCalls": 3335176,
+        "totalRevenue": 333488.96
+      },
+      "DeFi": {
+        "count": 6,
+        "avgPrice": 0.012500000000000002,
+        "totalCalls": 3616,
+        "totalRevenue": 127.61
+      },
+      "Social": {
+        "count": 4,
+        "avgPrice": 0.0055,
+        "totalCalls": 1523256,
+        "totalRevenue": 15232.56
+      },
+      "Analytics": {
+        "count": 14,
+        "avgPrice": 0.1524285714285714,
+        "totalCalls": 2262,
+        "totalRevenue": 479
+      },
+      "Data": {
+        "count": 13,
+        "avgPrice": 0.012259250000000001,
+        "totalCalls": 744,
+        "totalRevenue": 3.817
+      },
+      "AI": {
+        "count": 6,
+        "avgPrice": 0.047919333333333335,
+        "totalCalls": 364,
+        "totalRevenue": 31.040000000000003
+      },
+      "Trading": {
+        "count": 2,
+        "avgPrice": 0.01,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Crypto Security": {
+        "count": 1,
+        "avgPrice": 0.01,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Utility APIs": {
+        "count": 1,
+        "avgPrice": 0.1,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "FX Intelligence": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Weather": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Search": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "AI Code": {
+        "count": 1,
+        "avgPrice": 5,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "DeFi Security": {
+        "count": 1,
+        "avgPrice": 0.005,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Media": {
+        "count": 1,
+        "avgPrice": 0.01,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Crypto Signals": {
+        "count": 2,
+        "avgPrice": 0.0105,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "AI Models": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Content": {
+        "count": 1,
+        "avgPrice": 0.003,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Due Diligence": {
+        "count": 1,
+        "avgPrice": 0.5,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "FX Data": {
+        "count": 1,
+        "avgPrice": 0.005,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Location": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "AI LLM": {
+        "count": 2,
+        "avgPrice": 0.02,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "GPU Compute": {
+        "count": 1,
+        "avgPrice": 0.05,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Predictions": {
+        "count": 1,
+        "avgPrice": 0.1,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Reports": {
+        "count": 1,
+        "avgPrice": 1,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Price Feeds": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Email Validation": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Domain Analysis": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Agent Registry": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Web Scraping": {
+        "count": 1,
+        "avgPrice": 0.01,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Storage": {
+        "count": 1,
+        "avgPrice": 0.01,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Speech-to-Text": {
+        "count": 1,
+        "avgPrice": 0.01,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "DeFi Data": {
+        "count": 1,
+        "avgPrice": 0.001,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Security": {
+        "count": 1,
+        "avgPrice": 0.005,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      },
+      "Network Intelligence": {
+        "count": 1,
+        "avgPrice": 0.005,
+        "totalCalls": 0,
+        "totalRevenue": 0
+      }
+    },
+    "pricingSweetSpots": [
+      {
+        "priceRange": "Micro ($0.0001-$0.001)",
+        "minPrice": 0.0001,
+        "maxPrice": 0.001,
+        "endpointCount": 1,
+        "totalCalls": 0,
+        "totalRevenue": 0,
+        "avgQuality": 82,
+        "verdict": "LOW COMPETITION — first-mover advantage available"
+      },
+      {
+        "priceRange": "Low ($0.001-$0.005)",
+        "minPrice": 0.001,
+        "maxPrice": 0.005,
+        "endpointCount": 19,
+        "totalCalls": 7,
+        "totalRevenue": 0.007,
+        "avgQuality": 88.14285714285714,
+        "verdict": "HIGH COMPETITION — differentiate on quality/speed"
+      },
+      {
+        "priceRange": "Standard ($0.005-$0.02)",
+        "minPrice": 0.005,
+        "maxPrice": 0.02,
+        "endpointCount": 31,
+        "totalCalls": 1525480,
+        "totalRevenue": 15244.139999999998,
+        "avgQuality": 86.76190476190476,
+        "verdict": "HIGH COMPETITION — differentiate on quality/speed"
+      },
+      {
+        "priceRange": "Mid ($0.02-$0.05)",
+        "minPrice": 0.02,
+        "maxPrice": 0.05,
+        "endpointCount": 5,
+        "totalCalls": 60,
+        "totalRevenue": 2.3600000000000003,
+        "avgQuality": 89.33333333333333,
+        "verdict": "MODERATE COMPETITION — good opportunity with differentiation"
+      },
+      {
+        "priceRange": "High ($0.05-$0.15)",
+        "minPrice": 0.05,
+        "maxPrice": 0.15,
+        "endpointCount": 14,
+        "totalCalls": 3338946,
+        "totalRevenue": 333712.73000000004,
+        "avgQuality": 88,
+        "verdict": "HIGH COMPETITION — differentiate on quality/speed"
+      },
+      {
+        "priceRange": "Premium ($0.15-$1.00)",
+        "minPrice": 0.15,
+        "maxPrice": 1,
+        "endpointCount": 5,
+        "totalCalls": 925,
+        "totalRevenue": 403.75,
+        "avgQuality": 63.5,
+        "verdict": "MODERATE COMPETITION — good opportunity with differentiation"
+      },
+      {
+        "priceRange": "Enterprise ($1.00+)",
+        "minPrice": 1,
+        "maxPrice": 100,
+        "endpointCount": 2,
+        "totalCalls": 0,
+        "totalRevenue": 0,
+        "avgQuality": 0,
+        "verdict": "LOW COMPETITION — first-mover advantage available"
+      }
+    ]
+  },
+  "ourEndpoints": [
+    {
+      "name": "Wallet Analyzer",
+      "path": "/x402/wallet-analyzer",
+      "price": 0.01,
+      "category": "Solana Data",
+      "closestCompetitors": [
+        "Pond Wallet Analyzer ($0.002)",
+        "WalletSight Report ($0.5)",
+        "x402 Sentiment Analyzer ($0.03)"
+      ],
+      "pricingAdvice": "UNDERPRICED — current $0.01 is 94% below competitor avg $0.177. Consider raising to capture more value."
+    },
+    {
+      "name": "Token Holders",
+      "path": "/x402/token-holders",
+      "price": 0.01,
+      "category": "Solana Data",
+      "closestCompetitors": [
+        "Solscan Trending Tokens ($0.05)",
+        "Solana Token Discovery ($0.01)",
+        "TokenInsight Report ($0.5)"
+      ],
+      "pricingAdvice": "UNDERPRICED — current $0.01 is 88% below competitor avg $0.083. Consider raising to capture more value."
+    },
+    {
+      "name": "Tx History",
+      "path": "/x402/tx-history",
+      "price": 0.01,
+      "category": "Solana Data",
+      "closestCompetitors": [
+        "DeFi DEX Volume History ($0.005)"
+      ],
+      "pricingAdvice": "PREMIUM — current $0.01 is 100% above competitor avg $0.005. Ensure quality justifies premium."
+    },
+    {
+      "name": "DeFi Positions",
+      "path": "/x402/defi-positions",
+      "price": 0.02,
+      "category": "Solana Data",
+      "closestCompetitors": [
+        "DeFi Supported Chains List ($0.005)",
+        "DeFi DEX Volume History ($0.005)",
+        "DeFi Stablecoin Circulating Supply API ($0.005)"
+      ],
+      "pricingAdvice": "PREMIUM — current $0.02 is 362% above competitor avg $0.004. Ensure quality justifies premium."
+    },
+    {
+      "name": "Wallet Report",
+      "path": "/x402/wallet-report",
+      "price": 0.03,
+      "category": "Solana Data",
+      "closestCompetitors": [
+        "TokenInsight Report ($0.5)",
+        "Pond Wallet Analyzer ($0.002)",
+        "WalletSight Report ($0.5)"
+      ],
+      "pricingAdvice": "UNDERPRICED — current $0.03 is 89% below competitor avg $0.280. Consider raising to capture more value."
+    },
+    {
+      "name": "Summarize",
+      "path": "/x402/summarize",
+      "price": 0.01,
+      "category": "AI Tasks",
+      "closestCompetitors": [
+        "Content Intelligence API ($0.003)",
+        "BlockRun.AI (LLM Gateway) ($0.01)"
+      ],
+      "pricingAdvice": "PREMIUM — current $0.01 is 54% above competitor avg $0.007. Ensure quality justifies premium."
+    },
+    {
+      "name": "Translate",
+      "path": "/x402/translate",
+      "price": 0.02,
+      "category": "AI Tasks",
+      "closestCompetitors": [
+        "No direct competitors found in marketplace"
+      ],
+      "pricingAdvice": "No direct competitors found. Current price $0.02 is in uncontested space. Consider this a FIRST-MOVER advantage."
+    },
+    {
+      "name": "Extract",
+      "path": "/x402/extract",
+      "price": 0.01,
+      "category": "AI Tasks",
+      "closestCompetitors": [
+        "Designer AI ($0.08)",
+        "Onchain Entity Insights ($0.05)",
+        "JSONRecon Extractor ($0.01)"
+      ],
+      "pricingAdvice": "UNDERPRICED — current $0.01 is 99% below competitor avg $1.285. Consider raising to capture more value."
+    },
+    {
+      "name": "Sentiment",
+      "path": "/x402/sentiment",
+      "price": 0.01,
+      "category": "AI Tasks",
+      "closestCompetitors": [
+        "x402 Sentiment Analyzer ($0.03)",
+        "SolSignal API (Token Safety) ($0.01)",
+        "MoonMaker API (Crypto Signals) ($0.02)"
+      ],
+      "pricingAdvice": "COMPETITIVE — current $0.01 is near competitor avg $0.015. Good positioning."
+    },
+    {
+      "name": "Research",
+      "path": "/x402/research",
+      "price": 0.05,
+      "category": "Multi-Agent",
+      "closestCompetitors": [
+        "ScoutDX Research Access ($0.25)"
+      ],
+      "pricingAdvice": "UNDERPRICED — current $0.05 is 80% below competitor avg $0.250. Consider raising to capture more value."
+    },
+    {
+      "name": "Analyze",
+      "path": "/x402/analyze",
+      "price": 0.03,
+      "category": "Multi-Agent",
+      "closestCompetitors": [
+        "Pond Wallet Analyzer ($0.002)",
+        "x402 Sentiment Analyzer ($0.03)"
+      ],
+      "pricingAdvice": "PREMIUM — current $0.03 is 88% above competitor avg $0.016. Ensure quality justifies premium."
+    },
+    {
+      "name": "Code Review",
+      "path": "/x402/code-review",
+      "price": 0.03,
+      "category": "Multi-Agent",
+      "closestCompetitors": [
+        "Obol (AI Code Generation) ($5)"
+      ],
+      "pricingAdvice": "UNDERPRICED — current $0.03 is 99% below competitor avg $5.000. Consider raising to capture more value."
+    },
+    {
+      "name": "Write",
+      "path": "/x402/write",
+      "price": 0.03,
+      "category": "Multi-Agent",
+      "closestCompetitors": [
+        "Content Intelligence API ($0.003)"
+      ],
+      "pricingAdvice": "PREMIUM — current $0.03 is 900% above competitor avg $0.003. Ensure quality justifies premium."
+    },
+    {
+      "name": "Debate",
+      "path": "/x402/debate",
+      "price": 0.03,
+      "category": "Multi-Agent",
+      "closestCompetitors": [
+        "No direct competitors found in marketplace"
+      ],
+      "pricingAdvice": "No direct competitors found. Current price $0.03 is in uncontested space. Consider this a FIRST-MOVER advantage."
+    },
+    {
+      "name": "Agent",
+      "path": "/x402/agent",
+      "price": 0.02,
+      "category": "Custom",
+      "closestCompetitors": [
+        "DeFi Supported Chains List ($0.005)",
+        "Stablecoin Circulation by Chain ($0.005)",
+        "Designer AI ($0.08)"
+      ],
+      "pricingAdvice": "UNDERPRICED — current $0.02 is 95% below competitor avg $0.372. Consider raising to capture more value."
+    }
+  ],
+  "recommendations": [
+    "PRIORITY SEGMENT: Target Solana Trading Bots first — they are the largest segment (50-100K bots), highest frequency, and already conditioned to pay for speed (Jito tips, RPC nodes). Our Wallet Analyzer and Sentiment endpoints directly serve their copy-trading and entry/exit workflows.",
+    "GROWTH SEGMENT: ElizaOS agents are our natural distribution channel (102K npm downloads/month). Publish @elizaos/plugin-x402-swarms to npm and PR to elizaos-plugins registry. Every ElizaOS agent that installs our plugin becomes a potential buyer of all 15 endpoints.",
+    "IMPLEMENT TIERED PRICING: Offer a Basic tier (GPT-4.1 nano, $0.001/call) and Pro tier (GPT-4.1/Swarms, $0.01-$0.05/call) for each endpoint. Basic tier captures price-sensitive trading bots; Pro tier captures quality-seeking agents. Cost of basic tier is ~$0.0001, yielding 90%+ margins.",
+    "ADD VOLUME DISCOUNTS: Use x402 V2 dynamic pricing callback. Track caller's 30-day settlement count in our existing Drizzle ORM tables. 100 calls = 10% off, 1K = 20%, 10K = 30%. This is essential for retaining Data Aggregators who will otherwise build their own.",
+    "PILOT ACCESS PASSES: Offer weekly ($5) and monthly ($25) access passes for up to 10K calls. Target Solana trading bots that need predictable costs. Implement via Dexter X402_ACCESS_PASS_TIER. This creates recurring revenue and lock-in.",
+    "PRICING POSITION: Our average endpoint price ($0.021) is competitive. The x402 ecosystem has 90+ endpoints, with most priced at $0.001-$0.01. We are positioned in the Standard-to-Mid range, which is appropriate for AI + data services. Do NOT race to the bottom on price — our multi-agent capabilities are differentiated.",
+    "EXPLOIT WHITESPACE: No competitors offer combined Solana on-chain data + multi-agent AI analysis behind a single x402 paywall. Our Wallet Report endpoint ($0.03) that does Helius data pull + Swarms analysis is UNIQUE. Promote this as the flagship product.",
+    "BUNDLED ENDPOINT: Create a /x402/bundle endpoint that chains multiple calls (e.g., wallet-analyzer + sentiment + research) into a single payment. Price at $0.05-$0.10 — cheaper than calling all three separately ($0.07) but higher margin per request.",
+    "MARKET TIMING: The x402 ecosystem processed 75M transactions totaling $24M in volume. Dexter handles 50% of facilitation with zero fees for first 20K txns/day. This is the window to establish market share before fees increase or competition intensifies.",
+    "DEVELOPER ACQUISITION: Offer 10 free calls/day per endpoint (like SolSignal's model). This costs us ~$0.10/day in OpenAI API costs per free user but creates pipeline to paid usage. Track free-to-paid conversion rate as primary metric."
+  ],
+  "revenueProjections": [
+    {
+      "scenario": "Conservative (Dev/Testing phase)",
+      "monthlyCallVolume": 5000,
+      "avgRevenuePerCall": 0.015,
+      "monthlyRevenue": 75,
+      "annualRevenue": 900
+    },
+    {
+      "scenario": "Early Traction (10 active integrations)",
+      "monthlyCallVolume": 50000,
+      "avgRevenuePerCall": 0.012,
+      "monthlyRevenue": 600,
+      "annualRevenue": 7200
+    },
+    {
+      "scenario": "Growth (100 active users, some volume discount)",
+      "monthlyCallVolume": 500000,
+      "avgRevenuePerCall": 0.01,
+      "monthlyRevenue": 5000,
+      "annualRevenue": 60000
+    },
+    {
+      "scenario": "Scale (1K users, trading bots + aggregators)",
+      "monthlyCallVolume": 5000000,
+      "avgRevenuePerCall": 0.008,
+      "monthlyRevenue": 40000,
+      "annualRevenue": 480000
+    },
+    {
+      "scenario": "Breakout (10K users, access passes + volume)",
+      "monthlyCallVolume": 50000000,
+      "avgRevenuePerCall": 0.005,
+      "monthlyRevenue": 250000,
+      "annualRevenue": 3000000
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "generatedAt": "2026-03-27T12:00:00.000Z",
+  "baseUrl": "https://api.swarmx.io",
+  "results": [
+    {
+      "type": "contract-audit",
+      "name": "Reentrancy Vulnerability",
+      "description": "Solidity bank contract with classic reentrancy bug — state updated after external call",
+      "timestamp": "2026-03-27T12:00:01.000Z",
+      "durationMs": 14200,
+      "priceUsd": "0.10",
+      "response": {
+        "riskScore": 85,
+        "findings": {
+          "security": [
+            { "severity": "CRITICAL", "title": "Reentrancy in withdraw()", "description": "State variable balances[msg.sender] is set to 0 after the external call. An attacker can re-enter withdraw() before the balance is zeroed, draining the contract." },
+            { "severity": "HIGH", "title": "No reentrancy guard", "description": "The contract lacks a nonReentrant modifier or mutex lock, leaving all external-call functions exposed." }
+          ],
+          "economic": [
+            { "severity": "HIGH", "title": "Full drain via reentrancy", "attackScenario": "Attacker deploys a contract whose receive() calls withdraw() again. A single deposit of 1 ETH can drain the entire contract balance." }
+          ],
+          "gas": [
+            { "title": "State write after external call", "description": "Moving balances[msg.sender] = 0 before the call saves gas on the happy path and fixes the security bug simultaneously.", "estimatedSavings": "~200 gas" }
+          ]
+        },
+        "summary": "CRITICAL: Classic reentrancy vulnerability. The withdraw function updates state after an external call, allowing an attacker to recursively drain all funds. Immediate fix: apply checks-effects-interactions pattern or add a reentrancy guard.",
+        "template": "ContractAudit"
+      }
+    },
+    {
+      "type": "contract-audit",
+      "name": "Anchor Vault Missing Checks",
+      "description": "Solana/Anchor token vault with no authority validation — anyone can withdraw",
+      "timestamp": "2026-03-27T12:00:16.000Z",
+      "durationMs": 12800,
+      "priceUsd": "0.10",
+      "response": {
+        "riskScore": 92,
+        "findings": {
+          "security": [
+            { "severity": "CRITICAL", "title": "Missing signer/authority check", "description": "The withdraw instruction does not verify that the caller is the vault owner. Any user can invoke withdraw() and drain all tokens." },
+            { "severity": "HIGH", "title": "No has_one constraint on vault", "description": "The Withdraw accounts struct lacks a has_one = authority constraint, meaning the vault account can be paired with any signer." },
+            { "severity": "MEDIUM", "title": "Arithmetic underflow risk", "description": "vault.balance -= amount will panic if amount > balance, but this is a denial-of-service vector rather than a fund-loss vector." }
+          ],
+          "economic": [
+            { "severity": "CRITICAL", "title": "Permissionless token drain", "attackScenario": "Any wallet can call withdraw with an arbitrary amount, transferring tokens from the vault to their own token account." }
+          ],
+          "gas": [
+            { "title": "Unnecessary mutable borrow", "description": "vault_token and user_token could use immutable references if only read, but here both are mutated by the transfer so this is correct." }
+          ]
+        },
+        "summary": "CRITICAL: The vault has no access control — anyone can withdraw all tokens. The Withdraw accounts struct needs a Signer constraint and a has_one = authority check to restrict withdrawals to the vault owner.",
+        "template": "ContractAudit"
+      }
+    },
+    {
+      "type": "contract-audit",
+      "name": "ERC20 Approve Race Condition",
+      "description": "Standard ERC20 approve function vulnerable to front-running allowance manipulation",
+      "timestamp": "2026-03-27T12:00:29.000Z",
+      "durationMs": 11500,
+      "priceUsd": "0.10",
+      "response": {
+        "riskScore": 45,
+        "findings": {
+          "security": [
+            { "severity": "MEDIUM", "title": "Approve front-running race condition", "description": "When changing an allowance from N to M, a spender can front-run the approval tx to spend N, then spend M after the new approval lands (total: N+M instead of M)." },
+            { "severity": "LOW", "title": "No zero-address check", "description": "approve() does not check if spender is address(0), allowing wasted gas on a no-op approval." }
+          ],
+          "economic": [
+            { "severity": "MEDIUM", "title": "MEV front-running on approve changes", "attackScenario": "A malicious spender monitors the mempool. When they see approve(spender, 50) replacing an existing approve(spender, 100), they front-run with transferFrom for 100, then spend the new 50 after confirmation." }
+          ],
+          "gas": [
+            { "title": "Use increaseAllowance/decreaseAllowance", "description": "Adding increaseAllowance and decreaseAllowance functions avoids the race condition and is slightly more gas-efficient for allowance adjustments.", "estimatedSavings": "~100 gas per adjustment" }
+          ]
+        },
+        "summary": "MEDIUM risk: The classic ERC20 approve race condition allows a spender to front-run allowance changes and spend more than intended. Mitigation: use increaseAllowance/decreaseAllowance pattern or require setting to 0 first.",
+        "template": "ContractAudit"
+      }
+    },
+    {
+      "type": "token-risk",
+      "name": "USDC Token Risk",
+      "description": "Risk assessment for USDC (Circle) — expected verdict: SAFE",
+      "timestamp": "2026-03-27T12:00:41.000Z",
+      "durationMs": 9800,
+      "priceUsd": "0.05",
+      "response": {
+        "riskScore": 8,
+        "verdict": "SAFE",
+        "findings": {
+          "contract": [
+            { "risk": "LOW", "title": "Centralized mint/freeze authority", "description": "Circle maintains mint and freeze authority over USDC, which is expected for a regulated stablecoin but represents centralization risk." }
+          ],
+          "tokenomics": [
+            { "risk": "INFO", "title": "Fully backed stablecoin", "description": "USDC is backed 1:1 by USD reserves held by Circle, audited monthly by Deloitte. Supply is demand-driven via mint/redeem." }
+          ]
+        },
+        "summary": "SAFE: USDC is a fully-backed, regulated stablecoin issued by Circle. Low risk for rug pull or manipulation. The only notable concern is centralized control (mint/freeze authority), which is standard for regulated stablecoins.",
+        "template": "TokenRisk"
+      }
+    }
+  ]
+}

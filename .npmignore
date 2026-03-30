@@ -1,0 +1,29 @@
+# Source & config
+src/
+tsconfig.json
+vitest.config.ts
+server.ts
+Dockerfile
+.dockerignore
+
+# Tests & examples
+tests/
+examples/
+*.test.ts
+*.spec.ts
+
+# CI/CD & docs
+.github/
+docs/
+CLAUDE.md
+ROADMAP.md
+TODO.md
+TODO-NEXT.md
+
+# Environment & local
+.env
+.env.*
+.no-memory
+
+# Lock files (consumers use their own)
+bun.lock
