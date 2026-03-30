@@ -20,6 +20,6 @@ In addition to the PR (https://github.com/e2b-dev/awesome-ai-agents/pull/619), a
 
 **Pricing:** Free tier (10 calls/day) + pay-per-use USDC
 
-**Your name:** swarmx-org
+**Your name:** SolTwizzy
 
 **Your email:** (your email)

@@ -26,7 +26,7 @@ We already have `smithery.yaml` in the repo root with proper config schema.
 
 ## Details to Use
 
-- **Name**: swarmx/swarmx (or @swarmx-org/swarmx)
+- **Name**: swarmx/swarmx (or @SolTwizzy/swarmx)
 - **Server URL**: https://swarmx.io/mcp
 - **Description**: Multi-agent AI orchestration with native x402 micropayments. 39 MCP tools for crypto analysis, smart contract audit, DeFi yield optimization, code review, research reports, and trading data. Pay per call with USDC.
 - **Categories**: AI, Crypto, Finance, Developer Tools

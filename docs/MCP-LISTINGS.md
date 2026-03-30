@@ -310,7 +310,7 @@ Create `glama.json` in project root:
 ```json
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": ["swarmx-org"]
+  "maintainers": ["SolTwizzy"]
 }
 ```
 

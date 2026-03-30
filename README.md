@@ -280,7 +280,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: swarmx-org/swarmx-audit@v1
+      - uses: SolTwizzy/swarmx-audit@v1
         with:
           files: 'contracts/**/*.sol'
           fail-on-critical: true

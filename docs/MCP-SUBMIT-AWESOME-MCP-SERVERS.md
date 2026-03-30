@@ -7,7 +7,7 @@ The appcypher/awesome-mcp-servers repo (5.3K stars) has **disabled both PRs and 
 ## Fork Ready
 
 A fork with the entry already added exists at:
-- Branch: `add-swarmx` on `swarmx-org/awesome-mcp-servers`
+- Branch: `add-swarmx` on `SolTwizzy/awesome-mcp-servers`
 - Entry added to Finance section (alphabetically between Stripe and LongPort)
 
 ## What was prepared

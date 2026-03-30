@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: swarmx-org/swarmx-audit@v1
+      - uses: SolTwizzy/swarmx-audit@v1
         with:
           files: 'contracts/**/*.sol'
           fail-on-critical: true
@@ -66,7 +66,7 @@ By default the action uses the SwarmX free tier (10 calls/day per IP). For highe
 2. Reference it in your workflow:
 
 ```yaml
-- uses: swarmx-org/swarmx-audit@v1
+- uses: SolTwizzy/swarmx-audit@v1
   with:
     files: 'contracts/**/*.sol'
     wallet-private-key: ${{ secrets.SWARMX_WALLET_KEY }}
@@ -79,7 +79,7 @@ Each paid audit costs $0.10 USDC, settled via the x402 protocol.
 ## Rust Contracts (Solana/Anchor)
 
 ```yaml
-- uses: swarmx-org/swarmx-audit@v1
+- uses: SolTwizzy/swarmx-audit@v1
   with:
     files: 'programs/**/*.rs'
     language: rust
