@@ -15,5 +15,5 @@ Single-agent tasks (summarize, translate, sentiment) call OpenAI directly to avo
 Built with TypeScript, Bun, and 668 tests across 36 files. Also works as an MCP server (39 tools) and as an ElizaOS v2 plugin. 5 free calls/day per IP.
 
 Live playground: https://swarmx.io
-GitHub: https://github.com/swarmx-org/swarms-x402
-API docs: https://github.com/swarmx-org/swarms-x402/blob/master/docs/API-REFERENCE.md
+GitHub: https://github.com/SolTwizzy/swarms-x402
+API docs: https://github.com/SolTwizzy/swarms-x402/blob/master/docs/API-REFERENCE.md

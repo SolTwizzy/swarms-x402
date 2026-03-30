@@ -14,7 +14,7 @@
 Add under the `## Ecosystem Projects` > `### Tools & Services` section, alphabetically near other multi-endpoint platforms (after "SwarmX" alphabetically, near entries like "SkillMint", "SIBYL", etc.):
 
 ```markdown
-- [SwarmX](https://api.swarmx.io) - Multi-agent AI orchestration platform with 28 x402 endpoints on Solana. Research pipelines, analysis panels, code review, smart contract audits (4-6 agents), token risk scoring, DAO proposal analysis, wallet analytics, and trading data. 15+ swarm architectures (Sequential, Concurrent, MixtureOfAgents, Graph). $0.001-$0.25 USDC per call. Free tier (10 calls/day). TypeScript. ElizaOS plugin. ([GitHub](https://github.com/swarmx-org/swarms-x402)) | ([Catalog](https://api.swarmx.io/x402/catalog))
+- [SwarmX](https://api.swarmx.io) - Multi-agent AI orchestration platform with 28 x402 endpoints on Solana. Research pipelines, analysis panels, code review, smart contract audits (4-6 agents), token risk scoring, DAO proposal analysis, wallet analytics, and trading data. 15+ swarm architectures (Sequential, Concurrent, MixtureOfAgents, Graph). $0.001-$0.25 USDC per call. Free tier (10 calls/day). TypeScript. ElizaOS plugin. ([GitHub](https://github.com/SolTwizzy/swarms-x402)) | ([Catalog](https://api.swarmx.io/x402/catalog))
 ```
 
 ### Secondary Listing (AI Agent Integration > Agent Frameworks)
@@ -22,7 +22,7 @@ Add under the `## Ecosystem Projects` > `### Tools & Services` section, alphabet
 Add under the `## AI Agent Integration` > `### Agent Frameworks` section:
 
 ```markdown
-- [SwarmX](https://github.com/swarmx-org/swarms-x402) - Multi-agent orchestration with native x402 payments. 15+ swarm architectures (Sequential, Concurrent, MixtureOfAgents, Graph, HeavySwarm). TypeScript/ElizaOS plugin. 28 paid endpoints from $0.001 USDC. ([Live API](https://api.swarmx.io))
+- [SwarmX](https://github.com/SolTwizzy/swarms-x402) - Multi-agent orchestration with native x402 payments. 15+ swarm architectures (Sequential, Concurrent, MixtureOfAgents, Graph, HeavySwarm). TypeScript/ElizaOS plugin. 28 paid endpoints from $0.001 USDC. ([Live API](https://api.swarmx.io))
 ```
 
 ---
@@ -40,7 +40,7 @@ In the `### Agent Frameworks` subsection under `## AI Agent Integration`, insert
 ```
 - [NEAR AI](https://near.ai) - Cross-chain agent settlements.
 - [Phidata Agents](https://github.com/phidatahq/phidata) - Multi-modal agents with x402.
-- [SwarmX](https://github.com/swarmx-org/swarms-x402) - ...  <-- INSERT HERE
+- [SwarmX](https://github.com/SolTwizzy/swarms-x402) - ...  <-- INSERT HERE
 - [Vault-0](https://github.com/0-Vault/Vault-0) - ...
 ```
 
@@ -74,7 +74,7 @@ SwarmX is a multi-agent AI orchestration platform with native x402 micropayments
 
 ## Links
 
-- GitHub: https://github.com/swarmx-org/swarms-x402
+- GitHub: https://github.com/SolTwizzy/swarms-x402
 - Live API: https://api.swarmx.io
 - Catalog endpoint: GET https://api.swarmx.io/x402/catalog (free, lists all endpoints with pricing)
 

@@ -8,7 +8,7 @@ In addition to the PR (https://github.com/e2b-dev/awesome-ai-agents/pull/619), a
 
 **Product name:** SwarmX
 
-**Product URL:** https://github.com/swarmx-org/swarms-x402
+**Product URL:** https://github.com/SolTwizzy/swarms-x402
 
 **Product description:** Multi-agent AI orchestration platform with x402 micropayments. 47 HTTP endpoints for contract audits, token diligence, DeFi risk scoring, fact-checking, code audits, research reports, compliance analysis, and more. Pay per call with USDC ($0.001-$5) via x402 protocol. 39 MCP tools, 15+ swarm architectures. TypeScript, ElizaOS v2 plugin. Free tier: 10 calls/day.
 
@@ -16,7 +16,7 @@ In addition to the PR (https://github.com/e2b-dev/awesome-ai-agents/pull/619), a
 
 **Is it open source?** Yes
 
-**GitHub URL:** https://github.com/swarmx-org/swarms-x402
+**GitHub URL:** https://github.com/SolTwizzy/swarms-x402
 
 **Pricing:** Free tier (10 calls/day) + pay-per-use USDC
 

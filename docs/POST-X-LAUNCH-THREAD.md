@@ -139,7 +139,7 @@ Your agent gets contract audits, DeFi scoring, research, and more.
 
 SwarmX is open source.
 
-GitHub: https://github.com/swarmx-org/swarms-x402
+GitHub: https://github.com/SolTwizzy/swarms-x402
 
 If you're building agents that need to pay for services (or sell services), x402 is how.
 

@@ -19,7 +19,7 @@
 
 - **Name**: SwarmX
 - **Description**: Multi-agent AI orchestration with native x402 micropayments. 39 MCP tools for crypto analysis, smart contract audit, DeFi yield optimization, code review, research reports, and trading data.
-- **GitHub**: https://github.com/swarmx-org/swarms-x402
+- **GitHub**: https://github.com/SolTwizzy/swarms-x402
 - **npm**: swarms-x402
 - **Live API**: https://swarmx.io
 - **Pricing**: Per-call ($0.001-$5.00) via x402 micropayments

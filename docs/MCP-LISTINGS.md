@@ -106,7 +106,7 @@ Create `server.json` in project root:
   "version": "1.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/swarmx-org/swarms-x402.git"
+    "url": "https://github.com/SolTwizzy/swarms-x402.git"
   },
   "packages": [
     {
@@ -171,7 +171,7 @@ startCommand:
 npm install -g @smithery/cli
 
 # Publish (remote HTTP server)
-smithery mcp publish "https://swarmx.io/mcp" -n swarmx-org/swarms-x402
+smithery mcp publish "https://swarmx.io/mcp" -n SolTwizzy/swarms-x402
 ```
 
 ### Priority
@@ -220,7 +220,7 @@ mcpize deploy
 ```
 Name: SwarmX
 Description: AI Agent Teams with x402 micropayments. 39 tools across 9 categories — crypto analysis, code audit, DeFi, research, content, compliance, and more. $0.001-$5.00/call.
-GitHub: https://github.com/swarmx-org/swarms-x402
+GitHub: https://github.com/SolTwizzy/swarms-x402
 npm: swarms-x402
 Categories: AI, Crypto, Finance, Developer Tools
 ```
@@ -246,7 +246,7 @@ Alternatively, create a GitHub issue in their repository via the "Submit" button
 ### Required Fields
 
 - **Server name:** SwarmX
-- **GitHub URL:** https://github.com/swarmx-org/swarms-x402
+- **GitHub URL:** https://github.com/SolTwizzy/swarms-x402
 - **Description:** AI Agent Teams with x402 micropayments. 39 tools across 9 categories — crypto analysis, code audit, DeFi, research, content, compliance, and more. $0.001-$5.00/call.
 - **Categories:** AI, Crypto, Finance, Developer Tools
 
@@ -272,7 +272,7 @@ Also ingests from the Official MCP Registry automatically — so publishing to t
 ### Required Fields
 
 - **Server name:** SwarmX
-- **URL:** https://github.com/swarmx-org/swarms-x402
+- **URL:** https://github.com/SolTwizzy/swarms-x402
 - **Description:** AI Agent Teams with x402 micropayments. 39 tools across 9 categories — crypto analysis, code audit, DeFi, research, content, compliance, and more. $0.001-$5.00/call.
 - **npm package:** swarms-x402
 
@@ -323,7 +323,7 @@ Create `glama.json` in project root:
 
 ### Check if already indexed
 
-Visit: https://glama.ai/mcp/servers?query=swarmx or https://glama.ai/mcp/servers/swarmx-org/swarms-x402
+Visit: https://glama.ai/mcp/servers?query=swarmx or https://glama.ai/mcp/servers/SolTwizzy/swarms-x402
 
 ### Priority
 
@@ -348,7 +348,7 @@ Apply as a **Founding Provider** (first 100 spots):
 ```
 Name: SwarmX
 Description: AI Agent Teams with x402 micropayments. 39 tools across 9 categories — crypto analysis, code audit, DeFi, research, content, compliance, and more. $0.001-$5.00/call.
-GitHub: https://github.com/swarmx-org/swarms-x402
+GitHub: https://github.com/SolTwizzy/swarms-x402
 npm: swarms-x402
 Categories: AI, Crypto, Finance, Developer Tools
 Pricing: Per-call ($0.001-$5.00) via x402 micropayments
@@ -376,7 +376,7 @@ Do NOT submit a PR to the GitHub repo — they explicitly reject PRs.
 ### Required Fields
 
 - **Server name:** SwarmX
-- **GitHub URL:** https://github.com/swarmx-org/swarms-x402
+- **GitHub URL:** https://github.com/SolTwizzy/swarms-x402
 - **Description:** AI Agent Teams with x402 micropayments. 39 tools across 9 categories — crypto analysis, code audit, DeFi, research, content, compliance, and more. $0.001-$5.00/call.
 - **Category:** AI / Finance / Developer Tools
 
@@ -397,7 +397,7 @@ Create a GitHub Issue in `cline/mcp-marketplace` using their Server Submission t
 
 ### Required Fields
 
-1. **GitHub Repo URL:** https://github.com/swarmx-org/swarms-x402
+1. **GitHub Repo URL:** https://github.com/SolTwizzy/swarms-x402
 2. **Logo Image:** 400x400 PNG (we need to create this)
 3. **Reason for Addition:** (see below)
 4. **Installation Testing:** Must confirm Cline can set up the server from README.md alone
@@ -406,7 +406,7 @@ Create a GitHub Issue in `cline/mcp-marketplace` using their Server Submission t
 
 ```markdown
 ### GitHub Repository URL
-https://github.com/swarmx-org/swarms-x402
+https://github.com/SolTwizzy/swarms-x402
 
 ### Logo Image
 <!-- Attach a 400x400 PNG -->
@@ -442,7 +442,7 @@ Web form at https://mcpmarket.com/submit — submit GitHub repository URL for re
 
 ### Required Fields
 
-- **GitHub Repository:** https://github.com/swarmx-org/swarms-x402
+- **GitHub Repository:** https://github.com/SolTwizzy/swarms-x402
 
 ### Priority
 
@@ -469,7 +469,7 @@ Not fully documented for external submissions yet. Options:
 {
   "name": "SwarmX",
   "description": "AI Agent Teams with x402 micropayments. 39 tools across 9 categories.",
-  "github": "https://github.com/swarmx-org/swarms-x402",
+  "github": "https://github.com/SolTwizzy/swarms-x402",
   "npm": "swarms-x402",
   "transport": "streamable-http",
   "endpoint": "https://swarmx.io/mcp"
@@ -526,7 +526,7 @@ Before submitting, add these files to the repo:
 
 | Resource | URL |
 |----------|-----|
-| GitHub | https://github.com/swarmx-org/swarms-x402 |
+| GitHub | https://github.com/SolTwizzy/swarms-x402 |
 | npm | https://www.npmjs.com/package/swarms-x402 |
 | Live API | https://swarmx.io |
 | MCP Endpoint | https://swarmx.io/mcp |

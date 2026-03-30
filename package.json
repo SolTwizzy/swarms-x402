@@ -30,11 +30,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/swarmx-org/swarms-x402.git"
+    "url": "https://github.com/SolTwizzy/swarms-x402.git"
   },
-  "homepage": "https://github.com/swarmx-org/swarms-x402#readme",
+  "homepage": "https://github.com/SolTwizzy/swarms-x402#readme",
   "bugs": {
-    "url": "https://github.com/swarmx-org/swarms-x402/issues"
+    "url": "https://github.com/SolTwizzy/swarms-x402/issues"
   },
   "scripts": {
     "build": "tsc",

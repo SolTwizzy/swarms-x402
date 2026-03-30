@@ -6,7 +6,7 @@
 
 1. Go to https://pulsemcp.com/submit
 2. Select "MCP Server"
-3. Enter URL: `https://github.com/swarmx-org/swarms-x402`
+3. Enter URL: `https://github.com/SolTwizzy/swarms-x402`
 4. Submit
 
 ## Option B: Official MCP Registry (Auto-Indexed)
@@ -26,7 +26,7 @@ Hi PulseMCP team,
 I'd like to submit SwarmX to your MCP directory.
 
 - **Name**: SwarmX
-- **GitHub**: https://github.com/swarmx-org/swarms-x402
+- **GitHub**: https://github.com/SolTwizzy/swarms-x402
 - **npm**: swarms-x402
 - **Live API**: https://swarmx.io
 - **MCP Manifest**: https://swarmx.io/mcp-manifest.json

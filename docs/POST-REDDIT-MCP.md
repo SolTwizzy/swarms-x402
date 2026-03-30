@@ -50,10 +50,10 @@ TypeScript, Bun runtime, 12 route files, 668 tests. Multi-agent tasks use the Sw
 
 **Links:**
 
-- GitHub: https://github.com/swarmx-org/swarms-x402
+- GitHub: https://github.com/SolTwizzy/swarms-x402
 - Live API: https://swarmx.io
 - Playground: https://swarmx.io (interactive, no login)
-- API Reference: https://github.com/swarmx-org/swarms-x402/blob/master/docs/API-REFERENCE.md
+- API Reference: https://github.com/SolTwizzy/swarms-x402/blob/master/docs/API-REFERENCE.md
 
 The multi-agent endpoints are the interesting ones from an MCP perspective. The contract-audit tool, for example, runs 4 agents in parallel (SecurityAuditor, EconomicAttacker, GasOptimizer, AuditReporter) and returns a structured risk report with findings, scores, and a shareable report URL. The deep audit tier runs 6 agents with cross-verification.
 

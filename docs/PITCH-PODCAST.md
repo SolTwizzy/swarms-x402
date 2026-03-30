@@ -49,7 +49,7 @@ We're seeing this play out in production. Our endpoints are discoverable via MCP
 **Stats:**
 - 47 live endpoints, 39 MCP tools, 668 tests
 - Real x402 payments on Solana mainnet
-- Open source: https://github.com/swarmx-org/swarms-x402
+- Open source: https://github.com/SolTwizzy/swarms-x402
 - Live playground: https://swarmx.io
 
 **Availability:** Flexible. Can do remote or in-person.

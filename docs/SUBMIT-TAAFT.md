@@ -48,7 +48,7 @@ x402, micropayments, multi-agent, AI orchestration, USDC, Solana, contract audit
 
 ## Links
 
-- **GitHub:** https://github.com/swarmx-org/swarms-x402
+- **GitHub:** https://github.com/SolTwizzy/swarms-x402
 - **Live API:** https://swarmx.io
 - **npm:** https://www.npmjs.com/package/swarms-x402
 - **Playground:** https://swarmx.io/playground

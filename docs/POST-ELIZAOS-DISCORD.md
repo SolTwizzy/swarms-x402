@@ -49,7 +49,7 @@ X402_RECEIVE_ADDRESS=...  # for sell-side
 
 **Compatibility:** Built against `@elizaos/core@2.0.0-alpha.32`. Follows all v2 API patterns -- action handlers return `{ success, text, error }`, services array takes classes not instances, state is optional.
 
-**GitHub:** https://github.com/swarmx-org/swarms-x402
+**GitHub:** https://github.com/SolTwizzy/swarms-x402
 **Live API (standalone mode):** https://swarmx.io
 
 The plugin also works standalone (without ElizaOS) as a Bun HTTP server. Same routes, same payment logic, just without the ElizaOS runtime.

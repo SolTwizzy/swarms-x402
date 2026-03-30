@@ -47,6 +47,6 @@ curl -X POST https://swarmx.io/x402/sentiment \
 ```
 
 Playground (no login): https://swarmx.io
-GitHub: https://github.com/swarmx-org/swarms-x402
+GitHub: https://github.com/SolTwizzy/swarms-x402
 
 Happy to answer questions about x402 integration, the payment flow, or how multi-agent orchestration works under the hood.

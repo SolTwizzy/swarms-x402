@@ -12,7 +12,7 @@
 
 **Website:** https://swarmx.io
 
-**GitHub:** https://github.com/swarmx-org/swarms-x402
+**GitHub:** https://github.com/SolTwizzy/swarms-x402
 
 ---
 

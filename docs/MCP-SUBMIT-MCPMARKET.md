@@ -13,7 +13,7 @@ MCPMarket (CherryHQ/mcpmarket) appears to be a web-based MCP marketplace. Their 
 ## Ready-to-Paste Details
 
 - **Name**: SwarmX
-- **GitHub**: https://github.com/swarmx-org/swarms-x402
+- **GitHub**: https://github.com/SolTwizzy/swarms-x402
 - **npm**: swarms-x402
 - **Live API**: https://swarmx.io
 - **MCP Manifest**: https://swarmx.io/mcp-manifest.json

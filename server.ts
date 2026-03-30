@@ -791,7 +791,7 @@ function buildGalleryHtml(): string {
         <a href="/">Dashboard</a> &middot;
         <a href="/x402/catalog">API Catalog</a> &middot;
         <a href="/x402/health">Health</a> &middot;
-        <a href="https://github.com/swarmx-org/swarms-x402">GitHub</a>
+        <a href="https://github.com/SolTwizzy/swarms-x402">GitHub</a>
         <br>
         <span style="margin-top:8px;display:inline-block;">Total gallery cost: $${totalCost} via x402 micropayments</span>
       </div>
@@ -1172,7 +1172,7 @@ function buildReportPageHtml(report: AuditReport): string {
         <a href="/x402/catalog">API Catalog</a> &middot;
         <a href="/x402/gallery">Gallery</a> &middot;
         <a href="/x402/benchmark">Benchmark</a> &middot;
-        <a href="https://github.com/swarmx-org/swarms-x402">GitHub</a>
+        <a href="https://github.com/SolTwizzy/swarms-x402">GitHub</a>
         <br><br>
         Powered by <a href="https://www.opendexter.xyz">Dexter SDK</a> | <a href="https://swarms.world">Swarms</a>
       </div>
@@ -1558,7 +1558,7 @@ function buildBenchmarkHtml(): string {
         <a href="/x402/catalog">API Catalog</a> &middot;
         <a href="/x402/gallery">Gallery</a> &middot;
         <a href="/x402/benchmark">Benchmark</a> &middot;
-        <a href="https://github.com/swarmx-org/swarms-x402">GitHub</a>
+        <a href="https://github.com/SolTwizzy/swarms-x402">GitHub</a>
         <br><br>
         Powered by <a href="https://www.opendexter.xyz">Dexter SDK</a> | <a href="https://swarms.world">Swarms</a>
       </div>
@@ -2827,7 +2827,7 @@ console.log(<span class="kw">await</span> res.json());</div>
         <a class="qlink" href="/api/status">API Status</a>
         <a class="qlink" href="/x402/gallery">Gallery</a>
         <a class="qlink" href="/x402/benchmark">Benchmark</a>
-        <a class="qlink" href="https://github.com/swarmx-org/swarms-x402" target="_blank">GitHub</a>
+        <a class="qlink" href="https://github.com/SolTwizzy/swarms-x402" target="_blank">GitHub</a>
       </div>
 
     </div><!-- .container -->
@@ -2836,7 +2836,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     <footer class="footer">
       <div class="container">
         <div class="footer-links">
-          <a href="https://github.com/swarmx-org/swarms-x402">GitHub</a>
+          <a href="https://github.com/SolTwizzy/swarms-x402">GitHub</a>
           <a href="https://www.opendexter.xyz">OpenDexter</a>
           <a href="https://swarms.world">Swarms</a>
           <a href="https://elizaos.ai">ElizaOS</a>

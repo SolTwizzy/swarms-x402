@@ -8,7 +8,7 @@ Glama has a `glama.json` config in our repo root which they may auto-detect from
 
 1. Go to https://glama.ai/mcp/servers
 2. Click "Add Server"
-3. Enter GitHub URL: `https://github.com/swarmx-org/swarms-x402`
+3. Enter GitHub URL: `https://github.com/SolTwizzy/swarms-x402`
 4. Glama should auto-detect our `glama.json` config file
 
 ## glama.json (already in repo)
@@ -18,7 +18,7 @@ Glama has a `glama.json` config in our repo root which they may auto-detect from
   "name": "swarmx",
   "display_name": "SwarmX",
   "description": "AI Agent Teams with x402 micropayments...",
-  "repository": "https://github.com/swarmx-org/swarms-x402",
+  "repository": "https://github.com/SolTwizzy/swarms-x402",
   "homepage": "https://swarmx.io",
   "npm_package": "swarms-x402",
   "categories": ["ai", "crypto", "finance", "developer-tools", "data"],

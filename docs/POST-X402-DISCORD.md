@@ -22,7 +22,7 @@ Hey -- we built SwarmX, a multi-agent AI platform that uses x402 for all payment
 - Access pass tiers for high-frequency trading endpoints (1h/24h/7d/30d pricing)
 - Any edge cases we should handle in payment verification
 
-GitHub: https://github.com/swarmx-org/swarms-x402
-API docs: https://github.com/swarmx-org/swarms-x402/blob/master/docs/API-REFERENCE.md
+GitHub: https://github.com/SolTwizzy/swarms-x402
+API docs: https://github.com/SolTwizzy/swarms-x402/blob/master/docs/API-REFERENCE.md
 
 This is one of the first production deployments using x402 for agent-to-agent payments. Happy to share what we learned.

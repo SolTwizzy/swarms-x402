@@ -42,7 +42,7 @@ We took that tutorial and built SwarmX:
 
 From tutorial to production. The agent economy is shipping.
 
-github.com/swarmx-org/swarms-x402
+github.com/SolTwizzy/swarms-x402
 ```
 
 ### Option C: Short + Punchy
@@ -86,7 +86,7 @@ How it extends the Swarms ecosystem:
 We reference your tutorial directly in our docs as the foundational pattern. SwarmX is complementary to the Swarms ecosystem -- it extends your reach into TypeScript and ElizaOS, not a fork or competitor.
 
 Links:
-- GitHub: https://github.com/swarmx-org/swarms-x402
+- GitHub: https://github.com/SolTwizzy/swarms-x402
 - Live API: https://api.swarmx.io
 - Catalog: https://api.swarmx.io/x402/catalog
 

@@ -80,7 +80,7 @@ SwarmX is the production TypeScript implementation of Kye Gomez's [x402 agent mo
 | Live API | https://api.swarmx.io |
 | Service Catalog | https://api.swarmx.io/x402/catalog |
 | Health / Revenue | https://api.swarmx.io/x402/health |
-| GitHub | https://github.com/swarmx-org/swarms-x402 |
+| GitHub | https://github.com/SolTwizzy/swarms-x402 |
 | Reference Tutorial | [Kye Gomez: Monetize Agents with Swarms and x402](https://medium.com/@kyeg/how-to-monetize-your-agents-with-swarms-and-x402-a-simple-step-by-step-tutorial-e56bacc2daf2) |
 
 ---

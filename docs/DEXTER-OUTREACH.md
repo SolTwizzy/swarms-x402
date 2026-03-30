@@ -41,7 +41,7 @@ This is the TypeScript production implementation of Kye Gomez's "Monetize Agents
 Links:
 - Live API: https://api.swarmx.io
 - Catalog (free): https://api.swarmx.io/x402/catalog
-- GitHub: https://github.com/swarmx-org/swarms-x402
+- GitHub: https://github.com/SolTwizzy/swarms-x402
 - Health: https://api.swarmx.io/x402/health
 
 Happy to provide any additional information needed for the curation process. Thanks for building the SDK -- it made x402 integration straightforward.

@@ -2,7 +2,7 @@
   "name": "swarms-x402",
   "display_name": "SwarmX",
   "description": "AI Agent Teams with x402 micropayments. 39 tools across 9 categories — crypto analysis, code audit, DeFi yield optimization, research reports, content generation, compliance checking, and investment due diligence. Pay per call with USDC.",
-  "repository": "https://github.com/swarmx-org/swarms-x402",
+  "repository": "https://github.com/SolTwizzy/swarms-x402",
   "homepage": "https://swarmx.io",
   "npm_package": "swarms-x402",
   "categories": ["ai", "crypto", "finance", "developer-tools", "data"],

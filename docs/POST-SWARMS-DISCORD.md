@@ -37,7 +37,7 @@ We use Swarms for:
 - Deployed on Railway, processing real x402 payments on Solana mainnet
 
 **Live:** https://swarmx.io
-**GitHub:** https://github.com/swarmx-org/swarms-x402
+**GitHub:** https://github.com/SolTwizzy/swarms-x402
 
 Would love feedback from the Swarms community, especially on:
 - Multi-agent workflow patterns that work well for production (we found ConcurrentWorkflow + synthesis agent is the best pattern for analysis tasks)

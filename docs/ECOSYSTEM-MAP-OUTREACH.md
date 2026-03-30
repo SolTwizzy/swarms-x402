@@ -25,7 +25,7 @@ Quick summary:
 We're the only platform combining multi-agent orchestration with x402 payments -- agent teams that get paid per task.
 
 Live: api.swarmx.io
-GitHub: github.com/swarmx-org/swarms-x402
+GitHub: github.com/SolTwizzy/swarms-x402
 Catalog: api.swarmx.io/x402/catalog
 
 Happy to provide any details for the map. Thanks for the great work tracking this ecosystem.

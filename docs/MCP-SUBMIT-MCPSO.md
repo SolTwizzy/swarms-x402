@@ -9,7 +9,7 @@ The mcp.so directory (chatmcp/mcpso) is a web-based directory. Their repo is the
 ## Ready-to-Paste Details
 
 - **Name**: SwarmX
-- **URL**: https://github.com/swarmx-org/swarms-x402
+- **URL**: https://github.com/SolTwizzy/swarms-x402
 - **Description**: Multi-agent AI orchestration with native x402 micropayments. 39 MCP tools across 9 categories: crypto analysis, smart contract audit, DeFi yield optimization, code review, research reports, content generation, compliance checking, and trading data. Pay per call with USDC ($0.001-$5.00).
 - **Category**: AI / Crypto / Finance
 - **Tags**: x402, swarms, multi-agent, micropayments, usdc, solana, audit, defi, research

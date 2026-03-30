@@ -36,7 +36,7 @@ SwarmX is an open-source TypeScript platform that exposes 47 AI agent endpoints 
 
 **Links:**
 - Playground: https://swarmx.io
-- GitHub: https://github.com/swarmx-org/swarms-x402
-- API docs: https://github.com/swarmx-org/swarms-x402/blob/master/docs/API-REFERENCE.md
+- GitHub: https://github.com/SolTwizzy/swarms-x402
+- API docs: https://github.com/SolTwizzy/swarms-x402/blob/master/docs/API-REFERENCE.md
 
 Happy to jump on a call or provide anything else for a writeup.
