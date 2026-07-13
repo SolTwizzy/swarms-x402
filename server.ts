@@ -31,6 +31,8 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { getReport, getRecentReports, getReportCount } from "./src/utils/reportStore.js";
 import type { AuditReport } from "./src/utils/reportStore.js";
+import { getMcpToolDefinitions } from "./src/mcp/index.js";
+import { handleMcpMessage, mcpDescriptor, type JsonRpcMessage } from "./src/mcp/mcpServer.js";
 
 // ── Env ─────────────────────────────────────────────────────────────────────
 // Bun loads .env automatically. For Node, uncomment:
@@ -3699,17 +3701,42 @@ console.log(<span class="kw">await</span> res.json());</div>
         }));
       }
 
-      // ── MCP Manifest ────────────────────────────────────────────
+      // ── MCP Manifest (generated in-memory; no disk dependency) ────
       if (pathname === "/mcp-manifest.json" && method === "GET") {
-        try {
-          const manifest = readFileSync("mcp-manifest.json", "utf-8");
-          return withCORS(new Response(manifest, {
-            status: 200,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-          }));
-        } catch {
-          return withCORS(Response.json({ error: "MCP manifest not found" }, { status: 404 }));
+        return withCORS(new Response(JSON.stringify(getMcpToolDefinitions(), null, 2), {
+          status: 200,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        }));
+      }
+
+      // ── MCP Server (JSON-RPC 2.0 over Streamable HTTP) ────────────
+      if (pathname === "/mcp") {
+        const publicBase = (process.env.SWARMX_BASE_URL ?? "https://swarmx.io").replace(/\/$/, "");
+        if (method === "GET") {
+          return withCORS(Response.json(mcpDescriptor(publicBase)));
         }
+        if (method === "POST") {
+          let body: unknown;
+          try {
+            body = await request.json();
+          } catch {
+            return withCORS(
+              Response.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } })
+            );
+          }
+          const mcpOpts = { baseUrl: `http://127.0.0.1:${PORT}`, publicBaseUrl: publicBase };
+          if (Array.isArray(body)) {
+            const responses = (
+              await Promise.all(body.map((m) => handleMcpMessage(m as JsonRpcMessage, mcpOpts)))
+            ).filter((r) => r !== null);
+            if (responses.length === 0) return withCORS(new Response(null, { status: 202 }));
+            return withCORS(Response.json(responses));
+          }
+          const response = await handleMcpMessage(body as JsonRpcMessage, mcpOpts);
+          if (response === null) return withCORS(new Response(null, { status: 202 }));
+          return withCORS(Response.json(response));
+        }
+        return withCORS(Response.json({ error: "Method not allowed" }, { status: 405 }));
       }
 
       // ── Gallery page ──────────────────────────────────────────────
