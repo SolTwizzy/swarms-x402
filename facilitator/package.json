@@ -1,0 +1,21 @@
+{
+  "name": "swarmx-rh-facilitator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted x402 facilitator for Robinhood Chain (eip155:4663) settling USDG via EIP-3009. Standalone; not part of the main SwarmX build.",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts",
+    "verify:dry": "bun run scripts/verify-drytest.ts",
+    "check:domain": "bun run scripts/check-domain.ts",
+    "check:chain": "bun run scripts/check-chain.ts"
+  },
+  "dependencies": {
+    "hono": "^4.6.14",
+    "viem": "^2.47.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14"
+  }
+}

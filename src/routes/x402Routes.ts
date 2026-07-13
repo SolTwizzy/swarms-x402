@@ -18,6 +18,7 @@ import { ADVANCED_CATALOG } from "./advancedRoutes.js";
 import { CRYPTO_ANALYSIS_CATALOG } from "./cryptoAnalysisRoutes.js";
 import { SWARM_ROUTE_CATALOG } from "./swarmRoutes.js";
 import { SWARM_PREMIUM_CATALOG } from "./swarmPremiumRoutes.js";
+import { RWA_CATALOG } from "./rwaRoutes.js";
 import { callOpenAI } from "../utils/llm.js";
 import { taskQueue } from "../utils/taskQueue.js";
 
@@ -121,6 +122,7 @@ const SERVICE_CATALOG: X402ServiceEndpoint[] = [
   ...CRYPTO_ANALYSIS_CATALOG,
   ...SWARM_ROUTE_CATALOG,
   ...SWARM_PREMIUM_CATALOG,
+  ...RWA_CATALOG,
   {
     name: "SwarmX Service Catalog",
     description: "List all available SwarmX paid endpoints with pricing",

@@ -4,7 +4,6 @@ import type { X402GateResult } from "../server/x402Gate.js";
 import type { X402ServiceEndpoint } from "../types.js";
 import { SOLANA_ADDR_RE, heliusRpcUrl, rpcCall } from "./heliusDataRoutes.js";
 import { callOpenAI } from "../utils/llm.js";
-import { callGemini } from "../utils/gemini.js";
 import { TTLCache } from "../utils/cache.js";
 import { saveReport } from "../utils/reportStore.js";
 
@@ -66,12 +65,12 @@ function tryParseJson(raw: string): Record<string, unknown> | null {
 
 // ── Agent System Prompts ────────────────────────────────────────────────
 
-const WEB_RESEARCH_PROMPT = `You are a web research agent with access to current information via Google Search grounding. Your task is to find comprehensive, up-to-date information about the given topic.
+const MODEL_KNOWLEDGE_PROMPT = `You are a research agent. Draw on your knowledge to provide comprehensive information about the given topic. You do NOT have live web access — do not claim to have searched or cite URLs you cannot verify.
 
 Instructions:
-- Search for multiple perspectives and sources
-- Tag each claim with confidence: [HIGH] (verified by multiple sources), [MEDIUM] (single credible source), [LOW] (unverified/speculative)
-- Include dates and source context where possible
+- Cover multiple perspectives
+- Tag each claim with confidence: [HIGH] (well-established), [MEDIUM] (generally accepted), [LOW] (uncertain/speculative)
+- Be explicit about the recency limits of your knowledge
 - Focus on factual information, not opinions
 
 Output ONLY valid JSON:
@@ -101,7 +100,7 @@ Output ONLY valid JSON:
 const FACT_CHECK_PROMPT = `You are an adversarial fact-checker. Cross-reference all provided claims from multiple sources.
 
 Instructions:
-- Compare web findings against on-chain data where applicable
+- Compare model-knowledge findings against on-chain data where applicable
 - Flag contradictions between sources
 - Rate each claim: VERIFIED (multiple sources confirm) / LIKELY_TRUE (credible but unconfirmed) / UNVERIFIED (cannot confirm) / DISPUTED (contradictory evidence) / FALSE (evidence contradicts)
 - Be skeptical — default to UNVERIFIED when uncertain
@@ -377,36 +376,22 @@ export async function runDeepResearch(
   sources: string[],
   runtime: any,
 ): Promise<DeepResearchResult> {
-  const geminiKey = String(runtime.getSetting("GEMINI_API_KEY") ?? "");
+  const swarmsKey = String(runtime.getSetting("SWARMS_API_KEY") ?? "");
   const openaiKey = String(runtime.getSetting("OPENAI_API_KEY") ?? "");
   const agentsUsed: string[] = [];
   const sourcesQueried: string[] = [];
 
-  // ── Step 1: Web Research Agent (Gemini with grounding, or OpenAI fallback)
-  let webFindings = "";
-  if (sources.includes("web")) {
-    const webPrompt = `Research topic: ${topic}\nFocus: ${focus || "comprehensive overview"}`;
-    if (geminiKey) {
-      webFindings = await callGemini({
-        apiKey: geminiKey,
-        systemPrompt: WEB_RESEARCH_PROMPT,
-        userPrompt: webPrompt,
-        maxTokens: 4096,
-        temperature: 0.5,
-        groundingEnabled: true,
-      });
-      agentsUsed.push("WebResearchAgent (Gemini + Google Search grounding)");
-    } else if (openaiKey) {
-      webFindings = await callOpenAI({
-        apiKey: openaiKey,
-        systemPrompt: WEB_RESEARCH_PROMPT,
-        userPrompt: webPrompt,
-        maxTokens: 4096,
-        temperature: 0.5,
-      });
-      agentsUsed.push("WebResearchAgent (OpenAI fallback — no grounding)");
-    }
-    sourcesQueried.push("web");
+  // Swarms-first single-agent call (cascades to OpenAI if Swarms fails).
+  const llm = (systemPrompt: string, userPrompt: string, maxTokens: number, temperature: number) =>
+    callOpenAI({ apiKey: openaiKey, swarmsApiKey: swarmsKey, systemPrompt, userPrompt, maxTokens, temperature });
+
+  // ── Step 1: Model-knowledge research (no live web retrieval)
+  let modelFindings = "";
+  if (sources.includes("model-knowledge") || sources.includes("web")) {
+    const researchPrompt = `Research topic: ${topic}\nFocus: ${focus || "comprehensive overview"}`;
+    modelFindings = await llm(MODEL_KNOWLEDGE_PROMPT, researchPrompt, 4096, 0.5);
+    agentsUsed.push("ResearchAgent (model knowledge; no live retrieval)");
+    sourcesQueried.push("model-knowledge");
   }
 
   // ── Step 2: On-Chain Data Agent (if applicable)
@@ -415,37 +400,20 @@ export async function runDeepResearch(
     onChainData = await fetchOnChainContext(topic, runtime);
     if (onChainData && !onChainData.includes("No ") && !onChainData.includes("not configured")) {
       // Run analysis agent on the raw data
-      const analysisKey = openaiKey || geminiKey;
-      if (analysisKey && openaiKey) {
-        const analyzed = await callOpenAI({
-          apiKey: openaiKey,
-          systemPrompt: ONCHAIN_ANALYSIS_PROMPT,
-          userPrompt: `On-chain data for "${topic}":\n${onChainData}`,
-          maxTokens: 2048,
-          temperature: 0.2,
-        });
-        onChainData = analyzed;
-        agentsUsed.push("OnChainDataAgent (Helius RPC + OpenAI analysis)");
-      } else if (geminiKey) {
-        const analyzed = await callGemini({
-          apiKey: geminiKey,
-          systemPrompt: ONCHAIN_ANALYSIS_PROMPT,
-          userPrompt: `On-chain data for "${topic}":\n${onChainData}`,
-          maxTokens: 2048,
-          temperature: 0.2,
-        });
-        onChainData = analyzed;
-        agentsUsed.push("OnChainDataAgent (Helius RPC + Gemini analysis)");
-      }
+      onChainData = await llm(
+        ONCHAIN_ANALYSIS_PROMPT,
+        `On-chain data for "${topic}":\n${onChainData}`,
+        2048,
+        0.2,
+      );
+      agentsUsed.push("OnChainDataAgent (Helius RPC + routed model analysis)");
       sourcesQueried.push("onchain (Helius RPC)");
-    } else {
-      sourcesQueried.push("onchain (no address detected)");
     }
   }
 
-  // ── Step 3: Fact-Check Agent (OpenAI preferred — adversarial, precise)
+  // ── Step 3: Fact-Check Agent (provider-routed model cross-check)
   const factCheckInput = [
-    webFindings ? `Web findings:\n${webFindings}` : "",
+    modelFindings ? `Model-knowledge findings:\n${modelFindings}` : "",
     onChainData ? `On-chain data:\n${onChainData}` : "",
   ]
     .filter(Boolean)
@@ -453,61 +421,28 @@ export async function runDeepResearch(
 
   let factChecked = "";
   if (factCheckInput) {
-    if (openaiKey) {
-      factChecked = await callOpenAI({
-        apiKey: openaiKey,
-        systemPrompt: FACT_CHECK_PROMPT,
-        userPrompt: factCheckInput,
-        maxTokens: 4096,
-        temperature: 0.15,
-      });
-      agentsUsed.push("FactCheckAgent (OpenAI — adversarial cross-reference)");
-    } else if (geminiKey) {
-      factChecked = await callGemini({
-        apiKey: geminiKey,
-        systemPrompt: FACT_CHECK_PROMPT,
-        userPrompt: factCheckInput,
-        maxTokens: 4096,
-        temperature: 0.15,
-      });
-      agentsUsed.push("FactCheckAgent (Gemini fallback)");
-    }
+    factChecked = await llm(FACT_CHECK_PROMPT, factCheckInput, 4096, 0.15);
+    agentsUsed.push("FactCheckAgent (routed model cross-check)");
   }
 
-  // ── Step 4: Synthesis Agent (Gemini for long output, OpenAI fallback)
+  // ── Step 4: Synthesis Agent (provider-routed model)
   const synthesisInput = [
     `Verified facts:\n${factChecked || "No fact-check available"}`,
     `\nOriginal topic: ${topic}`,
     focus ? `Focus: ${focus}` : "",
-    webFindings ? `\nRaw web findings (for context):\n${webFindings.slice(0, 2000)}` : "",
+    modelFindings
+      ? `\nRaw model-knowledge findings (for context):\n${modelFindings.slice(0, 2000)}`
+      : "",
   ]
     .filter(Boolean)
     .join("\n");
 
-  let report = "";
-  if (geminiKey) {
-    report = await callGemini({
-      apiKey: geminiKey,
-      systemPrompt: SYNTHESIS_PROMPT,
-      userPrompt: synthesisInput,
-      maxTokens: 8192,
-      temperature: 0.4,
-    });
-    agentsUsed.push("SynthesisAgent (Gemini — long-form report)");
-  } else if (openaiKey) {
-    report = await callOpenAI({
-      apiKey: openaiKey,
-      systemPrompt: SYNTHESIS_PROMPT,
-      userPrompt: synthesisInput,
-      maxTokens: 4096,
-      temperature: 0.4,
-    });
-    agentsUsed.push("SynthesisAgent (OpenAI fallback)");
-  }
+  const report = await llm(SYNTHESIS_PROMPT, synthesisInput, 8192, 0.4);
+  agentsUsed.push("SynthesisAgent (routed model synthesis)");
 
   return {
     report,
-    webFindings,
+    webFindings: modelFindings,
     onChainData,
     factCheckResults: factChecked,
     agentsUsed,
@@ -521,7 +456,7 @@ export const SWARM_PREMIUM_CATALOG: X402ServiceEndpoint[] = [
   {
     name: "Deep Research Swarm",
     description:
-      "4-agent self-funding research pipeline — web research (Gemini grounding), on-chain data (Helius), adversarial fact-check, synthesis report. Agents independently gather data from paid sources, then synthesize. The killer feature: agents paying agents.",
+      "Provider-routed research pipeline — model-knowledge analysis (no live web retrieval), optional on-chain data from Helius, adversarial consistency checks, and a synthesis report.",
     path: "/swarm/deep-research",
     method: "POST",
     priceUsd: "1.00",
@@ -565,11 +500,17 @@ export const swarmPremiumRoutes: Route[] = [
       }
 
       const focus = typeof body.focus === "string" ? body.focus.slice(0, 200) : "";
-      const validSources = ["web", "onchain", "social", "news"];
+      const validSources = ["model-knowledge", "onchain"];
       let sources: string[] = validSources; // default all
       if (Array.isArray(body.sources)) {
-        const filtered = body.sources.filter((s: unknown) => typeof s === "string" && validSources.includes(s));
-        if (filtered.length > 0) sources = filtered;
+        sources = Array.from(
+          new Set(
+            body.sources
+              .filter((s: unknown): s is string => typeof s === "string")
+              .map((s: string) => (s === "web" ? "model-knowledge" : s))
+              .filter((s: string) => validSources.includes(s)),
+          ),
+        );
       }
 
       // Cache check
@@ -589,10 +530,10 @@ export const swarmPremiumRoutes: Route[] = [
       }
 
       // Check that at least one LLM key is available
-      const geminiKey = String(runtime.getSetting("GEMINI_API_KEY") ?? "");
+      const swarmsKey = String(runtime.getSetting("SWARMS_API_KEY") ?? "");
       const openaiKey = String(runtime.getSetting("OPENAI_API_KEY") ?? "");
-      if (!geminiKey && !openaiKey) {
-        res.status(503).json({ error: "No LLM API key configured (need OPENAI_API_KEY or GEMINI_API_KEY)" });
+      if (!swarmsKey && !openaiKey) {
+        res.status(503).json({ error: "No LLM API key configured (need SWARMS_API_KEY or OPENAI_API_KEY)" });
         return;
       }
 
@@ -747,9 +688,9 @@ export const swarmPremiumRoutes: Route[] = [
       }
 
       const openaiKey = String(runtime.getSetting("OPENAI_API_KEY") ?? "");
-      const geminiKey = String(runtime.getSetting("GEMINI_API_KEY") ?? "");
-      if (!openaiKey && !geminiKey) {
-        res.status(503).json({ error: "No LLM API key configured (need OPENAI_API_KEY or GEMINI_API_KEY)" });
+      const swarmsKey = String(runtime.getSetting("SWARMS_API_KEY") ?? "");
+      if (!swarmsKey && !openaiKey) {
+        res.status(503).json({ error: "No LLM API key configured (need SWARMS_API_KEY or OPENAI_API_KEY)" });
         return;
       }
 
@@ -769,24 +710,14 @@ export const swarmPremiumRoutes: Route[] = [
             : "\nNo custom thresholds set — use reasonable defaults.",
         ].join("\n");
 
-        let alertResult: string;
-        if (openaiKey) {
-          alertResult = await callOpenAI({
-            apiKey: openaiKey,
-            systemPrompt: ALERT_ANALYSIS_PROMPT,
-            userPrompt: alertInput,
-            maxTokens: 2048,
-            temperature: 0.15,
-          });
-        } else {
-          alertResult = await callGemini({
-            apiKey: geminiKey,
-            systemPrompt: ALERT_ANALYSIS_PROMPT,
-            userPrompt: alertInput,
-            maxTokens: 2048,
-            temperature: 0.15,
-          });
-        }
+        const alertResult = await callOpenAI({
+          apiKey: openaiKey,
+          swarmsApiKey: swarmsKey,
+          systemPrompt: ALERT_ANALYSIS_PROMPT,
+          userPrompt: alertInput,
+          maxTokens: 2048,
+          temperature: 0.15,
+        });
 
         const durationMs = Date.now() - startMs;
 

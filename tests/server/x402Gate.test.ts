@@ -74,6 +74,32 @@ describe("x402Gate", () => {
     expect(res.setHeader).toHaveBeenCalledWith("PAYMENT-REQUIRED", "encoded-requirements");
   });
 
+  it("includes additional advertised payment options in the unpaid 402 body", async () => {
+    const serverService = createMockServerService();
+    const runtime = createMockRuntime({ services: { X402_SERVER: serverService } });
+    const req = { headers: {}, url: "/api/test", method: "GET" };
+    const res = createMockRes();
+    const rhAccept = {
+      scheme: "exact",
+      network: "eip155:4663",
+      asset: "0xUSDG",
+    };
+
+    await x402Gate(runtime, req, res, {
+      amountUsd: "0.29",
+      extraAccepts: [rhAccept],
+    });
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accepts: [
+          { type: "x402", amount: "50000" },
+          expect.objectContaining({ network: "eip155:4663", asset: "0xUSDG" }),
+        ],
+      })
+    );
+  });
+
   it("verifies and settles payment, returns paid:true with transaction", async () => {
     const serverService = createMockServerService({
       settleTransaction: "0xdef456",

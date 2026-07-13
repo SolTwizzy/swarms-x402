@@ -18,6 +18,7 @@ import { contentRoutes } from "./src/routes/contentRoutes.js";
 import { advancedRoutes } from "./src/routes/advancedRoutes.js";
 import { swarmRoutes } from "./src/routes/swarmRoutes.js";
 import { swarmPremiumRoutes } from "./src/routes/swarmPremiumRoutes.js";
+import { rwaRoutes } from "./src/routes/rwaRoutes.js";
 import { X402WalletService } from "./src/services/x402WalletService.js";
 import { SwarmsService } from "./src/services/swarmsService.js";
 import { PaymentMemoryService } from "./src/services/paymentMemoryService.js";
@@ -236,7 +237,7 @@ async function initServices(): Promise<void> {
 
 // ── Route Registration ──────────────────────────────────────────────────────
 
-const allRoutes: Route[] = [...x402Routes, ...taskRoutes, ...walletAnalyzerRoutes, ...heliusDataRoutes, ...tradingRoutes, ...cryptoRoutes, ...batchRoutes, ...codeAuditRoutes, ...cryptoAnalysisRoutes, ...contentRoutes, ...advancedRoutes, ...swarmRoutes, ...swarmPremiumRoutes];
+const allRoutes: Route[] = [...x402Routes, ...taskRoutes, ...walletAnalyzerRoutes, ...heliusDataRoutes, ...tradingRoutes, ...cryptoRoutes, ...batchRoutes, ...codeAuditRoutes, ...cryptoAnalysisRoutes, ...contentRoutes, ...advancedRoutes, ...swarmRoutes, ...swarmPremiumRoutes, ...rwaRoutes];
 
 /**
  * Build a lookup map: "METHOD /path" -> handler
@@ -2419,6 +2420,7 @@ async function startServer(): Promise<void> {
               <option value="contract-audit/deep" data-price="$0.25">Deep Audit ($0.25) &mdash; 6 agents</option>
               <option value="token-risk" data-price="$0.05">Token Risk ($0.05) &mdash; 3 agents</option>
               <option value="memecoin-score" data-price="$0.05">Memecoin Score ($0.05) &mdash; 3 agents</option>
+              <option value="rwa/stock-dd" data-price="$0.29">Stock DD &mdash; RWA ($0.29) &mdash; 3 agents</option>
               <option value="wallet-risk-score" data-price="$0.05">Wallet Risk Score ($0.05) &mdash; 2 agents</option>
               <option value="tx-explainer" data-price="$0.03">TX Explainer ($0.03) &mdash; AI</option>
               <option value="dao-analyze" data-price="$0.10">DAO Analysis ($0.10) &mdash; 4 agents</option>
@@ -2775,6 +2777,7 @@ async function startServer(): Promise<void> {
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Deep Audit</span><span class="ep-price">$0.25</span></div><p class="ep-desc">6-agent comprehensive audit with cross-checks</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/contract-audit/deep</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Risk</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent rug pull detection and risk verdict</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-risk</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Memecoin Score</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent memecoin risk: authorities, holders, verdict</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/memecoin-score</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Stock DD (RWA)</span><span class="ep-price">$0.29</span></div><p class="ep-desc">Real market data + 3-agent bull/bear/risk debate verdict for a stock ticker</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/stock-dd</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Wallet Risk Score</span><span class="ep-price">$0.05</span></div><p class="ep-desc">2-agent wallet risk: tx patterns and risk level</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/wallet-risk-score</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">TX Explainer</span><span class="ep-price">$0.03</span></div><p class="ep-desc">Plain English Solana transaction explanation</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/tx-explainer</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">DAO Analysis</span><span class="ep-price">$0.10</span></div><p class="ep-desc">4-agent governance: economic, technical, risk + recommendation</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/dao-analyze</span></div></div>
@@ -3411,9 +3414,10 @@ console.log(<span class="kw">await</span> res.json());</div>
     var isAddress = ep === 'token-risk' || ep === 'memecoin-score' || ep === 'wallet-risk-score';
     var isTx = ep === 'tx-explainer';
     var isDao = ep === 'dao-analyze';
+    var isTicker = ep === 'rwa/stock-dd';
     /* textarea for code or DAO proposals */
     document.getElementById('crypto-textarea-group').style.display = (isCode || isDao) ? '' : 'none';
-    document.getElementById('crypto-text-group').style.display = (isAddress || isTx) ? '' : 'none';
+    document.getElementById('crypto-text-group').style.display = (isAddress || isTx || isTicker) ? '' : 'none';
     document.getElementById('crypto-lang-group').style.display = isCode ? '' : 'none';
     document.getElementById('crypto-chain-group').style.display = (ep === 'token-risk') ? '' : 'none';
     if (isCode) {
@@ -3430,6 +3434,9 @@ console.log(<span class="kw">await</span> res.json());</div>
     } else if (isTx) {
       document.getElementById('crypto-text-label').textContent = 'Transaction Signature';
       document.getElementById('crypto-text').placeholder = 'e.g. 48HXBQNS...';
+    } else if (isTicker) {
+      document.getElementById('crypto-text-label').textContent = 'Stock Ticker';
+      document.getElementById('crypto-text').placeholder = 'e.g. NVDA';
     }
   }
 
@@ -3461,6 +3468,10 @@ console.log(<span class="kw">await</span> res.json());</div>
       var proposal = document.getElementById('crypto-textarea').value.trim();
       if (!proposal) { showError('crypto', 'Please enter a proposal.'); return; }
       body = { proposal: proposal };
+    } else if (ep === 'rwa/stock-dd') {
+      var ticker = document.getElementById('crypto-text').value.trim().toUpperCase();
+      if (!ticker) { showError('crypto', 'Please enter a stock ticker.'); return; }
+      body = { ticker: ticker };
     }
     submitEndpoint('crypto', path, body, ep.replace(/-/g, ' ').replace(/\\/.*/, ''));
   }

@@ -18,7 +18,9 @@ vi.mock("../../src/routes/heliusDataRoutes.js", () => ({
   rpcCall: vi.fn(async () => ({ value: [] })),
 }));
 
-// Mock callOpenAI
+// Mock callOpenAI — the Swarms-first single-agent call that drives every
+// pipeline step (web research, on-chain analysis, fact-check, synthesis).
+// Gemini was removed; the platform runs on Swarms only.
 vi.mock("../../src/utils/llm.js", () => ({
   callOpenAI: vi.fn(async () =>
     JSON.stringify({
@@ -27,18 +29,6 @@ vi.mock("../../src/utils/llm.js", () => ({
       ],
       contradictions: [],
       overallReliability: 85,
-    }),
-  ),
-}));
-
-// Mock callGemini
-vi.mock("../../src/utils/gemini.js", () => ({
-  callGemini: vi.fn(async () =>
-    JSON.stringify({
-      findings: [
-        { claim: "Web finding 1", confidence: "HIGH", source: "Google" },
-      ],
-      summary: "Research summary from Gemini",
     }),
   ),
 }));
@@ -52,7 +42,6 @@ import { swarmPremiumRoutes, SWARM_PREMIUM_CATALOG } from "../../src/routes/swar
 import { x402Gate } from "../../src/server/x402Gate.js";
 import { rpcCall } from "../../src/routes/heliusDataRoutes.js";
 import { callOpenAI } from "../../src/utils/llm.js";
-import { callGemini } from "../../src/utils/gemini.js";
 import { saveReport } from "../../src/utils/reportStore.js";
 
 // Counter for generating unique targets to avoid cache collisions between tests
@@ -93,7 +82,7 @@ describe("swarmPremiumRoutes", () => {
     });
     // Default rpcCall returns balance data
     (rpcCall as any).mockResolvedValue({ value: 5_000_000_000 });
-    // Default callOpenAI returns fact-check result
+    // Default callOpenAI returns fact-check result (used across all steps)
     (callOpenAI as any).mockResolvedValue(
       JSON.stringify({
         verifiedFacts: [
@@ -101,15 +90,6 @@ describe("swarmPremiumRoutes", () => {
         ],
         contradictions: [],
         overallReliability: 85,
-      }),
-    );
-    // Default callGemini returns web findings + synthesis
-    (callGemini as any).mockResolvedValue(
-      JSON.stringify({
-        findings: [
-          { claim: "Web finding 1", confidence: "HIGH", source: "Google" },
-        ],
-        summary: "Research summary from Gemini",
       }),
     );
     (saveReport as any).mockReturnValue("mock-report-id");
@@ -188,7 +168,7 @@ describe("swarmPremiumRoutes", () => {
 
     it("calls x402Gate with $1.00", async () => {
       const runtime = createMockRuntime({
-        settings: { GEMINI_API_KEY: "test-gemini", OPENAI_API_KEY: "test-openai" },
+        settings: { SWARMS_API_KEY: "test-swarms", OPENAI_API_KEY: "test-openai" },
       });
       const req = { body: { topic: "Bitcoin price analysis" } } as any;
       const res = createMockRes();
@@ -218,32 +198,34 @@ describe("swarmPremiumRoutes", () => {
       );
     });
 
-    it("calls Gemini with grounding for web research", async () => {
+    it("routes model-knowledge research through the Swarms-first LLM", async () => {
       const runtime = createMockRuntime({
-        settings: { GEMINI_API_KEY: "test-gemini", OPENAI_API_KEY: "test-openai" },
+        settings: { SWARMS_API_KEY: "test-swarms", OPENAI_API_KEY: "test-openai" },
       });
       const req = { body: { topic: "Solana ecosystem growth" } } as any;
       const res = createMockRes();
 
       await route!.handler(req, res, runtime);
 
-      // Gemini should be called at least once (web research + possibly synthesis)
-      expect(callGemini).toHaveBeenCalled();
-      // First call should have grounding enabled (web research)
-      const firstCall = (callGemini as any).mock.calls[0][0];
-      expect(firstCall.groundingEnabled).toBe(true);
+      // The LLM should be invoked for the model-knowledge step, with the Swarms key
+      // threaded through so callOpenAI cascades Swarms → OpenAI.
+      expect(callOpenAI).toHaveBeenCalled();
+      const webCall = (callOpenAI as any).mock.calls.find(
+        (c: any[]) => c[0].systemPrompt.includes("research agent"),
+      );
+      expect(webCall).toBeDefined();
+      expect(webCall[0].swarmsApiKey).toBe("test-swarms");
     });
 
-    it("calls OpenAI for fact-check step", async () => {
+    it("calls the LLM for the fact-check step", async () => {
       const runtime = createMockRuntime({
-        settings: { GEMINI_API_KEY: "test-gemini", OPENAI_API_KEY: "test-openai" },
+        settings: { SWARMS_API_KEY: "test-swarms", OPENAI_API_KEY: "test-openai" },
       });
       const req = { body: { topic: "Ethereum merge analysis" } } as any;
       const res = createMockRes();
 
       await route!.handler(req, res, runtime);
 
-      // OpenAI should be called for fact-checking
       expect(callOpenAI).toHaveBeenCalled();
       const factCheckCall = (callOpenAI as any).mock.calls.find(
         (c: any[]) => c[0].systemPrompt.includes("fact-checker"),
@@ -251,7 +233,7 @@ describe("swarmPremiumRoutes", () => {
       expect(factCheckCall).toBeDefined();
     });
 
-    it("falls back to OpenAI when no Gemini key", async () => {
+    it("runs with only an OPENAI key (Swarms key absent)", async () => {
       const runtime = createMockRuntime({
         settings: { OPENAI_API_KEY: "test-openai" },
       });
@@ -260,10 +242,9 @@ describe("swarmPremiumRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
-      // Should not call Gemini
-      expect(callGemini).not.toHaveBeenCalled();
-      // Should call OpenAI for all steps
+      // Guard passes on OpenAI alone; the pipeline still runs through callOpenAI.
       expect(callOpenAI).toHaveBeenCalled();
+      expect(res.status).not.toHaveBeenCalledWith(503);
     });
 
     it("detects on-chain address in topic and fetches data", async () => {
@@ -286,10 +267,20 @@ describe("swarmPremiumRoutes", () => {
     });
 
     it("returns full report structure for paid call", async () => {
-      // Make Gemini return a proper report for synthesis
-      (callGemini as any).mockImplementation(async (opts: any) => {
+      // Route the LLM mock by system prompt: synthesis → report string,
+      // fact-check → verifiedFacts JSON, everything else → findings JSON.
+      (callOpenAI as any).mockImplementation(async (opts: any) => {
         if (opts.systemPrompt.includes("research report writer")) {
           return "# Executive Summary\n\nThis is a comprehensive report.\n\n# Key Findings\n\n1. Finding one [VERIFIED]\n\n# Conclusions\n\nOverall positive outlook.";
+        }
+        if (opts.systemPrompt.includes("fact-checker")) {
+          return JSON.stringify({
+            verifiedFacts: [
+              { claim: "Test", verdict: "VERIFIED", confidence: 0.9, note: "ok" },
+            ],
+            contradictions: [],
+            overallReliability: 85,
+          });
         }
         return JSON.stringify({
           findings: [{ claim: "Test", confidence: "HIGH", source: "Web" }],
@@ -298,7 +289,7 @@ describe("swarmPremiumRoutes", () => {
       });
 
       const runtime = createMockRuntime({
-        settings: { GEMINI_API_KEY: "test-gemini", OPENAI_API_KEY: "test-openai" },
+        settings: { SWARMS_API_KEY: "test-swarms", OPENAI_API_KEY: "test-openai" },
       });
       const req = { body: { topic: "Bitcoin ETF impact", focus: "institutional adoption" } } as any;
       const res = createMockRes();
@@ -324,7 +315,7 @@ describe("swarmPremiumRoutes", () => {
 
     it("saves report on successful execution", async () => {
       const runtime = createMockRuntime({
-        settings: { GEMINI_API_KEY: "test-gemini", OPENAI_API_KEY: "test-openai" },
+        settings: { SWARMS_API_KEY: "test-swarms", OPENAI_API_KEY: "test-openai" },
       });
       const req = { body: { topic: "Solana DeFi growth" } } as any;
       const res = createMockRes();
@@ -349,7 +340,7 @@ describe("swarmPremiumRoutes", () => {
       });
 
       const runtime = createMockRuntime({
-        settings: { GEMINI_API_KEY: "test-gemini", OPENAI_API_KEY: "test-openai" },
+        settings: { SWARMS_API_KEY: "test-swarms", OPENAI_API_KEY: "test-openai" },
       });
       const req = { body: { topic: "Free tier research" } } as any;
       const res = createMockRes();
@@ -381,7 +372,7 @@ describe("swarmPremiumRoutes", () => {
       expect(res.json).not.toHaveBeenCalled();
     });
 
-    it("respects custom sources filter", async () => {
+    it("maps the legacy web source to honest model-knowledge metadata", async () => {
       const runtime = createMockRuntime({
         settings: { OPENAI_API_KEY: "test-openai" },
       });
@@ -392,9 +383,27 @@ describe("swarmPremiumRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
-      // Should include web in sourcesQueried but not onchain
       const response = (res.json as any).mock.calls[0][0];
-      expect(response.sources).toEqual(["web"]);
+      expect(response.sources).toEqual(["model-knowledge"]);
+      expect(response.sourcesQueried).toEqual(["model-knowledge"]);
+      expect(response.agentsUsed.join(" ")).not.toContain("Swarms");
+      expect(response.agentsUsed.join(" ")).toContain("no live retrieval");
+    });
+
+    it("drops unsupported social and news sources instead of claiming they were queried", async () => {
+      const runtime = createMockRuntime({
+        settings: { OPENAI_API_KEY: "test-openai" },
+      });
+      const req = {
+        body: { topic: `Unsupported source test ${++testCounter}`, sources: ["social", "news"] },
+      } as any;
+      const res = createMockRes();
+
+      await route!.handler(req, res, runtime);
+
+      const response = (res.json as any).mock.calls[0][0];
+      expect(response.sources).toEqual([]);
+      expect(response.sourcesQueried).toEqual([]);
     });
   });
 

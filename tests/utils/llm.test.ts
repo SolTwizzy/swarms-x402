@@ -1,17 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Mock both LLM providers before importing callLLM
-vi.mock("../../src/utils/gemini.js", () => ({
-  callGemini: vi.fn(async () => "gemini response"),
-}));
-
-// We need to NOT mock llm.ts itself since we're testing it,
-// but we need to mock callOpenAI's fetch calls.
-// Since callLLM calls callOpenAI (which uses fetch), we mock fetch.
+// We test llm.ts itself (do NOT mock it). Swarms + OpenAI both go through
+// fetch, so we mock fetch and route by URL:
+//   - api.swarms.world  -> Swarms /v1/agent/completions shape
+//   - api.openai.com    -> OpenAI chat/completions shape
 const originalFetch = globalThis.fetch;
 
-import { callLLM, callOpenAI } from "../../src/utils/llm.js";
-import { callGemini } from "../../src/utils/gemini.js";
+import { callLLM, callOpenAI, callSwarmsAgent } from "../../src/utils/llm.js";
+
+function mockFetchByUrl() {
+  globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+    const u = String(url);
+    if (u.includes("api.swarms.world")) {
+      return new Response(
+        JSON.stringify({ outputs: [{ role: "assistant", content: "swarms response" }] }),
+        { status: 200 },
+      );
+    }
+    // default: OpenAI
+    return new Response(
+      JSON.stringify({ choices: [{ message: { content: "openai response" } }] }),
+      { status: 200 },
+    );
+  }) as unknown as typeof fetch;
+}
 
 function createMockRuntime(settings: Record<string, string | null> = {}) {
   return {
@@ -19,80 +31,31 @@ function createMockRuntime(settings: Record<string, string | null> = {}) {
   };
 }
 
-describe("callLLM — smart routing", () => {
+describe("callLLM — smart routing (Swarms → OpenAI)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Re-set mock implementations (mockReset clears them between tests)
-    (callGemini as ReturnType<typeof vi.fn>).mockResolvedValue("gemini response");
-    // Mock fetch for OpenAI calls
-    globalThis.fetch = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          choices: [{ message: { content: "openai response" } }],
-        }),
-        { status: 200 },
-      ),
-    ) as unknown as typeof fetch;
+    mockFetchByUrl();
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
   });
 
-  it("routes to OpenAI when both keys present and taskType is 'code'", async () => {
+  it("prefers Swarms when SWARMS_API_KEY is set (over OpenAI)", async () => {
     const runtime = createMockRuntime({
+      SWARMS_API_KEY: "swarms-test",
       OPENAI_API_KEY: "sk-test",
-      GEMINI_API_KEY: "gem-test",
     });
 
     const result = await callLLM(runtime, {
-      systemPrompt: "You are a code reviewer.",
-      userPrompt: "Review this code.",
-      taskType: "code",
+      systemPrompt: "You are helpful.",
+      userPrompt: "Do the task.",
     });
 
-    expect(result).toBe("openai response");
-    expect(callGemini).not.toHaveBeenCalled();
+    expect(result).toBe("swarms response");
   });
 
-  it("routes to Gemini when both keys present and taskType is 'research'", async () => {
-    const runtime = createMockRuntime({
-      OPENAI_API_KEY: "sk-test",
-      GEMINI_API_KEY: "gem-test",
-    });
-
-    const result = await callLLM(runtime, {
-      systemPrompt: "You are a researcher.",
-      userPrompt: "Research this topic.",
-      taskType: "research",
-    });
-
-    expect(result).toBe("gemini response");
-    expect(callGemini).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "gem-test",
-        systemPrompt: "You are a researcher.",
-        userPrompt: "Research this topic.",
-      }),
-    );
-  });
-
-  it("falls back to Gemini when no OpenAI key", async () => {
-    const runtime = createMockRuntime({
-      GEMINI_API_KEY: "gem-test",
-    });
-
-    const result = await callLLM(runtime, {
-      systemPrompt: "test",
-      userPrompt: "test",
-      taskType: "general",
-    });
-
-    expect(result).toBe("gemini response");
-    expect(callGemini).toHaveBeenCalled();
-  });
-
-  it("falls back to OpenAI when no Gemini key", async () => {
+  it("falls back to OpenAI when only OpenAI key is present", async () => {
     const runtime = createMockRuntime({
       OPENAI_API_KEY: "sk-test",
     });
@@ -100,12 +63,31 @@ describe("callLLM — smart routing", () => {
     const result = await callLLM(runtime, {
       systemPrompt: "test",
       userPrompt: "test",
-      taskType: "research",
     });
 
-    // Even though taskType is research, Gemini key is missing -> OpenAI
     expect(result).toBe("openai response");
-    expect(callGemini).not.toHaveBeenCalled();
+  });
+
+  it("cascades Swarms → OpenAI when Swarms fails", async () => {
+    // Swarms 500s → cascade to OpenAI.
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      const u = String(url);
+      if (u.includes("api.swarms.world")) {
+        return new Response("upstream error", { status: 500 });
+      }
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: "openai response" } }] }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const runtime = createMockRuntime({
+      SWARMS_API_KEY: "swarms-test",
+      OPENAI_API_KEY: "sk-test",
+    });
+
+    const result = await callLLM(runtime, { systemPrompt: "test", userPrompt: "test" });
+    expect(result).toBe("openai response");
   });
 
   it("throws when no keys available", async () => {
@@ -119,41 +101,80 @@ describe("callLLM — smart routing", () => {
     ).rejects.toThrow("No LLM API key configured");
   });
 
-  it("respects explicit provider='openai'", async () => {
+  it("respects explicit provider='openai' (no cascade, no Swarms)", async () => {
     const runtime = createMockRuntime({
+      SWARMS_API_KEY: "swarms-test",
       OPENAI_API_KEY: "sk-test",
-      GEMINI_API_KEY: "gem-test",
     });
+
+    const result = await callLLM(runtime, {
+      systemPrompt: "test",
+      userPrompt: "test",
+      provider: "openai",
+    });
+
+    expect(result).toBe("openai response");
+  });
+
+  it("throws when explicit provider='openai' returns empty output", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: "   " } }] }),
+        { status: 200 },
+      ),
+    ) as unknown as typeof fetch;
+    const runtime = createMockRuntime({ OPENAI_API_KEY: "sk-test" });
+
+    await expect(
+      callLLM(runtime, {
+        systemPrompt: "test",
+        userPrompt: "test",
+        provider: "openai",
+      }),
+    ).rejects.toThrow("OpenAI API returned empty output");
+  });
+
+  it("applies a 60-second abort signal to explicit OpenAI calls", async () => {
+    const controller = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockReturnValue(controller.signal);
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: "openai response" } }] }),
+        { status: 200 },
+      ),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const runtime = createMockRuntime({ OPENAI_API_KEY: "sk-test" });
 
     await callLLM(runtime, {
       systemPrompt: "test",
       userPrompt: "test",
       provider: "openai",
-      taskType: "research", // would normally route to Gemini
     });
 
-    expect(callGemini).not.toHaveBeenCalled();
+    expect(timeoutSpy).toHaveBeenCalledWith(60_000);
+    expect((fetchMock.mock.calls[0][1] as RequestInit).signal).toBe(controller.signal);
+    timeoutSpy.mockRestore();
   });
 
-  it("respects explicit provider='gemini'", async () => {
+  it("respects explicit provider='swarms'", async () => {
     const runtime = createMockRuntime({
+      SWARMS_API_KEY: "swarms-test",
       OPENAI_API_KEY: "sk-test",
-      GEMINI_API_KEY: "gem-test",
     });
 
-    await callLLM(runtime, {
+    const result = await callLLM(runtime, {
       systemPrompt: "test",
       userPrompt: "test",
-      provider: "gemini",
-      taskType: "code", // would normally route to OpenAI
+      provider: "swarms",
     });
 
-    expect(callGemini).toHaveBeenCalled();
+    expect(result).toBe("swarms response");
   });
 
   it("throws when explicit provider='openai' but no OpenAI key", async () => {
     const runtime = createMockRuntime({
-      GEMINI_API_KEY: "gem-test",
+      SWARMS_API_KEY: "swarms-test",
     });
 
     await expect(
@@ -165,7 +186,7 @@ describe("callLLM — smart routing", () => {
     ).rejects.toThrow("OPENAI_API_KEY not configured");
   });
 
-  it("throws when explicit provider='gemini' but no Gemini key", async () => {
+  it("throws when explicit provider='swarms' but no Swarms key", async () => {
     const runtime = createMockRuntime({
       OPENAI_API_KEY: "sk-test",
     });
@@ -174,43 +195,147 @@ describe("callLLM — smart routing", () => {
       callLLM(runtime, {
         systemPrompt: "test",
         userPrompt: "test",
-        provider: "gemini",
+        provider: "swarms",
       }),
-    ).rejects.toThrow("GEMINI_API_KEY not configured");
+    ).rejects.toThrow("SWARMS_API_KEY not configured");
+  });
+});
+
+describe("callOpenAI — Swarms-first cascade", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFetchByUrl();
   });
 
-  it("passes groundingEnabled to Gemini", async () => {
-    const runtime = createMockRuntime({
-      GEMINI_API_KEY: "gem-test",
-    });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
 
-    await callLLM(runtime, {
+  it("uses Swarms first when swarmsApiKey is provided", async () => {
+    const result = await callOpenAI({
+      apiKey: "sk-test",
+      swarmsApiKey: "swarms-test",
       systemPrompt: "test",
       userPrompt: "test",
-      provider: "gemini",
-      groundingEnabled: true,
     });
 
-    expect(callGemini).toHaveBeenCalledWith(
-      expect.objectContaining({
-        groundingEnabled: true,
+    expect(result).toBe("swarms response");
+  });
+
+  it("cascades to OpenAI when Swarms fails", async () => {
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      if (String(url).includes("api.swarms.world")) {
+        return new Response("boom", { status: 500 });
+      }
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: "openai response" } }] }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await callOpenAI({
+      apiKey: "sk-test",
+      swarmsApiKey: "swarms-test",
+      systemPrompt: "test",
+      userPrompt: "test",
+    });
+
+    expect(result).toBe("openai response");
+  });
+
+  it("falls through to OpenAI when only apiKey is provided (no swarms)", async () => {
+    const result = await callOpenAI({
+      apiKey: "sk-test",
+      swarmsApiKey: "",
+      systemPrompt: "test",
+      userPrompt: "test",
+    });
+
+    expect(result).toBe("openai response");
+  });
+
+  it("throws after both Swarms and OpenAI return empty output", async () => {
+    globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+      if (String(url).includes("api.swarms.world")) {
+        return new Response(JSON.stringify({ outputs: [] }), { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ choices: [{ message: { content: "" } }] }),
+        { status: 200 },
+      );
+    }) as unknown as typeof fetch;
+
+    await expect(
+      callOpenAI({
+        apiKey: "sk-test",
+        swarmsApiKey: "swarms-test",
+        systemPrompt: "test",
+        userPrompt: "test",
       }),
+    ).rejects.toThrow(/All LLM providers failed.*Swarms agent returned empty output.*OpenAI API returned empty output/);
+  });
+});
+
+describe("callSwarmsAgent", () => {
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("POSTs to /v1/agent/completions with x-api-key and extracts outputs[].content", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ outputs: [{ role: "assistant", content: "swarms response" }] }),
+        { status: 200 },
+      ),
     );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await callSwarmsAgent({
+      swarmsApiKey: "swarms-test",
+      systemPrompt: "sys",
+      userPrompt: "task",
+    });
+
+    expect(result).toBe("swarms response");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/v1/agent/completions");
+    expect((init.headers as Record<string, string>)["x-api-key"]).toBe("swarms-test");
+    const body = JSON.parse(init.body as string);
+    expect(body.task).toBe("task");
+    expect(body.agent_config.system_prompt).toBe("sys");
+    expect(body.agent_config.max_loops).toBe(1);
   });
 
-  it("defaults taskType to 'general' (routes to OpenAI)", async () => {
-    const runtime = createMockRuntime({
-      OPENAI_API_KEY: "sk-test",
-      GEMINI_API_KEY: "gem-test",
-    });
+  it("extracts a plain string `output`", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ output: "plain output" }), { status: 200 }),
+    ) as unknown as typeof fetch;
 
-    await callLLM(runtime, {
-      systemPrompt: "test",
-      userPrompt: "test",
-      // no taskType — defaults to "general"
+    const result = await callSwarmsAgent({
+      swarmsApiKey: "swarms-test",
+      systemPrompt: "sys",
+      userPrompt: "task",
     });
+    expect(result).toBe("plain output");
+  });
 
-    // "general" should go to OpenAI, not Gemini
-    expect(callGemini).not.toHaveBeenCalled();
+  it("throws on non-2xx", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response("nope", { status: 402 }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      callSwarmsAgent({ swarmsApiKey: "swarms-test", systemPrompt: "s", userPrompt: "t" }),
+    ).rejects.toThrow("Swarms agent API error (402)");
+  });
+
+  it("throws on empty output", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ outputs: [] }), { status: 200 }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      callSwarmsAgent({ swarmsApiKey: "swarms-test", systemPrompt: "s", userPrompt: "t" }),
+    ).rejects.toThrow("empty output");
   });
 });

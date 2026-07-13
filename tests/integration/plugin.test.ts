@@ -53,5 +53,6 @@ describe("x402SwarmsPlugin", () => {
     expect(x402SwarmsPlugin.routes).toBeDefined();
     expect(Array.isArray(x402SwarmsPlugin.routes)).toBe(true);
     expect(x402SwarmsPlugin.routes!.length).toBeGreaterThanOrEqual(5);
+    expect(x402SwarmsPlugin.routes!.some((route) => route.path === "/x402/rwa/stock-dd")).toBe(true);
   });
 });

@@ -26,6 +26,8 @@ export interface X402GateOptions {
   resourceUrl?: string;
   /** Enable free tier (3 calls/day per IP + cookie). Default: true in production. */
   freeTierEnabled?: boolean;
+  /** Additional payment options to advertise alongside the Dexter requirement. */
+  extraAccepts?: ReadonlyArray<object>;
 }
 
 /**
@@ -233,13 +235,20 @@ export async function x402Gate(
         res.setHeader("PAYMENT-REQUIRED", encoded);
       }
       if (res.status && res.json) {
-        res.status(402).json({
+        const body: Record<string, unknown> = {
           error: "Payment required",
           description: options.description,
           amount: options.amountUsd,
           network: serverService.getNetwork(),
           payTo: serverService.getReceiveAddress(),
-        });
+        };
+        if (options.extraAccepts?.length) {
+          const dexterAccepts = Array.isArray((requirements as any).accepts)
+            ? (requirements as any).accepts
+            : [requirements];
+          body.accepts = [...dexterAccepts, ...options.extraAccepts];
+        }
+        res.status(402).json(body);
       }
     } catch (err) {
       runtime.logger.error(

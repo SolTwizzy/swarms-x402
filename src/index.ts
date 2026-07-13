@@ -24,6 +24,7 @@ import { advancedRoutes } from "./routes/advancedRoutes.js";
 import { cryptoAnalysisRoutes } from "./routes/cryptoAnalysisRoutes.js";
 import { swarmRoutes } from "./routes/swarmRoutes.js";
 import { swarmPremiumRoutes } from "./routes/swarmPremiumRoutes.js";
+import { rwaRoutes } from "./routes/rwaRoutes.js";
 import { x402PaymentHistory, x402EndpointScores, x402BudgetState, x402Knowledge } from "./schemas/index.js";
 
 export { payForService, discoverServices, delegateToSwarm, runSwarmAgent, delegateToSwarmWithPayment } from "./actions/index.js";
@@ -47,11 +48,10 @@ export { cryptoAnalysisRoutes, CRYPTO_ANALYSIS_CATALOG } from "./routes/cryptoAn
 export { advancedRoutes, ADVANCED_CATALOG } from "./routes/advancedRoutes.js";
 export { swarmRoutes, SWARM_ROUTE_CATALOG } from "./routes/swarmRoutes.js";
 export { swarmPremiumRoutes, SWARM_PREMIUM_CATALOG } from "./routes/swarmPremiumRoutes.js";
+export { rwaRoutes, RWA_CATALOG } from "./routes/rwaRoutes.js";
 export { TTLCache } from "./utils/cache.js";
-export { callOpenAI, callLLM } from "./utils/llm.js";
-export type { LLMProvider, SmartLLMOptions } from "./utils/llm.js";
-export { callGemini } from "./utils/gemini.js";
-export type { GeminiOptions } from "./utils/gemini.js";
+export { callOpenAI, callLLM, callSwarmsAgent } from "./utils/llm.js";
+export type { LLMProvider, SmartLLMOptions, CallOpenAIOptions, SwarmsAgentOptions } from "./utils/llm.js";
 export * from "./types.js";
 export { X402SwarmsClient, createClient, X402SwarmsError } from "./client/index.js";
 export type {
@@ -102,7 +102,7 @@ export const x402SwarmsPlugin: Plugin = {
   providers: [x402Provider, x402ServerProvider],
   evaluators: [paymentEvaluator],
   services: [X402WalletService, SwarmsService, X402ServerService, PaymentMemoryService],
-  routes: [...x402Routes, ...taskRoutes, ...walletAnalyzerRoutes, ...heliusDataRoutes, ...tradingRoutes, ...cryptoRoutes, ...batchRoutes, ...contentRoutes, ...codeAuditRoutes, ...advancedRoutes, ...cryptoAnalysisRoutes, ...swarmRoutes, ...swarmPremiumRoutes],
+  routes: [...x402Routes, ...taskRoutes, ...walletAnalyzerRoutes, ...heliusDataRoutes, ...tradingRoutes, ...cryptoRoutes, ...batchRoutes, ...contentRoutes, ...codeAuditRoutes, ...advancedRoutes, ...cryptoAnalysisRoutes, ...swarmRoutes, ...swarmPremiumRoutes, ...rwaRoutes],
   schema: { x402PaymentHistory, x402EndpointScores, x402BudgetState, x402Knowledge },
 };
 
