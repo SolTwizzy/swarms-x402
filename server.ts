@@ -1596,6 +1596,14 @@ async function startServer(): Promise<void> {
         return new Response(null, { status: 204, headers: CORS_HEADERS });
       }
 
+      // ── 402 Index domain verification (well-known file) ────────────
+      if (pathname === "/.well-known/402index-verify.txt" && method === "GET") {
+        return new Response(
+          "40c99666eb4f588133544581f332b533719b5e38d476cd03be3e80c37b2e11ab",
+          { status: 200, headers: { "content-type": "text/plain; charset=utf-8" } }
+        );
+      }
+
       // ── JSON status (moved from /) ─────────────────────────────────
       if (pathname === "/api/status" && method === "GET") {
         return withCORS(Response.json({
