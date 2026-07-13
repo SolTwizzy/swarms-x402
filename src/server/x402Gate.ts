@@ -246,7 +246,7 @@ export async function x402Gate(
           const dexterAccepts = Array.isArray((requirements as any).accepts)
             ? (requirements as any).accepts
             : [requirements];
-          body.accepts = [...dexterAccepts, ...options.extraAccepts];
+          body.accepts = [...options.extraAccepts, ...dexterAccepts];
         }
         res.status(402).json(body);
       }

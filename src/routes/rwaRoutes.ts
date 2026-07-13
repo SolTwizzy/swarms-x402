@@ -665,8 +665,17 @@ export const rwaRoutes: Route[] = [
         resourceUrl,
         description: STOCK_DD_DESCRIPTION,
       });
-      const accepts: unknown[] = [];
-      let headerSet = false;
+      // Robinhood Chain (USDG) is the PRIMARY rail — advertised first and in the
+      // PAYMENT-REQUIRED header so x402 crawlers (402 Index, x402scan, CDP Bazaar)
+      // index USDG/RH-Chain as the default payment option.
+      const accepts: unknown[] = [rhReq];
+      if (res.setHeader) {
+        res.setHeader(
+          "PAYMENT-REQUIRED",
+          Buffer.from(JSON.stringify(rhReq)).toString("base64")
+        );
+      }
+      // Solana/USDC (Dexter) as a secondary option.
       try {
         const serverService = runtime.getService("X402_SERVER" as any) as any;
         if (serverService?.isAvailable?.()) {
@@ -677,23 +686,11 @@ export const rwaRoutes: Route[] = [
             description: STOCK_DD_DESCRIPTION,
           });
           accepts.push(solReq);
-          if (res.setHeader) {
-            res.setHeader("PAYMENT-REQUIRED", server.encodeRequirements(solReq));
-            headerSet = true;
-          }
         }
       } catch (err) {
         runtime.logger?.warn?.(
           { error: err instanceof Error ? err.message : String(err) },
           "[x402/rwa/stock-dd GET] Solana requirements unavailable"
-        );
-      }
-      accepts.push(rhReq);
-      if (!headerSet && res.setHeader) {
-        // Always present a PAYMENT-REQUIRED header for crawlers, even RH-only.
-        res.setHeader(
-          "PAYMENT-REQUIRED",
-          Buffer.from(JSON.stringify(rhReq)).toString("base64")
         );
       }
       res.status(402).json({

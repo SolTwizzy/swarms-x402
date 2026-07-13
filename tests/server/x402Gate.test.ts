@@ -90,11 +90,12 @@ describe("x402Gate", () => {
       extraAccepts: [rhAccept],
     });
 
+    // extraAccepts (RH-Chain USDG) is advertised FIRST as the primary rail.
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         accepts: [
-          { type: "x402", amount: "50000" },
           expect.objectContaining({ network: "eip155:4663", asset: "0xUSDG" }),
+          { type: "x402", amount: "50000" },
         ],
       })
     );
