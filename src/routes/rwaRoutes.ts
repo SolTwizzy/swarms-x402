@@ -403,6 +403,291 @@ const DISCLAIMER =
   "independently. Tokenized versions of these stocks trade on Robinhood Chain and are not " +
   "available to US persons.";
 
+// ── RWA suite prices ───────────────────────────────────────────────────
+
+const SCREEN_PRICE_USD = "0.49";
+const COMPARE_PRICE_USD = "0.39";
+const ELIGIBILITY_PRICE_USD = "0.19";
+const CATALYST_PRICE_USD = "0.29";
+
+// ── Shared payment helper (dual-rail: RH-Chain USDG first, else x402Gate) ─
+// Mirrors the stock-dd ordering EXACTLY: this is called only AFTER all free
+// preflight (validation + market-data fetch) has succeeded, so invalid
+// requests and upstream data failures never consume payment or free-tier quota.
+// On an unpaid/failed result the HTTP 402 response has already been written by
+// x402Gate (or here for an RH failure); the caller just returns.
+async function settleRwaPayment(
+  runtime: any,
+  req: any,
+  res: any,
+  opts: { priceUsd: string; description: string }
+): Promise<{ paid: boolean; paidWithRhChain: boolean; gate: Awaited<ReturnType<typeof x402Gate>> }> {
+  const resourceUrl = (req as any).url ?? "/x402/rwa";
+  const rhRequirements = buildRhChainRequirements({
+    amountAtomic: usdToUsdgAtomic(opts.priceUsd),
+    resourceUrl,
+    description: opts.description,
+  });
+  const paymentHeader = getPaymentHeader(req);
+
+  if (paymentHeader && isRhChainPayment(paymentHeader)) {
+    const settlement = await settleRhChainPayment(paymentHeader, rhRequirements);
+    if (!settlement.paid) {
+      res.status(402).json({ error: "RH-Chain payment failed", reason: settlement.reason });
+      return { paid: false, paidWithRhChain: false, gate: { paid: false, amountUsd: 0 } };
+    }
+    return {
+      paid: true,
+      paidWithRhChain: true,
+      gate: {
+        paid: true,
+        amountUsd: Number(opts.priceUsd),
+        transaction: settlement.transaction,
+        network: RH_NETWORK,
+        payer: settlement.payer,
+      },
+    };
+  }
+
+  const gate = await x402Gate(runtime, req, res, {
+    amountUsd: opts.priceUsd,
+    description: opts.description,
+    resourceUrl,
+    extraAccepts: [rhRequirements],
+  });
+  return { paid: gate.paid, paidWithRhChain: false, gate };
+}
+
+/** Build the response `payment` block, matching the stock-dd shape. */
+function paymentBlock(paidWithRhChain: boolean, gate: any, priceUsd: string) {
+  return paidWithRhChain
+    ? {
+        network: RH_NETWORK,
+        asset: "USDG",
+        amount: priceUsd,
+        listPriceUsd: priceUsd,
+        transaction: gate.transaction,
+        payer: gate.payer,
+      }
+    : {
+        amount: gate.amountUsd,
+        listPriceUsd: priceUsd,
+        transaction: gate.transaction,
+        network: gate.network,
+      };
+}
+
+// ── Deterministic scoring (grounded in real market data, never fabricated) ─
+
+function clampNum(n: number, lo: number, hi: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(hi, Math.max(lo, n));
+}
+
+/** A 0-100 momentum/positioning score derived only from real market stats. */
+function compositeScore(m: MarketData): number {
+  let s = 50;
+  s += clampNum(m.trend6moPct, -30, 30) * 0.5; // ±15
+  s += clampNum(m.trend1moPct, -20, 20) * 0.5; // ±10
+  s += (clampNum(m.rangePositionPct, 0, 100) - 50) * 0.2; // ±10
+  s += clampNum(m.pctChange, -10, 10) * 0.5; // ±5
+  s -= Math.min(10, Math.max(0, m.dailyVolatilityPct)); // up to -10 for volatility
+  return round(clampNum(s, 0, 100), 1);
+}
+
+function ratingFromScore(s: number): "bullish" | "neutral" | "bearish" {
+  if (s >= 60) return "bullish";
+  if (s <= 40) return "bearish";
+  return "neutral";
+}
+
+/** Call a single Swarms agent and parse the first JSON object from its output. */
+async function swarmsExtractJson(
+  runtime: any,
+  system: string,
+  user: string
+): Promise<Record<string, unknown> | null> {
+  const swarmsKey = String(runtime.getSetting("SWARMS_API_KEY") ?? "").trim();
+  if (!swarmsKey) return null;
+  try {
+    const raw = await callSwarmsAgent({
+      swarmsApiKey: swarmsKey,
+      systemPrompt: system,
+      userPrompt: user,
+      model: "gpt-4o-mini",
+      temperature: 0,
+      maxTokens: 900,
+      agentName: "RwaStructurer",
+      description: "Extracts strict JSON from an analyst debate",
+    });
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    return JSON.parse(match[0]) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+// ── Catalyst data (real dividends / splits / notable moves from Yahoo) ────
+
+interface DividendEvent {
+  date: string;
+  amount: number;
+}
+interface SplitEvent {
+  date: string;
+  ratio: string;
+}
+interface PriceMove {
+  date: string;
+  changePct: number;
+}
+interface CatalystData {
+  price: number;
+  currency: string;
+  exchange: string;
+  asOf: string;
+  dividends: DividendEvent[];
+  ttmDividend: number;
+  dividendYieldPct: number;
+  splits: SplitEvent[];
+  recentMoves: PriceMove[];
+}
+
+/**
+ * Fetch 1y daily data WITH dividend + split events from Yahoo Finance (keyless).
+ * All values are REAL — future earnings dates are NOT available from this source
+ * and are never fabricated. Returns null on not-found / malformed response.
+ */
+async function fetchCatalystData(ticker: string): Promise<CatalystData | null> {
+  const url =
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}` +
+    `?interval=1d&range=1y&events=div,splits`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`Yahoo Finance API error (${res.status})`);
+  }
+  const json = (await res.json()) as any;
+  const result = json?.chart?.result?.[0];
+  const meta = result?.meta;
+  if (!result || !meta || typeof meta.regularMarketPrice !== "number") return null;
+
+  const price = meta.regularMarketPrice;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const yearAgo = nowSec - 365 * 24 * 3600;
+
+  const divRaw: Record<string, any> = result.events?.dividends ?? {};
+  const dividends: DividendEvent[] = Object.values(divRaw)
+    .map((d: any) => ({
+      ts: typeof d?.date === "number" ? d.date : 0,
+      date: new Date((typeof d?.date === "number" ? d.date : 0) * 1000).toISOString().slice(0, 10),
+      amount: round(Number(d?.amount), 4),
+    }))
+    .filter((d) => Number.isFinite(d.amount) && d.amount > 0)
+    .sort((a, b) => b.ts - a.ts)
+    .map(({ date, amount }) => ({ date, amount }));
+
+  const ttmDividend = round(
+    Object.values(divRaw)
+      .filter((d: any) => typeof d?.date === "number" && d.date >= yearAgo)
+      .reduce((sum: number, d: any) => sum + (Number.isFinite(Number(d?.amount)) ? Number(d.amount) : 0), 0),
+    4
+  );
+  const dividendYieldPct = price > 0 ? round((ttmDividend / price) * 100, 2) : 0;
+
+  const splitRaw: Record<string, any> = result.events?.splits ?? {};
+  const splits: SplitEvent[] = Object.values(splitRaw)
+    .map((s: any) => ({
+      ts: typeof s?.date === "number" ? s.date : 0,
+      date: new Date((typeof s?.date === "number" ? s.date : 0) * 1000).toISOString().slice(0, 10),
+      ratio:
+        typeof s?.splitRatio === "string"
+          ? s.splitRatio
+          : `${s?.numerator ?? "?"}:${s?.denominator ?? "?"}`,
+    }))
+    .sort((a, b) => b.ts - a.ts)
+    .map(({ date, ratio }) => ({ date, ratio }));
+
+  const ts: number[] = Array.isArray(result.timestamp) ? result.timestamp : [];
+  const closes: number[] = result.indicators?.quote?.[0]?.close ?? [];
+  const moves: PriceMove[] = [];
+  for (let i = Math.max(1, closes.length - 60); i < closes.length; i++) {
+    const p0 = closes[i - 1];
+    const p1 = closes[i];
+    if (typeof p0 === "number" && typeof p1 === "number" && p0) {
+      const chg = ((p1 - p0) / p0) * 100;
+      if (Math.abs(chg) >= 5) {
+        moves.push({
+          date: new Date((ts[i] ?? 0) * 1000).toISOString().slice(0, 10),
+          changePct: round(chg, 2),
+        });
+      }
+    }
+  }
+  moves.sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+
+  return {
+    price: round(price),
+    currency: typeof meta.currency === "string" ? meta.currency : "USD",
+    exchange:
+      typeof meta.fullExchangeName === "string"
+        ? meta.fullExchangeName
+        : typeof meta.exchangeName === "string"
+          ? meta.exchangeName
+          : "unknown",
+    asOf:
+      typeof meta.regularMarketTime === "number"
+        ? new Date(meta.regularMarketTime * 1000).toISOString()
+        : new Date().toISOString(),
+    dividends: dividends.slice(0, 12),
+    ttmDividend,
+    dividendYieldPct,
+    splits: splits.slice(0, 6),
+    recentMoves: moves.slice(0, 8),
+  };
+}
+
+// ── Eligibility (deterministic compliance screen — no LLM, no fabrication) ─
+
+const US_ALIASES = new Set([
+  "US",
+  "USA",
+  "U.S.",
+  "U.S.A.",
+  "UNITED STATES",
+  "UNITED STATES OF AMERICA",
+  "AMERICA",
+]);
+
+function assessEligibility(jurisdiction: string): {
+  jurisdiction: string;
+  usPerson: boolean;
+  eligible: "no" | "conditional";
+  reason: string;
+} {
+  const j = jurisdiction.trim().toUpperCase();
+  if (US_ALIASES.has(j)) {
+    return {
+      jurisdiction: "US",
+      usPerson: true,
+      eligible: "no",
+      reason:
+        "Tokenized equities on Robinhood Chain are not offered to US persons. A US person cannot hold or trade these stock tokens.",
+    };
+  }
+  return {
+    jurisdiction: jurisdiction.trim() || "unspecified",
+    usPerson: false,
+    eligible: "conditional",
+    reason:
+      "Not restricted as a US person. Access still depends on Robinhood's onboarding, KYC/identity checks, and your local securities regulations — verify directly with Robinhood before relying on this.",
+  };
+}
+
 // ── Catalog entry ──────────────────────────────────────────────────────
 
 export const RWA_CATALOG: X402ServiceEndpoint[] = [
@@ -415,6 +700,45 @@ export const RWA_CATALOG: X402ServiceEndpoint[] = [
     path: "/x402/rwa/stock-dd",
     method: "POST",
     priceUsd: "0.29",
+  },
+  {
+    name: "Tokenized-Stock Screener",
+    description:
+      "Rank a watchlist (2–8 tickers) of tokenized stocks. Fetches real market data for each, then runs a " +
+      "multi-agent Swarm screening debate judged into a best-to-worst ranking with per-ticker rating, score, " +
+      "and rationale. Grounded deterministic fallback if the Swarm is unavailable.",
+    path: "/x402/rwa/screen",
+    method: "POST",
+    priceUsd: SCREEN_PRICE_USD,
+  },
+  {
+    name: "Tokenized-Stock Comparison",
+    description:
+      "Head-to-head due diligence on two tokenized equities. Fetches real market data for both and runs an " +
+      "adversarial Swarm debate judged into a winner, per-ticker ratings, and the key points and risks.",
+    path: "/x402/rwa/compare",
+    method: "POST",
+    priceUsd: COMPARE_PRICE_USD,
+  },
+  {
+    name: "Tokenized-Asset Eligibility Check",
+    description:
+      "Compliance screen for a tokenized equity: identifies the underlying (name/exchange via real data) and " +
+      "returns a deterministic Robinhood-Chain access assessment by jurisdiction (US persons are not eligible). " +
+      "Informational only, not legal advice.",
+    path: "/x402/rwa/eligibility",
+    method: "POST",
+    priceUsd: ELIGIBILITY_PRICE_USD,
+  },
+  {
+    name: "Tokenized-Stock Catalyst Brief",
+    description:
+      "Corporate-actions and catalyst brief for an equity: real dividend history + trailing yield, stock " +
+      "splits, and notable recent single-day moves from Yahoo Finance, summarized by an AI analyst. Future " +
+      "earnings dates are not fabricated when unavailable.",
+    path: "/x402/rwa/catalyst",
+    method: "POST",
+    priceUsd: CATALYST_PRICE_USD,
   },
 ];
 
@@ -700,6 +1024,572 @@ export const rwaRoutes: Route[] = [
         description: STOCK_DD_DESCRIPTION,
         price: STOCK_DD_PRICE_USD,
         accepts,
+      });
+    },
+  },
+
+  // ── POST /x402/rwa/screen — $0.49 ────────────────────────────────────
+  {
+    type: "POST",
+    path: "/x402/rwa/screen",
+    handler: async (req, res, runtime) => {
+      const body = (req as any).body ?? {};
+      const rawList = Array.isArray(body.tickers) ? body.tickers : [];
+      const seen = new Set<string>();
+      const tickers: string[] = [];
+      for (const t of rawList) {
+        if (typeof t !== "string") continue;
+        const up = t.trim().toUpperCase();
+        if (TICKER_RE.test(up) && !seen.has(up)) {
+          seen.add(up);
+          tickers.push(up);
+        }
+      }
+      if (tickers.length < 2 || tickers.length > 8) {
+        res.status(400).json({
+          error:
+            'Provide 2-8 valid tickers as `tickers` (array of 1-6 uppercase letters, e.g. ["NVDA","AAPL"]).',
+        });
+        return;
+      }
+
+      const swarmsService = getSwarmsService(runtime);
+      if (!swarmsService) {
+        res.status(503).json({ error: "Swarms service unavailable" });
+        return;
+      }
+
+      // ── Fetch REAL market data for each ticker ──────────────────────
+      const fetched = await Promise.all(
+        tickers.map(async (t) => ({ ticker: t, market: await fetchYahoo(t).catch(() => null) }))
+      );
+      const found = fetched.filter(
+        (f): f is { ticker: string; market: MarketData } => f.market !== null
+      );
+      const notFound = fetched.filter((f) => f.market === null).map((f) => f.ticker);
+      if (found.length < 2) {
+        res.status(400).json({
+          error: `Need at least 2 valid tickers with market data. Not found: ${notFound.join(", ") || "n/a"}.`,
+        });
+        return;
+      }
+
+      const briefs = found
+        .map(({ ticker, market }) => `--- ${ticker} ---\n${buildDataBrief(ticker, market)}`)
+        .join("\n\n");
+
+      // Payment settles ONLY after all free preflight succeeded.
+      const pay = await settleRwaPayment(runtime, req, res, {
+        priceUsd: SCREEN_PRICE_USD,
+        description: `Tokenized-stock screener: ${found.map((f) => f.ticker).join(", ")}`,
+      });
+      if (!pay.paid) return;
+
+      // ── Run the REAL screening Swarm ────────────────────────────────
+      let ranking: Array<{
+        ticker: string;
+        rank: number;
+        rating: "bullish" | "neutral" | "bearish";
+        score: number;
+        rationale: string;
+      }> = [];
+      let summary = "";
+      let via: "swarms" | "heuristic" = "heuristic";
+      try {
+        const result = await swarmsService.runSwarm({
+          name: `rwa-screen-${Date.now()}`,
+          description: `Tokenized-stock screening: ${found.map((f) => f.ticker).join(", ")}`,
+          swarm_type: "DebateWithJudge" as any,
+          agents: [
+            {
+              agent_name: "MomentumAnalyst",
+              description: "Ranks by trend and momentum",
+              system_prompt:
+                "You are a momentum analyst. Rank the tickers by trend, momentum, and range position using " +
+                "ONLY the numbers in each data brief. Do NOT fabricate fundamentals. Be concise.",
+              model_name: "gpt-4o-mini",
+              role: "worker" as const,
+              max_loops: 1,
+              max_tokens: 400,
+              temperature: 0.3,
+            },
+            {
+              agent_name: "ValueAnalyst",
+              description: "Ranks by relative value and mean-reversion",
+              system_prompt:
+                "You are a value analyst. Rank the tickers by relative value and mean-reversion potential — " +
+                "position within the 6-month range and distance from the 6-month high — using ONLY the briefs' " +
+                "numbers. Do NOT fabricate fundamentals. Be concise.",
+              model_name: "gpt-4o-mini",
+              role: "worker" as const,
+              max_loops: 1,
+              max_tokens: 400,
+              temperature: 0.3,
+            },
+            {
+              agent_name: "RiskAnalyst",
+              description: "Adjusts the ranking for risk",
+              system_prompt:
+                "You are a risk analyst. Re-rank considering volatility, drawdown from the 6-month high, and " +
+                "volume anomalies, using ONLY the briefs' numbers. Do NOT invent fundamentals. Be concise.",
+              model_name: "gpt-4o-mini",
+              role: "worker" as const,
+              max_loops: 1,
+              max_tokens: 400,
+              temperature: 0.3,
+            },
+          ],
+          task:
+            `Screen and RANK these tokenized-stock candidates best-to-worst for a medium-term investor, using ` +
+            `ONLY the factual data briefs below plus general knowledge. Ground every quantitative claim in the ` +
+            `briefs. Do NOT fabricate fundamentals.\n\n${briefs}\n\nThe judge must produce a final ranking ` +
+            `(best first) with, for each ticker, an overall rating (bullish / neutral / bearish) and a one-line ` +
+            `rationale.`,
+          max_loops: 1,
+          rules:
+            "MomentumAnalyst, ValueAnalyst, and RiskAnalyst argue; the judge produces ONE ranking grounded only in the provided briefs.",
+        });
+        const transcript = extractSwarmOutput(result as Record<string, unknown>);
+        if (transcript.trim()) {
+          const parsed = await swarmsExtractJson(
+            runtime,
+            "You convert an equity screening debate into a strict JSON ranking. Use ONLY the debate's " +
+              "conclusions and the provided data. Output ONLY minified JSON, no fences.",
+            `Tickers: ${found.map((f) => f.ticker).join(", ")}\n\nDebate transcript:\n${transcript.slice(0, 20000)}\n\n` +
+              `Return {"ranking":[{"ticker":"..","rating":"bullish|neutral|bearish","rationale":"<= 24 words"}], ` +
+              `"summary":"<= 50 words"}. Rank ALL tickers best-first; include every ticker exactly once.`
+          );
+          if (parsed && Array.isArray(parsed.ranking)) {
+            const order: string[] = [];
+            const rmap = new Map<string, { rating: "bullish" | "neutral" | "bearish"; rationale: string }>();
+            for (const r of parsed.ranking as any[]) {
+              const tk = String(r?.ticker ?? "").trim().toUpperCase();
+              if (found.some((f) => f.ticker === tk) && !rmap.has(tk)) {
+                order.push(tk);
+                rmap.set(tk, {
+                  rating: normalizeRating(r?.rating),
+                  rationale: typeof r?.rationale === "string" ? r.rationale.trim() : "",
+                });
+              }
+            }
+            for (const f of found) if (!rmap.has(f.ticker)) order.push(f.ticker);
+            ranking = order.map((tk, i) => {
+              const f = found.find((x) => x.ticker === tk)!;
+              const score = compositeScore(f.market);
+              const info = rmap.get(tk);
+              return {
+                ticker: tk,
+                rank: i + 1,
+                rating: info?.rating ?? ratingFromScore(score),
+                score,
+                rationale: info?.rationale || "Ranked by momentum/positioning score over real market data.",
+              };
+            });
+            summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
+            via = "swarms";
+          }
+        }
+      } catch (err) {
+        runtime.logger.warn(
+          { error: err instanceof Error ? err.message : String(err) },
+          "[x402/rwa/screen] swarm failed"
+        );
+      }
+
+      // Deterministic fallback grounded in real data (never fabricated).
+      if (ranking.length === 0) {
+        ranking = found
+          .map(({ ticker, market }) => ({ ticker, score: compositeScore(market) }))
+          .sort((a, b) => b.score - a.score)
+          .map((x, i) => ({
+            ticker: x.ticker,
+            rank: i + 1,
+            rating: ratingFromScore(x.score),
+            score: x.score,
+            rationale: "Ranked by momentum/positioning score over real market data.",
+          }));
+        summary =
+          summary ||
+          "Ranking derived from a deterministic momentum/positioning score over real market data.";
+        via = "heuristic";
+      }
+
+      res.json({
+        tickers: found.map((f) => f.ticker),
+        notFound,
+        asOf: found[0].market.asOf,
+        ranking,
+        summary,
+        market: Object.fromEntries(
+          found.map((f) => [
+            f.ticker,
+            {
+              price: f.market.price,
+              currency: f.market.currency,
+              pctChange: f.market.pctChange,
+              trend6moPct: f.market.trend6moPct,
+              rangePositionPct: f.market.rangePositionPct,
+            },
+          ])
+        ),
+        via,
+        template: "RwaScreen",
+        disclaimer: DISCLAIMER,
+        freeRemaining: pay.gate.freeRemaining,
+        payment: paymentBlock(pay.paidWithRhChain, pay.gate, SCREEN_PRICE_USD),
+      });
+    },
+  },
+
+  // ── POST /x402/rwa/compare — $0.39 ───────────────────────────────────
+  {
+    type: "POST",
+    path: "/x402/rwa/compare",
+    handler: async (req, res, runtime) => {
+      const body = (req as any).body ?? {};
+      let a = typeof body.tickerA === "string" ? body.tickerA : "";
+      let b = typeof body.tickerB === "string" ? body.tickerB : "";
+      if ((!a || !b) && Array.isArray(body.tickers) && body.tickers.length >= 2) {
+        a = typeof body.tickers[0] === "string" ? body.tickers[0] : a;
+        b = typeof body.tickers[1] === "string" ? body.tickers[1] : b;
+      }
+      a = a.trim().toUpperCase();
+      b = b.trim().toUpperCase();
+      if (!TICKER_RE.test(a) || !TICKER_RE.test(b)) {
+        res.status(400).json({
+          error: "Provide two tickers as `tickerA` and `tickerB` (1-6 uppercase letters each).",
+        });
+        return;
+      }
+      if (a === b) {
+        res.status(400).json({ error: "tickerA and tickerB must be different." });
+        return;
+      }
+
+      const swarmsService = getSwarmsService(runtime);
+      if (!swarmsService) {
+        res.status(503).json({ error: "Swarms service unavailable" });
+        return;
+      }
+
+      let ma: MarketData | null;
+      let mb: MarketData | null;
+      try {
+        [ma, mb] = await Promise.all([fetchYahoo(a), fetchYahoo(b)]);
+      } catch (err) {
+        res.status(502).json({ error: "Failed to fetch market data. Try again shortly." });
+        return;
+      }
+      if (!ma) {
+        res.status(400).json({ error: `Ticker not found: ${a}` });
+        return;
+      }
+      if (!mb) {
+        res.status(400).json({ error: `Ticker not found: ${b}` });
+        return;
+      }
+
+      const brief = `--- ${a} ---\n${buildDataBrief(a, ma)}\n\n--- ${b} ---\n${buildDataBrief(b, mb)}`;
+
+      const pay = await settleRwaPayment(runtime, req, res, {
+        priceUsd: COMPARE_PRICE_USD,
+        description: `Tokenized-stock comparison: ${a} vs ${b}`,
+      });
+      if (!pay.paid) return;
+
+      const scoreA = compositeScore(ma);
+      const scoreB = compositeScore(mb);
+      let comparison: {
+        winner: string;
+        rating_a: "bullish" | "neutral" | "bearish";
+        rating_b: "bullish" | "neutral" | "bearish";
+        summary: string;
+        a_points: string[];
+        b_points: string[];
+        risks: string[];
+      } = {
+        winner: scoreA === scoreB ? "tie" : scoreA > scoreB ? a : b,
+        rating_a: ratingFromScore(scoreA),
+        rating_b: ratingFromScore(scoreB),
+        summary: "",
+        a_points: [],
+        b_points: [],
+        risks: [],
+      };
+      let via: "swarms" | "heuristic" = "heuristic";
+      try {
+        const result = await swarmsService.runSwarm({
+          name: `rwa-compare-${a}-${b}-${Date.now()}`,
+          description: `Compare ${a} vs ${b}`,
+          swarm_type: "DebateWithJudge" as any,
+          agents: [
+            {
+              agent_name: `Advocate_${a}`,
+              description: `Argues ${a} is the better buy`,
+              system_prompt:
+                `You argue that ${a} is the better medium-term buy than ${b}, using ONLY the data briefs' ` +
+                `numbers plus general qualitative knowledge. Ground quantitative claims in the briefs. Do NOT ` +
+                `fabricate fundamentals. Be concise.`,
+              model_name: "gpt-4o-mini",
+              role: "worker" as const,
+              max_loops: 1,
+              max_tokens: 350,
+              temperature: 0.4,
+            },
+            {
+              agent_name: `Advocate_${b}`,
+              description: `Argues ${b} is the better buy`,
+              system_prompt:
+                `You argue that ${b} is the better medium-term buy than ${a}, using ONLY the data briefs' ` +
+                `numbers plus general qualitative knowledge. Ground quantitative claims in the briefs. Do NOT ` +
+                `fabricate fundamentals. Be concise.`,
+              model_name: "gpt-4o-mini",
+              role: "worker" as const,
+              max_loops: 1,
+              max_tokens: 350,
+              temperature: 0.4,
+            },
+            {
+              agent_name: "RiskJudge",
+              description: "Weighs valuation and downside risk",
+              system_prompt:
+                "You weigh valuation and downside risk for both tickers using ONLY the briefs, then help decide " +
+                "which is the better risk-adjusted buy. Be concise.",
+              model_name: "gpt-4o-mini",
+              role: "worker" as const,
+              max_loops: 1,
+              max_tokens: 350,
+              temperature: 0.3,
+            },
+          ],
+          task:
+            `Debate which is the better medium-term buy: ${a} or ${b}. Use ONLY the factual briefs below plus ` +
+            `general knowledge; do NOT fabricate fundamentals. Ground every quantitative claim.\n\n${brief}\n\n` +
+            `The judge must pick a winner (${a}, ${b}, or tie), give each a rating (bullish / neutral / bearish), ` +
+            `a short summary, the strongest points for each, and the key risks.`,
+          max_loops: 1,
+          rules: `Advocate_${a} argues for ${a}, Advocate_${b} for ${b}, RiskJudge weighs risk; the judge picks ONE winner grounded only in the briefs.`,
+        });
+        const transcript = extractSwarmOutput(result as Record<string, unknown>);
+        if (transcript.trim()) {
+          const parsed = await swarmsExtractJson(
+            runtime,
+            "You convert a head-to-head equity debate into strict JSON. Use ONLY the debate's conclusions and " +
+              "provided data. Output ONLY minified JSON, no fences.",
+            `A=${a}, B=${b}\n\nTranscript:\n${transcript.slice(0, 20000)}\n\n` +
+              `Return {"winner":"${a}"|"${b}"|"tie","rating_a":"bullish|neutral|bearish","rating_b":"bullish|neutral|bearish",` +
+              `"summary":"<= 55 words","a_points":["<=4 short strings"],"b_points":["<=4 short strings"],"risks":["<=4 short strings"]}.`
+          );
+          if (parsed && typeof parsed.summary === "string" && parsed.summary.trim()) {
+            const w = String(parsed.winner ?? "").trim().toUpperCase();
+            comparison = {
+              winner: w === a ? a : w === b ? b : "tie",
+              rating_a: normalizeRating(parsed.rating_a),
+              rating_b: normalizeRating(parsed.rating_b),
+              summary: parsed.summary.trim(),
+              a_points: toStringArray(parsed.a_points, 4),
+              b_points: toStringArray(parsed.b_points, 4),
+              risks: toStringArray(parsed.risks, 4),
+            };
+            via = "swarms";
+          }
+        }
+      } catch (err) {
+        runtime.logger.warn(
+          { error: err instanceof Error ? err.message : String(err) },
+          "[x402/rwa/compare] swarm failed"
+        );
+      }
+
+      if (via === "heuristic" && !comparison.summary) {
+        comparison.summary = `${
+          comparison.winner === "tie" ? "Too close to call" : comparison.winner + " scores higher"
+        } on a deterministic momentum/positioning score (${a}=${scoreA}, ${b}=${scoreB}) over real market data.`;
+      }
+
+      res.json({
+        tickerA: a,
+        tickerB: b,
+        asOf: ma.asOf,
+        scores: { [a]: scoreA, [b]: scoreB },
+        comparison,
+        market: {
+          [a]: {
+            price: ma.price,
+            currency: ma.currency,
+            pctChange: ma.pctChange,
+            trend6moPct: ma.trend6moPct,
+            rangePositionPct: ma.rangePositionPct,
+          },
+          [b]: {
+            price: mb.price,
+            currency: mb.currency,
+            pctChange: mb.pctChange,
+            trend6moPct: mb.trend6moPct,
+            rangePositionPct: mb.rangePositionPct,
+          },
+        },
+        via,
+        template: "RwaCompare",
+        disclaimer: DISCLAIMER,
+        freeRemaining: pay.gate.freeRemaining,
+        payment: paymentBlock(pay.paidWithRhChain, pay.gate, COMPARE_PRICE_USD),
+      });
+    },
+  },
+
+  // ── POST /x402/rwa/eligibility — $0.19 (deterministic, no LLM) ────────
+  {
+    type: "POST",
+    path: "/x402/rwa/eligibility",
+    handler: async (req, res, runtime) => {
+      const body = (req as any).body ?? {};
+      const ticker = typeof body.ticker === "string" ? body.ticker.trim().toUpperCase() : "";
+      if (!TICKER_RE.test(ticker)) {
+        res.status(400).json({ error: "Invalid ticker. Expected 1-6 uppercase letters A-Z (e.g. NVDA)." });
+        return;
+      }
+      const jurisdiction =
+        typeof body.jurisdiction === "string" && body.jurisdiction.trim()
+          ? body.jurisdiction.trim()
+          : "US";
+
+      // Identify the underlying with REAL data (also validates it exists).
+      let market: MarketData | null;
+      try {
+        market = await fetchYahoo(ticker);
+      } catch (err) {
+        res.status(502).json({ error: "Failed to fetch market data. Try again shortly." });
+        return;
+      }
+      if (!market) {
+        res.status(400).json({ error: `Ticker not found or unsupported: ${ticker}.` });
+        return;
+      }
+
+      const pay = await settleRwaPayment(runtime, req, res, {
+        priceUsd: ELIGIBILITY_PRICE_USD,
+        description: `Tokenized-asset eligibility: ${ticker} (${jurisdiction})`,
+      });
+      if (!pay.paid) return;
+
+      const assessment = assessEligibility(jurisdiction);
+      const summary =
+        assessment.eligible === "no"
+          ? `${ticker} tokenized on Robinhood Chain is NOT accessible to US persons. ${assessment.reason}`
+          : `${ticker} tokenized on Robinhood Chain is not blocked for a non-US person in ${assessment.jurisdiction}, but access is conditional. ${assessment.reason}`;
+
+      res.json({
+        ticker,
+        underlying: { exchange: market.exchange, currency: market.currency, lastPrice: market.price },
+        chain: {
+          name: "Robinhood Chain",
+          chainId: "eip155:4663",
+          asset: "tokenized equity (stock token)",
+          settlement: "gasless USDG",
+        },
+        jurisdiction: assessment.jurisdiction,
+        eligibility: { status: assessment.eligible, usPerson: assessment.usPerson, reason: assessment.reason },
+        summary,
+        template: "RwaEligibility",
+        disclaimer:
+          "Informational compliance screen only — NOT legal, tax, or investment advice. Tokenized-equity " +
+          "availability is governed by Robinhood's terms and local law; verify directly with Robinhood before acting.",
+        freeRemaining: pay.gate.freeRemaining,
+        payment: paymentBlock(pay.paidWithRhChain, pay.gate, ELIGIBILITY_PRICE_USD),
+      });
+    },
+  },
+
+  // ── POST /x402/rwa/catalyst — $0.29 ──────────────────────────────────
+  {
+    type: "POST",
+    path: "/x402/rwa/catalyst",
+    handler: async (req, res, runtime) => {
+      const body = (req as any).body ?? {};
+      const ticker = typeof body.ticker === "string" ? body.ticker.trim().toUpperCase() : "";
+      if (!TICKER_RE.test(ticker)) {
+        res.status(400).json({ error: "Invalid ticker. Expected 1-6 uppercase letters A-Z (e.g. AAPL)." });
+        return;
+      }
+
+      let data: CatalystData | null;
+      try {
+        data = await fetchCatalystData(ticker);
+      } catch (err) {
+        runtime.logger.warn(
+          { error: err instanceof Error ? err.message : String(err), ticker },
+          "[x402/rwa/catalyst] Yahoo fetch failed"
+        );
+        res.status(502).json({ error: "Failed to fetch market data. Try again shortly." });
+        return;
+      }
+      if (!data) {
+        res.status(400).json({ error: `Ticker not found or no data available: ${ticker}.` });
+        return;
+      }
+
+      const pay = await settleRwaPayment(runtime, req, res, {
+        priceUsd: CATALYST_PRICE_USD,
+        description: `Tokenized-stock catalyst brief: ${ticker}`,
+      });
+      if (!pay.paid) return;
+
+      const facts =
+        `Ticker: ${ticker} (${data.exchange})\nLast price: ${data.price} ${data.currency}\n` +
+        `Trailing-12mo dividends: ${data.ttmDividend} (${data.dividendYieldPct}% yield)\n` +
+        `Recent dividends: ${data.dividends.slice(0, 5).map((d) => `${d.date}=${d.amount}`).join(", ") || "none in the last year"}\n` +
+        `Stock splits: ${data.splits.slice(0, 3).map((s) => `${s.date} ${s.ratio}`).join(", ") || "none in the last year"}\n` +
+        `Notable single-day moves (>=5%): ${data.recentMoves.map((m) => `${m.date} ${m.changePct}%`).join(", ") || "none in the last ~60 sessions"}\n` +
+        `NOTE: Future earnings dates and forward guidance are NOT in this data.`;
+
+      let brief = "";
+      let via: "swarms" | "deterministic" = "deterministic";
+      const parsed = await swarmsExtractJson(
+        runtime,
+        "You write a concise corporate-actions/catalyst brief for an equity using ONLY the provided facts. " +
+          "Do NOT invent earnings dates, guidance, or numbers not present. Output ONLY minified JSON, no fences.",
+        `${facts}\n\nReturn {"brief":"<= 90 words, plain English, mention dividend cadence/yield, any splits, and ` +
+          `notable moves; explicitly say if future earnings dates are unavailable"}.`
+      );
+      if (parsed && typeof parsed.brief === "string" && parsed.brief.trim()) {
+        brief = parsed.brief.trim();
+        via = "swarms";
+      } else {
+        const parts: string[] = [];
+        parts.push(
+          data.ttmDividend > 0
+            ? `${ticker} paid ${data.ttmDividend} ${data.currency} in dividends over the last year (~${data.dividendYieldPct}% yield).`
+            : `${ticker} paid no dividends in the last year.`
+        );
+        if (data.splits.length) parts.push(`Most recent split: ${data.splits[0].date} (${data.splits[0].ratio}).`);
+        parts.push(
+          data.recentMoves.length
+            ? `${data.recentMoves.length} notable single-day move(s) >=5% in the last ~60 sessions; largest ${data.recentMoves[0].changePct}% on ${data.recentMoves[0].date}.`
+            : "No single-day moves >=5% in the last ~60 sessions."
+        );
+        parts.push("Future earnings dates are not available from this data source.");
+        brief = parts.join(" ");
+      }
+
+      res.json({
+        ticker,
+        asOf: data.asOf,
+        price: data.price,
+        currency: data.currency,
+        exchange: data.exchange,
+        dividends: data.dividends,
+        ttmDividend: data.ttmDividend,
+        dividendYieldPct: data.dividendYieldPct,
+        splits: data.splits,
+        recentMoves: data.recentMoves,
+        nextEarningsDate: null,
+        brief,
+        via,
+        template: "RwaCatalyst",
+        disclaimer: DISCLAIMER,
+        freeRemaining: pay.gate.freeRemaining,
+        payment: paymentBlock(pay.paidWithRhChain, pay.gate, CATALYST_PRICE_USD),
       });
     },
   },

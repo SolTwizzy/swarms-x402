@@ -53,7 +53,7 @@ describe("MCP server — tools/list", () => {
     const res = await handleMcpMessage({ jsonrpc: "2.0", id: 3, method: "tools/list" }, OPTS);
     const tools = (res!.result as any).tools as any[];
     expect(tools.length).toBe(MANIFEST.tools.length);
-    expect(tools.length).toBe(40);
+    expect(tools.length).toBe(44);
     for (const t of tools) {
       expect(typeof t.name).toBe("string");
       expect(typeof t.description).toBe("string");

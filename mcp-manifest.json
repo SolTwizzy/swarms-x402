@@ -1045,6 +1045,110 @@
       }
     },
     {
+      "name": "swarmx_stock_screen",
+      "description": "Screen and rank a watchlist of 2-8 tokenized stocks. Fetches real market data for each, then a multi-agent Swarm ranks them best-to-worst with per-ticker rating, score, and rationale. $0.49/call via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tickers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "2-8 equity tickers, each 1-6 uppercase letters (e.g. [\"NVDA\",\"AAPL\",\"TSLA\"])."
+          }
+        },
+        "required": [
+          "tickers"
+        ]
+      },
+      "metadata": {
+        "endpoint": "/x402/rwa/screen",
+        "method": "POST",
+        "priceUsd": "0.49",
+        "category": "rwa",
+        "free": false
+      }
+    },
+    {
+      "name": "swarmx_stock_compare",
+      "description": "Head-to-head due diligence on two tokenized equities. Fetches real market data for both and runs an adversarial Swarm debate judged into a winner, per-ticker ratings, key points, and risks. $0.39/call via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tickerA": {
+            "type": "string",
+            "description": "First equity ticker (1-6 uppercase letters)."
+          },
+          "tickerB": {
+            "type": "string",
+            "description": "Second equity ticker (1-6 uppercase letters)."
+          }
+        },
+        "required": [
+          "tickerA",
+          "tickerB"
+        ]
+      },
+      "metadata": {
+        "endpoint": "/x402/rwa/compare",
+        "method": "POST",
+        "priceUsd": "0.39",
+        "category": "rwa",
+        "free": false
+      }
+    },
+    {
+      "name": "swarmx_rwa_eligibility",
+      "description": "Compliance screen for a tokenized equity: identifies the underlying (name/exchange via real data) and returns a deterministic Robinhood-Chain access assessment by jurisdiction (US persons are not eligible). Informational only, not legal advice. $0.19/call via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Equity ticker (1-6 uppercase letters)."
+          },
+          "jurisdiction": {
+            "type": "string",
+            "description": "Country/jurisdiction to assess (e.g. 'US', 'Germany'). Defaults to 'US'."
+          }
+        },
+        "required": [
+          "ticker"
+        ]
+      },
+      "metadata": {
+        "endpoint": "/x402/rwa/eligibility",
+        "method": "POST",
+        "priceUsd": "0.19",
+        "category": "rwa",
+        "free": false
+      }
+    },
+    {
+      "name": "swarmx_stock_catalyst",
+      "description": "Corporate-actions and catalyst brief for an equity: real dividend history + trailing yield, stock splits, and notable recent single-day moves from Yahoo Finance, summarized by an AI analyst. Future earnings dates are not fabricated when unavailable. $0.29/call via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Equity ticker (1-6 uppercase letters, e.g. AAPL)."
+          }
+        },
+        "required": [
+          "ticker"
+        ]
+      },
+      "metadata": {
+        "endpoint": "/x402/rwa/catalyst",
+        "method": "POST",
+        "priceUsd": "0.29",
+        "category": "rwa",
+        "free": false
+      }
+    },
+    {
       "name": "swarmx_batch",
       "description": "Run up to 10 tasks in parallel with a single x402 payment. 20% discount on the sum of individual prices. Each task specifies an endpoint slug and params.",
       "inputSchema": {

@@ -384,3 +384,295 @@ describe("POST /x402/rwa/stock-dd", () => {
     expect(x402Gate).toHaveBeenCalledTimes(1);
   });
 });
+
+// ── RWA suite: screen / compare / eligibility / catalyst ─────────────────
+
+const screenRoute = rwaRoutes.find((r) => r.path === "/x402/rwa/screen" && r.type === "POST");
+const compareRoute = rwaRoutes.find((r) => r.path === "/x402/rwa/compare" && r.type === "POST");
+const eligibilityRoute = rwaRoutes.find(
+  (r) => r.path === "/x402/rwa/eligibility" && r.type === "POST"
+);
+const catalystRoute = rwaRoutes.find((r) => r.path === "/x402/rwa/catalyst" && r.type === "POST");
+
+function catalystYahooResponse(): Response {
+  const now = Math.floor(Date.now() / 1000);
+  const recentDiv = now - 30 * 24 * 3600; // within the trailing year
+  return new Response(
+    JSON.stringify({
+      chart: {
+        result: [
+          {
+            meta: {
+              regularMarketPrice: 200,
+              currency: "USD",
+              fullExchangeName: "NasdaqGS",
+              regularMarketTime: now,
+            },
+            timestamp: [now - 2 * 86400, now - 86400, now],
+            events: {
+              dividends: { [String(recentDiv)]: { amount: 0.24, date: recentDiv } },
+              splits: {
+                "1680000000": { date: 1680000000, numerator: 4, denominator: 1, splitRatio: "4:1" },
+              },
+            },
+            indicators: { quote: [{ close: [100, 100, 120] }] },
+          },
+        ],
+      },
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+describe("POST /x402/rwa/screen", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    globalThis.fetch = vi.fn(async () => yahooResponse()) as unknown as typeof fetch;
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.49, transaction: "tx", network: "base-mainnet" });
+    vi.mocked(callSwarmsAgent).mockRejectedValue(new Error("structurer unavailable"));
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("registers the route", () => {
+    expect(screenRoute).toBeDefined();
+  });
+
+  it("rejects fewer than 2 tickers before fetch or payment", async () => {
+    const { runtime, runSwarm } = runtimeWithSwarm();
+    const res = createMockRes();
+    await screenRoute!.handler({ body: { tickers: ["NVDA"] } } as any, res, runtime);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(x402Gate).not.toHaveBeenCalled();
+    expect(runSwarm).not.toHaveBeenCalled();
+  });
+
+  it("rejects more than 8 tickers", async () => {
+    const { runtime } = runtimeWithSwarm();
+    const res = createMockRes();
+    const nine = ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG", "HHH", "III"];
+    await screenRoute!.handler({ body: { tickers: nine } } as any, res, runtime);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(x402Gate).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 for an unavailable Swarms service without charging", async () => {
+    const runtime = createMockRuntime();
+    const res = createMockRes();
+    await screenRoute!.handler({ body: { tickers: ["NVDA", "AAPL"] } } as any, res, runtime);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(x402Gate).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 without charging when fewer than 2 tickers resolve", async () => {
+    globalThis.fetch = vi.fn(async () => yahooResponse(404)) as unknown as typeof fetch;
+    const { runtime, runSwarm } = runtimeWithSwarm();
+    const res = createMockRes();
+    await screenRoute!.handler({ body: { tickers: ["NVDA", "AAPL"] } } as any, res, runtime);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(x402Gate).not.toHaveBeenCalled();
+    expect(runSwarm).not.toHaveBeenCalled();
+  });
+
+  it("returns a swarm-structured ranking when the structurer returns valid JSON", async () => {
+    vi.mocked(callSwarmsAgent).mockResolvedValue(
+      JSON.stringify({
+        ranking: [
+          { ticker: "NVDA", rating: "bullish", rationale: "strongest momentum" },
+          { ticker: "AAPL", rating: "neutral", rationale: "steady" },
+        ],
+        summary: "NVDA leads the screen.",
+      })
+    );
+    const { runtime } = runtimeWithSwarm({ SWARMS_API_KEY: "swarms-test" });
+    const res = createMockRes();
+    await screenRoute!.handler({ body: { tickers: ["NVDA", "AAPL"] } } as any, res, runtime);
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.via).toBe("swarms");
+    expect(response.ranking).toHaveLength(2);
+    expect(response.ranking[0]).toEqual(
+      expect.objectContaining({ ticker: "NVDA", rank: 1, rating: "bullish" })
+    );
+    expect(typeof response.ranking[0].score).toBe("number");
+    expect(response.payment.listPriceUsd).toBe("0.49");
+  });
+
+  it("falls back to a deterministic ranking when structuring fails", async () => {
+    const { runtime } = runtimeWithSwarm({ SWARMS_API_KEY: "swarms-test" });
+    const res = createMockRes();
+    await screenRoute!.handler({ body: { tickers: ["NVDA", "AAPL"] } } as any, res, runtime);
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.via).toBe("heuristic");
+    expect(response.ranking).toHaveLength(2);
+    expect(response.ranking[0].rationale).toContain("momentum/positioning");
+  });
+});
+
+describe("POST /x402/rwa/compare", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    globalThis.fetch = vi.fn(async () => yahooResponse()) as unknown as typeof fetch;
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.39, transaction: "tx", network: "base-mainnet" });
+    vi.mocked(callSwarmsAgent).mockRejectedValue(new Error("structurer unavailable"));
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("rejects identical tickers", async () => {
+    const { runtime } = runtimeWithSwarm();
+    const res = createMockRes();
+    await compareRoute!.handler({ body: { tickerA: "NVDA", tickerB: "nvda" } } as any, res, runtime);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(x402Gate).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid ticker before fetch or payment", async () => {
+    const { runtime } = runtimeWithSwarm();
+    const res = createMockRes();
+    await compareRoute!.handler({ body: { tickerA: "NVDA", tickerB: "BAD1" } } as any, res, runtime);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(x402Gate).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 without charging when the second ticker is not found", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(yahooResponse())
+      .mockResolvedValueOnce(yahooResponse(404)) as unknown as typeof fetch;
+    const { runtime, runSwarm } = runtimeWithSwarm();
+    const res = createMockRes();
+    await compareRoute!.handler({ body: { tickerA: "NVDA", tickerB: "AAPL" } } as any, res, runtime);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(x402Gate).not.toHaveBeenCalled();
+    expect(runSwarm).not.toHaveBeenCalled();
+  });
+
+  it("returns a swarm-structured comparison when JSON is valid", async () => {
+    vi.mocked(callSwarmsAgent).mockResolvedValue(
+      JSON.stringify({
+        winner: "NVDA",
+        rating_a: "bullish",
+        rating_b: "neutral",
+        summary: "NVDA edges ahead on momentum.",
+        a_points: ["momentum"],
+        b_points: ["stability"],
+        risks: ["volatility"],
+      })
+    );
+    const { runtime } = runtimeWithSwarm({ SWARMS_API_KEY: "swarms-test" });
+    const res = createMockRes();
+    await compareRoute!.handler({ body: { tickerA: "NVDA", tickerB: "AAPL" } } as any, res, runtime);
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.via).toBe("swarms");
+    expect(response.comparison.winner).toBe("NVDA");
+    expect(response.comparison.summary).toContain("NVDA");
+  });
+
+  it("falls back to a deterministic comparison when structuring fails", async () => {
+    const { runtime } = runtimeWithSwarm({ SWARMS_API_KEY: "swarms-test" });
+    const res = createMockRes();
+    await compareRoute!.handler({ body: { tickerA: "NVDA", tickerB: "AAPL" } } as any, res, runtime);
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.via).toBe("heuristic");
+    expect(response.comparison.summary).toContain("deterministic");
+  });
+});
+
+describe("POST /x402/rwa/eligibility", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    globalThis.fetch = vi.fn(async () => yahooResponse()) as unknown as typeof fetch;
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.19, transaction: "tx", network: "base-mainnet" });
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("rejects an invalid ticker before fetch or payment", async () => {
+    const res = createMockRes();
+    await eligibilityRoute!.handler({ body: { ticker: "BAD1" } } as any, res, createMockRuntime());
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(x402Gate).not.toHaveBeenCalled();
+  });
+
+  it("marks US persons ineligible and never invokes an LLM", async () => {
+    const res = createMockRes();
+    await eligibilityRoute!.handler({ body: { ticker: "NVDA" } } as any, res, createMockRuntime());
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.eligibility.status).toBe("no");
+    expect(response.eligibility.usPerson).toBe(true);
+    expect(response.chain.chainId).toBe("eip155:4663");
+    expect(callSwarmsAgent).not.toHaveBeenCalled();
+  });
+
+  it("marks a non-US jurisdiction as conditional", async () => {
+    const res = createMockRes();
+    await eligibilityRoute!.handler(
+      { body: { ticker: "NVDA", jurisdiction: "Germany" } } as any,
+      res,
+      createMockRuntime()
+    );
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.eligibility.status).toBe("conditional");
+    expect(response.eligibility.usPerson).toBe(false);
+    expect(response.jurisdiction).toBe("Germany");
+  });
+});
+
+describe("POST /x402/rwa/catalyst", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    globalThis.fetch = vi.fn(async () => catalystYahooResponse()) as unknown as typeof fetch;
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.29, transaction: "tx", network: "base-mainnet" });
+    vi.mocked(callSwarmsAgent).mockRejectedValue(new Error("brief unavailable"));
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("rejects an invalid ticker before fetch or payment", async () => {
+    const res = createMockRes();
+    await catalystRoute!.handler({ body: { ticker: "BAD1" } } as any, res, createMockRuntime());
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(x402Gate).not.toHaveBeenCalled();
+  });
+
+  it("returns real dividend/split data with an AI brief when available", async () => {
+    vi.mocked(callSwarmsAgent).mockResolvedValue(
+      JSON.stringify({ brief: "Pays a modest dividend; a 4:1 split occurred; one notable +20% move." })
+    );
+    const res = createMockRes();
+    await catalystRoute!.handler(
+      { body: { ticker: "AAPL" } } as any,
+      res,
+      createMockRuntime({ settings: { SWARMS_API_KEY: "swarms-test" } })
+    );
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.via).toBe("swarms");
+    expect(response.ttmDividend).toBe(0.24);
+    expect(response.dividendYieldPct).toBe(0.12);
+    expect(response.dividends).toHaveLength(1);
+    expect(response.recentMoves[0].changePct).toBe(20);
+    expect(response.nextEarningsDate).toBeNull();
+  });
+
+  it("falls back to a deterministic brief and never fabricates earnings dates", async () => {
+    const res = createMockRes();
+    await catalystRoute!.handler(
+      { body: { ticker: "AAPL" } } as any,
+      res,
+      createMockRuntime({ settings: { SWARMS_API_KEY: "swarms-test" } })
+    );
+    const response = vi.mocked(res.json).mock.calls[0][0];
+    expect(response.via).toBe("deterministic");
+    expect(response.brief).toContain("dividend");
+    expect(response.brief).toContain("earnings dates are not available");
+    expect(response.nextEarningsDate).toBeNull();
+  });
+});
