@@ -1022,6 +1022,29 @@
       }
     },
     {
+      "name": "swarmx_stock_dd",
+      "description": "Tokenized-stock due diligence. Fetches real market data (price, 6-month range, trend, volatility) then runs an adversarial 3-agent Swarm debate (bull / bear / risk) judged into a bullish/neutral/bearish verdict with confidence and supporting points. $0.29/call via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "Equity ticker to analyze: 1-6 uppercase letters A-Z (e.g. NVDA, AAPL, TSLA)."
+          }
+        },
+        "required": [
+          "ticker"
+        ]
+      },
+      "metadata": {
+        "endpoint": "/x402/rwa/stock-dd",
+        "method": "POST",
+        "priceUsd": "0.29",
+        "category": "rwa",
+        "free": false
+      }
+    },
+    {
       "name": "swarmx_batch",
       "description": "Run up to 10 tasks in parallel with a single x402 payment. 20% discount on the sum of individual prices. Each task specifies an endpoint slug and params.",
       "inputSchema": {

@@ -1041,6 +1041,31 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
   },
 
+  // ── RWA / Tokenized Equities ───────────────────────────────────────────
+  {
+    name: "swarmx_stock_dd",
+    description:
+      "Tokenized-stock due diligence. Fetches real market data (price, 6-month range, trend, volatility) then runs an adversarial 3-agent Swarm debate (bull / bear / risk) judged into a bullish/neutral/bearish verdict with confidence and supporting points. $0.29/call via x402.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ticker: {
+          type: "string",
+          description:
+            "Equity ticker to analyze: 1-6 uppercase letters A-Z (e.g. NVDA, AAPL, TSLA).",
+        },
+      },
+      required: ["ticker"],
+    },
+    metadata: {
+      endpoint: "/x402/rwa/stock-dd",
+      method: "POST",
+      priceUsd: "0.29",
+      category: "rwa",
+      free: false,
+    },
+  },
+
   // ── Batch ──────────────────────────────────────────────────────────────
   {
     name: "swarmx_batch",
@@ -1130,7 +1155,7 @@ for (const tool of TOOL_DEFINITIONS) {
 
 // ── Public API ───────────────────────────────────────────────────────────
 
-const DEFAULT_BASE_URL = "https://api.swarmx.io";
+const DEFAULT_BASE_URL = "https://swarmx.io";
 
 /**
  * Returns the full MCP manifest for SwarmX.
