@@ -91,7 +91,8 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, payment-signature, PAYMENT-SIGNATURE, x-api-key",
-  "Access-Control-Expose-Headers": "X-SwarmX-Free-Remaining, Set-Cookie, PAYMENT-REQUIRED",
+  "Access-Control-Expose-Headers":
+    "X-SwarmX-Free-Remaining, Set-Cookie, PAYMENT-REQUIRED, x-x402-metadata",
 };
 
 /**
@@ -1552,6 +1553,9 @@ async function startServer(): Promise<void> {
       const url = new URL(request.url);
       let method = request.method.toUpperCase();
       const pathname = url.pathname;
+      // Bare-OPTIONS schema probes get the GET response with a 2xx status —
+      // consumers (Swarms widget) treat non-ok as fetch failure.
+      let isSchemaProbe = false;
 
       // ── Rate limit check (before any route dispatch) ───────────────
       const rateLimited = checkRateLimit(request);
@@ -1568,6 +1572,7 @@ async function startServer(): Promise<void> {
           return new Response(null, { status: 204, headers: CORS_HEADERS });
         }
         method = "GET";
+        isSchemaProbe = true;
       }
 
       // ── 402 Index domain verification (well-known file) ────────────
@@ -3973,6 +3978,8 @@ console.log(<span class="kw">await</span> res.json());</div>
       responseHeaders.forEach((v, k) => {
         outHeaders[k] = v;
       });
+
+      if (isSchemaProbe && responseStatus === 402) responseStatus = 200;
 
       if (responseBody !== null && responseBody !== undefined) {
         outHeaders["Content-Type"] = outHeaders["Content-Type"] ?? "application/json";

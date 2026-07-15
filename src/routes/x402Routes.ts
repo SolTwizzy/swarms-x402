@@ -20,6 +20,7 @@ import { SWARM_ROUTE_CATALOG } from "./swarmRoutes.js";
 import { SWARM_PREMIUM_CATALOG } from "./swarmPremiumRoutes.js";
 import { RWA_CATALOG } from "./rwaRoutes.js";
 import { buildRhChainRequirements, usdToUsdgAtomic } from "../server/rhChainGate.js";
+import { getMcpToolDefinitions } from "../mcp/index.js";
 import { callOpenAI } from "../utils/llm.js";
 import { taskQueue } from "../utils/taskQueue.js";
 
@@ -167,6 +168,50 @@ const SERVICE_CATALOG: X402ServiceEndpoint[] = [
     free: true,
   },
 ];
+
+// ── Discovery input metadata (path → inputSchema + example) ─────────────
+// Built lazily from the MCP tool definitions so schema fetchers can generate
+// runnable request code without a second source of truth.
+
+let mcpSchemaByPath: Map<string, { schema: unknown; example: Record<string, unknown> }> | null =
+  null;
+
+function sampleForProp(
+  name: string,
+  prop: { default?: unknown; enum?: string[]; type?: string; minimum?: number } | undefined
+): unknown {
+  if (prop?.default !== undefined) return prop.default;
+  if (Array.isArray(prop?.enum) && prop.enum.length) return prop.enum[0];
+  switch (prop?.type) {
+    case "number":
+    case "integer":
+      return prop?.minimum ?? 1;
+    case "boolean":
+      return false;
+    case "array":
+      return name === "tickers" ? ["NVDA", "AAPL"] : [];
+    default:
+      if (name === "ticker") return "AAPL";
+      return "...";
+  }
+}
+
+function getEndpointInputMeta(
+  path: string
+): { schema: unknown; example: Record<string, unknown> } | undefined {
+  if (!mcpSchemaByPath) {
+    mcpSchemaByPath = new Map();
+    for (const t of getMcpToolDefinitions().tools) {
+      const schema = t.inputSchema;
+      const example: Record<string, unknown> = {};
+      for (const req of schema.required ?? []) {
+        example[req] = sampleForProp(req, schema.properties?.[req]);
+      }
+      mcpSchemaByPath.set(t.metadata.endpoint, { schema, example });
+    }
+  }
+  return mcpSchemaByPath.get(path);
+}
 
 /**
  * x402 paid routes for selling agent capabilities.
@@ -387,6 +432,8 @@ export const x402Routes: Route[] = [
   // ── GET /discovery/resources — FREE (x402 Bazaar-style discovery) ──
   // Schema fetchers (Swarms x402 Integration widget, CDP Bazaar clients)
   // resolve an endpoint's payment schema via GET /discovery/resources?url=<resource>.
+  // Two consumer dialects served side by side: `items` (Bazaar: resource/accepts)
+  // and `resources` (Swarms widget: url/metadata.input with schema + example).
   {
     type: "GET",
     path: "/discovery/resources",
@@ -477,7 +524,27 @@ export const x402Routes: Route[] = [
         })
       );
 
-      res.json({ x402Version: 1, items, pagination: { limit, offset, total } });
+      // Swarms-widget dialect: exact-url-keyed entries with an input spec the
+      // widget turns into runnable client code.
+      const resources = page.map((e) => {
+        const input = getEndpointInputMeta(e.path);
+        return {
+          url: `${base}${e.path}`,
+          type: "http",
+          metadata: {
+            name: e.name,
+            description: e.description,
+            priceUsd: e.priceUsd,
+            input: {
+              method: e.method,
+              ...(input ? { schema: input.schema, example: input.example } : {}),
+            },
+            output: { mimeType: "application/json" },
+          },
+        };
+      });
+
+      res.json({ x402Version: 1, items, resources, pagination: { limit, offset, total } });
     },
   },
 

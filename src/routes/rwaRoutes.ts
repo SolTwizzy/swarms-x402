@@ -976,6 +976,31 @@ export const rwaRoutes: Route[] = [
           "PAYMENT-REQUIRED",
           Buffer.from(JSON.stringify(rhReq)).toString("base64")
         );
+        // Swarms' schema fetcher falls back to a bare OPTIONS and reads this
+        // header. ASCII only — non-ASCII header values are rejected.
+        res.setHeader(
+          "x-x402-metadata",
+          JSON.stringify({
+            description:
+              "Tokenized-stock due diligence: real market data + adversarial bull/bear/risk AI panel",
+            priceUsd: STOCK_DD_PRICE_USD,
+            input: {
+              method: "POST",
+              schema: {
+                type: "object",
+                properties: {
+                  ticker: {
+                    type: "string",
+                    description: "Stock ticker, 1-6 uppercase letters (e.g. AAPL)",
+                  },
+                },
+                required: ["ticker"],
+              },
+              example: { ticker: "AAPL" },
+            },
+            output: { mimeType: "application/json" },
+          })
+        );
       }
       // Solana/USDC (Dexter) as a secondary option.
       try {
