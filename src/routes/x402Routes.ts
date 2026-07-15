@@ -19,6 +19,7 @@ import { CRYPTO_ANALYSIS_CATALOG } from "./cryptoAnalysisRoutes.js";
 import { SWARM_ROUTE_CATALOG } from "./swarmRoutes.js";
 import { SWARM_PREMIUM_CATALOG } from "./swarmPremiumRoutes.js";
 import { RWA_CATALOG } from "./rwaRoutes.js";
+import { buildRhChainRequirements, usdToUsdgAtomic } from "../server/rhChainGate.js";
 import { callOpenAI } from "../utils/llm.js";
 import { taskQueue } from "../utils/taskQueue.js";
 
@@ -380,6 +381,91 @@ export const x402Routes: Route[] = [
     public: true,
     handler: async (_req, res, _runtime) => {
       res.json(SERVICE_CATALOG);
+    },
+  },
+
+  // ── GET /discovery/resources — FREE (x402 Bazaar-style discovery) ──
+  // Schema fetchers (Swarms x402 Integration widget, CDP Bazaar clients)
+  // resolve an endpoint's payment schema via GET /discovery/resources?url=<resource>.
+  {
+    type: "GET",
+    path: "/discovery/resources",
+    name: "x402-discovery",
+    public: true,
+    handler: async (req, res, runtime) => {
+      const query = ((req as any).query ?? {}) as Record<string, string>;
+      const filterUrl = typeof query.url === "string" && query.url ? query.url : undefined;
+      const limit = Math.min(Math.max(parseInt(query.limit ?? "50", 10) || 50, 1), 100);
+      const offset = Math.max(parseInt(query.offset ?? "0", 10) || 0, 0);
+
+      // Proxy-terminated TLS means req.url arrives http:// — resources must be https.
+      let base = "https://swarmx.io";
+      try {
+        base = `https://${new URL(String((req as any).url)).host}`;
+      } catch {
+        /* keep default */
+      }
+
+      let entries = SERVICE_CATALOG.filter((e) => !e.free && !e.path.includes(":"));
+      if (filterUrl) {
+        const norm = filterUrl.replace(/\/+$/, "");
+        entries = entries.filter(
+          (e) => `${base}${e.path}` === norm || norm.endsWith(e.path)
+        );
+      }
+      const total = entries.length;
+      const page = entries.slice(offset, offset + limit);
+
+      const serverService = runtime.getService("X402_SERVER" as any) as any;
+      const server = serverService?.isAvailable?.() ? serverService.getServer() : null;
+      const lastUpdated = new Date().toISOString();
+
+      const items = await Promise.all(
+        page.map(async (e) => {
+          const resource = `${base}${e.path}`;
+          const accepts: unknown[] = [];
+          try {
+            accepts.push(
+              buildRhChainRequirements({
+                amountAtomic: usdToUsdgAtomic(e.priceUsd),
+                resourceUrl: resource,
+                description: e.description,
+              })
+            );
+          } catch {
+            /* RH rail optional */
+          }
+          if (server) {
+            try {
+              const solReq = await server.buildRequirements({
+                amountAtomic: String(Math.round(parseFloat(e.priceUsd) * 1_000_000)),
+                resourceUrl: resource,
+                description: e.description,
+              });
+              // Dexter returns a full v2 envelope; accepts[] holds flat entries.
+              if (solReq && Array.isArray(solReq.accepts)) accepts.push(...solReq.accepts);
+              else if (solReq) accepts.push(solReq);
+            } catch {
+              /* Solana rail optional */
+            }
+          }
+          return {
+            resource,
+            type: "http",
+            x402Version: 1,
+            accepts,
+            lastUpdated,
+            metadata: {
+              name: e.name,
+              description: e.description,
+              method: e.method,
+              priceUsd: e.priceUsd,
+            },
+          };
+        })
+      );
+
+      res.json({ x402Version: 1, items, pagination: { limit, offset, total } });
     },
   },
 
