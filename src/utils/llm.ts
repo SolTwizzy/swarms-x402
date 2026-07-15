@@ -236,6 +236,68 @@ export async function callOpenAI(options: CallOpenAIOptions): Promise<string> {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Local multi-agent panel                                            */
+/* ------------------------------------------------------------------ */
+
+export interface PanelAgent {
+  name: string;
+  systemPrompt: string;
+}
+
+export interface LocalPanelResult {
+  /** Concatenated `[Name]\n<argument>` blocks for the agents that produced output. */
+  transcript: string;
+  /** Number of agents that produced usable output. */
+  agentCount: number;
+}
+
+/**
+ * Run a multi-agent analyst panel LOCALLY: each agent is one `callLLM` call
+ * (Swarms → OpenAI cascade), all run concurrently, and their arguments are
+ * concatenated into a transcript. A downstream "judge" call (via `callLLM`)
+ * then synthesizes a verdict from that transcript.
+ *
+ * This replaces the server-side Swarms `DebateWithJudge` orchestration, which
+ * became unusable (its response returns prompt scaffolding, not completions).
+ * Because it is built on `callLLM`, it is provider-resilient: it uses whichever
+ * of Swarms / OpenAI is actually returning output.
+ *
+ * An agent whose call fails or returns empty is simply dropped (never fabricated).
+ */
+export async function runLocalPanel(
+  runtime: { getSetting: (key: string) => string | boolean | number | null },
+  opts: {
+    agents: PanelAgent[];
+    task: string;
+    model?: string;
+    maxTokens?: number;
+    temperature?: number;
+  }
+): Promise<LocalPanelResult> {
+  const results = await Promise.all(
+    opts.agents.map(async (a) => {
+      try {
+        const text = await callLLM(runtime, {
+          systemPrompt: a.systemPrompt,
+          userPrompt: opts.task,
+          model: opts.model,
+          maxTokens: opts.maxTokens ?? 400,
+          temperature: opts.temperature ?? 0.4,
+        });
+        return { name: a.name, text: (text ?? "").trim() };
+      } catch {
+        return { name: a.name, text: "" };
+      }
+    })
+  );
+  const good = results.filter((r) => r.text);
+  return {
+    transcript: good.map((r) => `[${r.name}]\n${r.text}`).join("\n\n"),
+    agentCount: good.length,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Smart LLM Router                                                   */
 /* ------------------------------------------------------------------ */
 

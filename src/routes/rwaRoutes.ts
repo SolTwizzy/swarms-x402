@@ -7,9 +7,8 @@ import {
   usdToUsdgAtomic,
 } from "../server/rhChainGate.js";
 import { x402Gate } from "../server/x402Gate.js";
-import { SwarmsService } from "../services/swarmsService.js";
 import type { X402ServiceEndpoint } from "../types.js";
-import { callSwarmsAgent } from "../utils/llm.js";
+import { callLLM, runLocalPanel, type PanelAgent } from "../utils/llm.js";
 
 /**
  * RWA / tokenized-stock intelligence routes.
@@ -49,41 +48,13 @@ function getPaymentHeader(req: any): string | null {
   return null;
 }
 
-// ── Helper: get SwarmsService or null ──────────────────────────────────
-function getSwarmsService(runtime: any): SwarmsService | null {
-  const svc = runtime.getService("SWARMS" as any) as SwarmsService | null;
-  return svc?.isAvailable() ? svc : null;
-}
-
-// ── Helper: extract raw text from a Swarms response ────────────────────
-// Only explicit transcript-bearing response fields are considered. This avoids
-// treating job IDs, usage data, or other response metadata as analyst output.
-function extractSwarmOutput(result: Record<string, unknown>): string {
-  const output = result.output ?? result.outputs;
-  if (typeof output === "string") return output;
-  if (Array.isArray(output)) {
-    return output
-      .map((item: unknown) => {
-        if (typeof item === "string") return item;
-        if (item && typeof item === "object") {
-          const obj = item as Record<string, unknown>;
-          const role = obj.role ?? obj.agent_name ?? "agent";
-          const content = obj.content ?? obj.text ?? obj.output;
-          return typeof content === "string" && content.trim()
-            ? `[${String(role)}]\n${content}`
-            : "";
-        }
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n\n");
-  }
-  if (output && typeof output === "object") {
-    const nested = output as Record<string, unknown>;
-    if (typeof nested.output === "string") return nested.output;
-    if (typeof nested.content === "string") return nested.content;
-  }
-  return "";
+// ── Helper: is any LLM provider configured? ────────────────────────────
+// The analyst panels now run locally via callLLM (Swarms → OpenAI cascade),
+// so we only need SOME provider key, not the Swarms service specifically.
+function hasLlmProvider(runtime: any): boolean {
+  const swarms = String(runtime.getSetting("SWARMS_API_KEY") ?? "").trim();
+  const openai = String(runtime.getSetting("OPENAI_API_KEY") ?? "").trim();
+  return Boolean(swarms || openai);
 }
 
 // ── Yahoo Finance market data ──────────────────────────────────────────
@@ -299,10 +270,10 @@ function parseVerdictJson(raw: string): StockVerdict | null {
 }
 
 const STRUCTURE_SYSTEM_PROMPT =
-  "You convert an equity analyst debate transcript into a strict JSON verdict. " +
-  "Extract ONLY what the debate and its judge concluded — do not add your own opinions " +
-  "or invent numbers. Correctly separate BULLISH arguments from BEARISH ones. " +
-  "Output ONLY minified JSON, no markdown fences, no commentary.";
+  "You are the presiding judge over an equity analyst panel. Read the analysts' arguments " +
+  "and the data brief, then deliver a strict JSON verdict. Base it ONLY on the arguments and " +
+  "the brief's numbers — do not add your own opinions or invent numbers. Correctly separate " +
+  "BULLISH arguments from BEARISH ones. Output ONLY minified JSON, no markdown fences, no commentary.";
 
 function buildStructureUserPrompt(
   ticker: string,
@@ -312,7 +283,7 @@ function buildStructureUserPrompt(
   return (
     `Ticker: ${ticker}\n\n` +
     `Data brief the analysts were given:\n${dataBrief}\n\n` +
-    `Debate transcript (bull vs bear vs risk, followed by the judge's final evaluation):\n` +
+    `Analyst arguments (bull vs bear vs risk):\n` +
     `${transcript.slice(0, 24_000)}\n\n` +
     `Return a JSON object with EXACTLY these keys:\n` +
     `{"rating": one of "bullish"|"neutral"|"bearish" (the judge's overall stance),\n` +
@@ -338,28 +309,22 @@ async function structureVerdict(
   ticker: string,
   dataBrief: string,
   transcript: string
-): Promise<{ verdict: StockVerdict; via: "swarms" | "heuristic" }> {
-  const swarmsKey = String(runtime.getSetting("SWARMS_API_KEY") ?? "").trim();
+): Promise<{ verdict: StockVerdict; via: "llm" | "heuristic" }> {
   const userPrompt = buildStructureUserPrompt(ticker, dataBrief, transcript);
 
-  // 1) Swarms single-agent — funded, confirmed-working primary provider.
-  if (swarmsKey) {
-    try {
-      const raw = await callSwarmsAgent({
-        swarmsApiKey: swarmsKey,
-        systemPrompt: STRUCTURE_SYSTEM_PROMPT,
-        userPrompt,
-        model: "gpt-4o-mini",
-        temperature: 0,
-        maxTokens: 700,
-        agentName: "VerdictStructurer",
-        description: "Extracts a strict JSON verdict from an analyst debate",
-      });
-      const v = parseVerdictJson(raw);
-      if (v) return { verdict: v, via: "swarms" };
-    } catch {
-      // fall through
-    }
+  // 1) LLM judge (Swarms → OpenAI cascade).
+  try {
+    const raw = await callLLM(runtime, {
+      systemPrompt: STRUCTURE_SYSTEM_PROMPT,
+      userPrompt,
+      model: "gpt-4o-mini",
+      temperature: 0,
+      maxTokens: 700,
+    });
+    const v = parseVerdictJson(raw);
+    if (v) return { verdict: v, via: "llm" };
+  } catch {
+    // fall through
   }
 
   // 2) Keyword heuristic over the real transcript.
@@ -409,6 +374,85 @@ const SCREEN_PRICE_USD = "0.49";
 const COMPARE_PRICE_USD = "0.39";
 const ELIGIBILITY_PRICE_USD = "0.19";
 const CATALYST_PRICE_USD = "0.29";
+
+// ── Analyst panels (run locally via runLocalPanel; judge = the structurer) ─
+
+const STOCK_DD_AGENTS: PanelAgent[] = [
+  {
+    name: "BullAnalyst",
+    systemPrompt:
+      "You are a buy-side equity BULL analyst. Build the strongest evidence-based BULLISH case for the " +
+      "ticker using ONLY the factual data brief provided plus widely-known qualitative facts about the " +
+      "company. Ground every quantitative claim in the brief's numbers (price, trend, range position, " +
+      "volume, volatility). Do NOT fabricate specific fundamentals (exact P/E, revenue, margins) — if you " +
+      "reference them, explicitly label them as general/qualitative. Be concise and specific.",
+  },
+  {
+    name: "BearAnalyst",
+    systemPrompt:
+      "You are a buy-side equity BEAR analyst. Build the strongest evidence-based BEARISH case for the " +
+      "ticker using ONLY the factual data brief provided plus widely-known qualitative facts about the " +
+      "company. Ground every quantitative claim in the brief's numbers (drawdown from 6mo high, weak " +
+      "trend, extended range position, volatility, volume). Do NOT fabricate specific fundamentals — if " +
+      "you reference them, label them as general/qualitative. Be concise and specific.",
+  },
+  {
+    name: "RiskAnalyst",
+    systemPrompt:
+      "You are a risk and valuation analyst. Weigh the technical risk in the data brief: distance from " +
+      "6-month high/low, momentum, daily volatility, and volume anomalies. Assess downside risk and how " +
+      "much of the move may already be priced in, using ONLY the brief's numbers plus general qualitative " +
+      "context. Do NOT invent precise fundamentals. Conclude how risk should temper the verdict. Be concise.",
+  },
+];
+
+const SCREEN_AGENTS: PanelAgent[] = [
+  {
+    name: "MomentumAnalyst",
+    systemPrompt:
+      "You are a momentum analyst. Rank the tickers by trend, momentum, and range position using ONLY the " +
+      "numbers in each data brief. Do NOT fabricate fundamentals. Be concise.",
+  },
+  {
+    name: "ValueAnalyst",
+    systemPrompt:
+      "You are a value analyst. Rank the tickers by relative value and mean-reversion potential — position " +
+      "within the 6-month range and distance from the 6-month high — using ONLY the briefs' numbers. Do NOT " +
+      "fabricate fundamentals. Be concise.",
+  },
+  {
+    name: "RiskAnalyst",
+    systemPrompt:
+      "You are a risk analyst. Re-rank considering volatility, drawdown from the 6-month high, and volume " +
+      "anomalies, using ONLY the briefs' numbers. Do NOT invent fundamentals. Be concise.",
+  },
+];
+
+/** Compare agents depend on the two tickers, so they are built per request. */
+function buildCompareAgents(a: string, b: string): PanelAgent[] {
+  return [
+    {
+      name: `Advocate_${a}`,
+      systemPrompt:
+        `You argue that ${a} is the better medium-term buy than ${b}, using ONLY the data briefs' numbers ` +
+        `plus general qualitative knowledge. Ground quantitative claims in the briefs. Do NOT fabricate ` +
+        `fundamentals. Be concise.`,
+    },
+    {
+      name: `Advocate_${b}`,
+      systemPrompt:
+        `You argue that ${b} is the better medium-term buy than ${a}, using ONLY the data briefs' numbers ` +
+        `plus general qualitative knowledge. Ground quantitative claims in the briefs. Do NOT fabricate ` +
+        `fundamentals. Be concise.`,
+    },
+    {
+      name: "RiskJudge",
+      systemPrompt:
+        "You weigh valuation and downside risk for both tickers using ONLY the briefs, then say which is the " +
+        "better risk-adjusted buy. Be concise.",
+    },
+  ];
+}
 
 // ── Shared payment helper (dual-rail: RH-Chain USDG first, else x402Gate) ─
 // Mirrors the stock-dd ordering EXACTLY: this is called only AFTER all free
@@ -501,24 +545,19 @@ function ratingFromScore(s: number): "bullish" | "neutral" | "bearish" {
   return "neutral";
 }
 
-/** Call a single Swarms agent and parse the first JSON object from its output. */
-async function swarmsExtractJson(
+/** Run an LLM judge (Swarms → OpenAI) and parse the first JSON object from its output. */
+async function llmExtractJson(
   runtime: any,
   system: string,
   user: string
 ): Promise<Record<string, unknown> | null> {
-  const swarmsKey = String(runtime.getSetting("SWARMS_API_KEY") ?? "").trim();
-  if (!swarmsKey) return null;
   try {
-    const raw = await callSwarmsAgent({
-      swarmsApiKey: swarmsKey,
+    const raw = await callLLM(runtime, {
       systemPrompt: system,
       userPrompt: user,
       model: "gpt-4o-mini",
       temperature: 0,
       maxTokens: 900,
-      agentName: "RwaStructurer",
-      description: "Extracts strict JSON from an analyst debate",
     });
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return null;
@@ -760,9 +799,8 @@ export const rwaRoutes: Route[] = [
       }
       const ticker = rawTicker;
 
-      const swarmsService = getSwarmsService(runtime);
-      if (!swarmsService) {
-        res.status(503).json({ error: "Swarms service unavailable" });
+      if (!hasLlmProvider(runtime)) {
+        res.status(503).json({ error: "No LLM provider configured" });
         return;
       }
 
@@ -827,99 +865,34 @@ export const rwaRoutes: Route[] = [
       }
       if (!gate.paid) return;
 
-      // ── Step 2: Run the REAL adversarial Swarm ──────────────────────
+      // ── Step 2: Run the analyst panel LOCALLY (Swarms → OpenAI) ─────
       try {
-        const result = await swarmsService.runSwarm({
-          name: `stock-dd-${ticker}-${Date.now()}`,
-          description: `Tokenized-stock due diligence debate: ${ticker}`,
-          // "DebateWithJudge" is supported by the live API but missing from the
-          // outdated swarms-ts type union — same cast pattern used across routes.
-          swarm_type: "DebateWithJudge" as any,
-          agents: [
-            {
-              agent_name: "BullAnalyst",
-              description: "Argues the bullish investment case",
-              system_prompt:
-                "You are a buy-side equity BULL analyst. Build the strongest evidence-based BULLISH case for the " +
-                "ticker using ONLY the factual data brief provided plus widely-known qualitative facts about the " +
-                "company. Ground every quantitative claim in the brief's numbers (price, trend, range position, " +
-                "volume, volatility). Do NOT fabricate specific fundamentals (exact P/E, revenue, margins) — if you " +
-                "reference them, explicitly label them as general/qualitative. Be concise and specific.",
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 350,
-              temperature: 0.4,
-            },
-            {
-              agent_name: "BearAnalyst",
-              description: "Argues the bearish investment case",
-              system_prompt:
-                "You are a buy-side equity BEAR analyst. Build the strongest evidence-based BEARISH case for the " +
-                "ticker using ONLY the factual data brief provided plus widely-known qualitative facts about the " +
-                "company. Ground every quantitative claim in the brief's numbers (drawdown from 6mo high, weak " +
-                "trend, extended range position, volatility, volume). Do NOT fabricate specific fundamentals — if " +
-                "you reference them, label them as general/qualitative. Be concise and specific.",
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 350,
-              temperature: 0.4,
-            },
-            {
-              agent_name: "RiskAnalyst",
-              description: "Weighs valuation and downside risk",
-              system_prompt:
-                "You are a risk and valuation analyst. Weigh the technical risk in the data brief: distance from " +
-                "6-month high/low, momentum, daily volatility, and volume anomalies. Assess downside risk and how " +
-                "much of the move may already be priced in, using ONLY the brief's numbers plus general qualitative " +
-                "context. Do NOT invent precise fundamentals. Conclude how risk should temper the verdict. Be concise.",
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 350,
-              temperature: 0.3,
-            },
-          ],
-          task:
-            `Debate whether ${ticker} is a BUY, HOLD, or SELL for a medium-term investor, based ONLY on the ` +
-            `factual market data brief below plus general knowledge of the company. Do NOT fabricate specific ` +
-            `fundamentals (exact P/E, revenue, margins) that are not in the brief; if referenced, label them as ` +
-            `qualitative. Ground every quantitative claim in the brief.\n\n` +
-            `${dataBrief}\n\n` +
-            `After the debate, the judge must deliver a CONCISE final verdict: an overall rating ` +
-            `(bullish / neutral / bearish), a confidence level, a short plain-English summary, the strongest bull ` +
-            `points, the strongest bear points, and the key risks. Keep the final verdict tight — brief bullet lists.`,
-          max_loops: 1,
-          rules:
-            "BullAnalyst argues the upside, BearAnalyst argues the downside, RiskAnalyst weighs valuation and " +
-            "downside risk. The judge synthesizes ONE verdict grounded only in the provided data brief.",
+        const agentTask =
+          `Analyze whether ${ticker} is a BUY, HOLD, or SELL for a medium-term investor, based ONLY on the ` +
+          `factual market data brief below plus general knowledge of the company. Do NOT fabricate specific ` +
+          `fundamentals (exact P/E, revenue, margins) that are not in the brief; if referenced, label them as ` +
+          `qualitative. Ground every quantitative claim in the brief. Make your case concisely.\n\n${dataBrief}`;
+        const panel = await runLocalPanel(runtime, {
+          agents: STOCK_DD_AGENTS,
+          task: agentTask,
+          model: "gpt-4o-mini",
+          maxTokens: 350,
+          temperature: 0.4,
         });
-
-        const transcript = extractSwarmOutput(result as Record<string, unknown>);
-        if (!transcript.trim()) {
+        if (!panel.transcript.trim()) {
           res.status(502).json({
-            error: "Swarms returned no usable analyst or judge transcript",
+            error: "Analyst panel returned no usable output",
           });
           return;
         }
 
-        // ── Step 3: Structure the real debate into a verdict ──────────
+        // ── Step 3: The judge structures the arguments into a verdict ──
         const { verdict, via } = await structureVerdict(
           runtime,
           ticker,
           dataBrief,
-          transcript
+          panel.transcript
         );
-
-        // Swarm accounting (proves the API was actually called).
-        const usage = (result as any).usage ?? {};
-        const cost =
-          typeof usage?.billing_info?.total_cost === "number"
-            ? usage.billing_info.total_cost
-            : typeof usage?.total_cost === "number"
-              ? usage.total_cost
-              : null;
 
         const isPaid = gate.amountUsd > 0;
 
@@ -938,14 +911,14 @@ export const rwaRoutes: Route[] = [
           },
           verdict,
           swarm: {
-            swarm_type: (result as any).swarm_type ?? "DebateWithJudge",
-            agents: (result as any).number_of_agents ?? 3,
-            execution_time: (result as any).execution_time ?? null,
-            cost,
+            swarm_type: "LocalPanel",
+            agents: panel.agentCount,
+            execution_time: null,
+            cost: null,
           },
           verdictVia: via,
-          // Full analyst debate transcript — paid calls only.
-          raw: isPaid ? transcript : undefined,
+          // Full analyst transcript — paid calls only.
+          raw: isPaid ? panel.transcript : undefined,
           template: "StockDD",
           disclaimer: DISCLAIMER,
           freeRemaining: gate.freeRemaining,
@@ -1053,9 +1026,8 @@ export const rwaRoutes: Route[] = [
         return;
       }
 
-      const swarmsService = getSwarmsService(runtime);
-      if (!swarmsService) {
-        res.status(503).json({ error: "Swarms service unavailable" });
+      if (!hasLlmProvider(runtime)) {
+        res.status(503).json({ error: "No LLM provider configured" });
         return;
       }
 
@@ -1094,68 +1066,25 @@ export const rwaRoutes: Route[] = [
         rationale: string;
       }> = [];
       let summary = "";
-      let via: "swarms" | "heuristic" = "heuristic";
+      let via: "llm" | "heuristic" = "heuristic";
       try {
-        const result = await swarmsService.runSwarm({
-          name: `rwa-screen-${Date.now()}`,
-          description: `Tokenized-stock screening: ${found.map((f) => f.ticker).join(", ")}`,
-          swarm_type: "DebateWithJudge" as any,
-          agents: [
-            {
-              agent_name: "MomentumAnalyst",
-              description: "Ranks by trend and momentum",
-              system_prompt:
-                "You are a momentum analyst. Rank the tickers by trend, momentum, and range position using " +
-                "ONLY the numbers in each data brief. Do NOT fabricate fundamentals. Be concise.",
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 400,
-              temperature: 0.3,
-            },
-            {
-              agent_name: "ValueAnalyst",
-              description: "Ranks by relative value and mean-reversion",
-              system_prompt:
-                "You are a value analyst. Rank the tickers by relative value and mean-reversion potential — " +
-                "position within the 6-month range and distance from the 6-month high — using ONLY the briefs' " +
-                "numbers. Do NOT fabricate fundamentals. Be concise.",
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 400,
-              temperature: 0.3,
-            },
-            {
-              agent_name: "RiskAnalyst",
-              description: "Adjusts the ranking for risk",
-              system_prompt:
-                "You are a risk analyst. Re-rank considering volatility, drawdown from the 6-month high, and " +
-                "volume anomalies, using ONLY the briefs' numbers. Do NOT invent fundamentals. Be concise.",
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 400,
-              temperature: 0.3,
-            },
-          ],
+        const panel = await runLocalPanel(runtime, {
+          agents: SCREEN_AGENTS,
           task:
             `Screen and RANK these tokenized-stock candidates best-to-worst for a medium-term investor, using ` +
             `ONLY the factual data briefs below plus general knowledge. Ground every quantitative claim in the ` +
-            `briefs. Do NOT fabricate fundamentals.\n\n${briefs}\n\nThe judge must produce a final ranking ` +
-            `(best first) with, for each ticker, an overall rating (bullish / neutral / bearish) and a one-line ` +
-            `rationale.`,
-          max_loops: 1,
-          rules:
-            "MomentumAnalyst, ValueAnalyst, and RiskAnalyst argue; the judge produces ONE ranking grounded only in the provided briefs.",
+            `briefs. Do NOT fabricate fundamentals. Make your case concisely.\n\n${briefs}`,
+          model: "gpt-4o-mini",
+          maxTokens: 400,
+          temperature: 0.3,
         });
-        const transcript = extractSwarmOutput(result as Record<string, unknown>);
-        if (transcript.trim()) {
-          const parsed = await swarmsExtractJson(
+        if (panel.transcript.trim()) {
+          const parsed = await llmExtractJson(
             runtime,
-            "You convert an equity screening debate into a strict JSON ranking. Use ONLY the debate's " +
-              "conclusions and the provided data. Output ONLY minified JSON, no fences.",
-            `Tickers: ${found.map((f) => f.ticker).join(", ")}\n\nDebate transcript:\n${transcript.slice(0, 20000)}\n\n` +
+            "You are the presiding judge over an equity screening panel. Read the analysts' arguments and the " +
+              "data and output a strict JSON ranking. Use ONLY the arguments and the provided data. Output ONLY " +
+              "minified JSON, no fences.",
+            `Tickers: ${found.map((f) => f.ticker).join(", ")}\n\nAnalyst arguments:\n${panel.transcript.slice(0, 20000)}\n\n` +
               `Return {"ranking":[{"ticker":"..","rating":"bullish|neutral|bearish","rationale":"<= 24 words"}], ` +
               `"summary":"<= 50 words"}. Rank ALL tickers best-first; include every ticker exactly once.`
           );
@@ -1186,13 +1115,13 @@ export const rwaRoutes: Route[] = [
               };
             });
             summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
-            via = "swarms";
+            via = "llm";
           }
         }
       } catch (err) {
         runtime.logger.warn(
           { error: err instanceof Error ? err.message : String(err) },
-          "[x402/rwa/screen] swarm failed"
+          "[x402/rwa/screen] panel failed"
         );
       }
 
@@ -1266,9 +1195,8 @@ export const rwaRoutes: Route[] = [
         return;
       }
 
-      const swarmsService = getSwarmsService(runtime);
-      if (!swarmsService) {
-        res.status(503).json({ error: "Swarms service unavailable" });
+      if (!hasLlmProvider(runtime)) {
+        res.status(503).json({ error: "No LLM provider configured" });
         return;
       }
 
@@ -1316,67 +1244,24 @@ export const rwaRoutes: Route[] = [
         b_points: [],
         risks: [],
       };
-      let via: "swarms" | "heuristic" = "heuristic";
+      let via: "llm" | "heuristic" = "heuristic";
       try {
-        const result = await swarmsService.runSwarm({
-          name: `rwa-compare-${a}-${b}-${Date.now()}`,
-          description: `Compare ${a} vs ${b}`,
-          swarm_type: "DebateWithJudge" as any,
-          agents: [
-            {
-              agent_name: `Advocate_${a}`,
-              description: `Argues ${a} is the better buy`,
-              system_prompt:
-                `You argue that ${a} is the better medium-term buy than ${b}, using ONLY the data briefs' ` +
-                `numbers plus general qualitative knowledge. Ground quantitative claims in the briefs. Do NOT ` +
-                `fabricate fundamentals. Be concise.`,
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 350,
-              temperature: 0.4,
-            },
-            {
-              agent_name: `Advocate_${b}`,
-              description: `Argues ${b} is the better buy`,
-              system_prompt:
-                `You argue that ${b} is the better medium-term buy than ${a}, using ONLY the data briefs' ` +
-                `numbers plus general qualitative knowledge. Ground quantitative claims in the briefs. Do NOT ` +
-                `fabricate fundamentals. Be concise.`,
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 350,
-              temperature: 0.4,
-            },
-            {
-              agent_name: "RiskJudge",
-              description: "Weighs valuation and downside risk",
-              system_prompt:
-                "You weigh valuation and downside risk for both tickers using ONLY the briefs, then help decide " +
-                "which is the better risk-adjusted buy. Be concise.",
-              model_name: "gpt-4o-mini",
-              role: "worker" as const,
-              max_loops: 1,
-              max_tokens: 350,
-              temperature: 0.3,
-            },
-          ],
+        const panel = await runLocalPanel(runtime, {
+          agents: buildCompareAgents(a, b),
           task:
-            `Debate which is the better medium-term buy: ${a} or ${b}. Use ONLY the factual briefs below plus ` +
-            `general knowledge; do NOT fabricate fundamentals. Ground every quantitative claim.\n\n${brief}\n\n` +
-            `The judge must pick a winner (${a}, ${b}, or tie), give each a rating (bullish / neutral / bearish), ` +
-            `a short summary, the strongest points for each, and the key risks.`,
-          max_loops: 1,
-          rules: `Advocate_${a} argues for ${a}, Advocate_${b} for ${b}, RiskJudge weighs risk; the judge picks ONE winner grounded only in the briefs.`,
+            `Argue which is the better medium-term buy: ${a} or ${b}. Use ONLY the factual briefs below plus ` +
+            `general knowledge; do NOT fabricate fundamentals. Ground every quantitative claim. Make your case ` +
+            `concisely.\n\n${brief}`,
+          model: "gpt-4o-mini",
+          maxTokens: 350,
+          temperature: 0.4,
         });
-        const transcript = extractSwarmOutput(result as Record<string, unknown>);
-        if (transcript.trim()) {
-          const parsed = await swarmsExtractJson(
+        if (panel.transcript.trim()) {
+          const parsed = await llmExtractJson(
             runtime,
-            "You convert a head-to-head equity debate into strict JSON. Use ONLY the debate's conclusions and " +
-              "provided data. Output ONLY minified JSON, no fences.",
-            `A=${a}, B=${b}\n\nTranscript:\n${transcript.slice(0, 20000)}\n\n` +
+            "You are the presiding judge over a head-to-head equity debate. Read the advocates' arguments and " +
+              "output strict JSON. Use ONLY the arguments and provided data. Output ONLY minified JSON, no fences.",
+            `A=${a}, B=${b}\n\nAdvocate arguments:\n${panel.transcript.slice(0, 20000)}\n\n` +
               `Return {"winner":"${a}"|"${b}"|"tie","rating_a":"bullish|neutral|bearish","rating_b":"bullish|neutral|bearish",` +
               `"summary":"<= 55 words","a_points":["<=4 short strings"],"b_points":["<=4 short strings"],"risks":["<=4 short strings"]}.`
           );
@@ -1391,13 +1276,13 @@ export const rwaRoutes: Route[] = [
               b_points: toStringArray(parsed.b_points, 4),
               risks: toStringArray(parsed.risks, 4),
             };
-            via = "swarms";
+            via = "llm";
           }
         }
       } catch (err) {
         runtime.logger.warn(
           { error: err instanceof Error ? err.message : String(err) },
-          "[x402/rwa/compare] swarm failed"
+          "[x402/rwa/compare] panel failed"
         );
       }
 
@@ -1544,8 +1429,8 @@ export const rwaRoutes: Route[] = [
         `NOTE: Future earnings dates and forward guidance are NOT in this data.`;
 
       let brief = "";
-      let via: "swarms" | "deterministic" = "deterministic";
-      const parsed = await swarmsExtractJson(
+      let via: "llm" | "deterministic" = "deterministic";
+      const parsed = await llmExtractJson(
         runtime,
         "You write a concise corporate-actions/catalyst brief for an equity using ONLY the provided facts. " +
           "Do NOT invent earnings dates, guidance, or numbers not present. Output ONLY minified JSON, no fences.",
@@ -1554,7 +1439,7 @@ export const rwaRoutes: Route[] = [
       );
       if (parsed && typeof parsed.brief === "string" && parsed.brief.trim()) {
         brief = parsed.brief.trim();
-        via = "swarms";
+        via = "llm";
       } else {
         const parts: string[] = [];
         parts.push(
