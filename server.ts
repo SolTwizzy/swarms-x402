@@ -19,6 +19,7 @@ import { advancedRoutes } from "./src/routes/advancedRoutes.js";
 import { swarmRoutes } from "./src/routes/swarmRoutes.js";
 import { swarmPremiumRoutes } from "./src/routes/swarmPremiumRoutes.js";
 import { rwaRoutes } from "./src/routes/rwaRoutes.js";
+import { THEME_FONTS, THEME_TOKENS } from "./src/ui/theme.js";
 import { X402WalletService } from "./src/services/x402WalletService.js";
 import { SwarmsService } from "./src/services/swarmsService.js";
 import { PaymentMemoryService } from "./src/services/paymentMemoryService.js";
@@ -302,40 +303,40 @@ function escapeHtml(s: string): string {
 
 function riskBadgeHtml(score: number): string {
   let bg: string, color: string, label: string;
-  if (score >= 61) { bg = "#3b0a0a"; color = "#f87171"; label = "HIGH RISK"; }
-  else if (score >= 26) { bg = "#422006"; color = "#fbbf24"; label = "MEDIUM"; }
-  else { bg = "#064e3b"; color = "#34d399"; label = "LOW RISK"; }
+  if (score >= 61) { bg = "#3b0a0a"; color = "var(--red)"; label = "HIGH RISK"; }
+  else if (score >= 26) { bg = "#422006"; color = "var(--yellow)"; label = "MEDIUM"; }
+  else { bg = "#064e3b"; color = "var(--accent)"; label = "LOW RISK"; }
   return `<span style="display:inline-block;padding:3px 12px;border-radius:12px;background:${bg};color:${color};font-family:var(--mono);font-size:13px;font-weight:700;">${score}/100 ${label}</span>`;
 }
 
 function verdictBadgeHtml(verdict: string): string {
   let bg: string, color: string;
-  if (verdict === "DANGER") { bg = "#3b0a0a"; color = "#f87171"; }
-  else if (verdict === "CAUTION") { bg = "#422006"; color = "#fbbf24"; }
-  else { bg = "#064e3b"; color = "#34d399"; }
+  if (verdict === "DANGER") { bg = "#3b0a0a"; color = "var(--red)"; }
+  else if (verdict === "CAUTION") { bg = "#422006"; color = "var(--yellow)"; }
+  else { bg = "#064e3b"; color = "var(--accent)"; }
   return `<span style="display:inline-block;padding:3px 12px;border-radius:12px;background:${bg};color:${color};font-family:var(--mono);font-size:13px;font-weight:700;">${escapeHtml(verdict)}</span>`;
 }
 
 function severityColor(sev: string): string {
   const s = (sev ?? "").toUpperCase();
-  if (s === "CRITICAL") return "#f87171";
-  if (s === "HIGH") return "#fb923c";
-  if (s === "MEDIUM") return "#fbbf24";
-  if (s === "LOW") return "#60a5fa";
-  return "#94a3b8";
+  if (s === "CRITICAL") return "var(--red)";
+  if (s === "HIGH") return "var(--orange)";
+  if (s === "MEDIUM") return "var(--yellow)";
+  if (s === "LOW") return "var(--blue)";
+  return "var(--text-muted)";
 }
 
 function renderFindingsList(findings: GalleryFinding[], category: string): string {
-  if (!findings || findings.length === 0) return `<p style="color:#5a5f72;font-size:13px;">No ${category} findings</p>`;
+  if (!findings || findings.length === 0) return `<p style="color:var(--text-muted);font-size:13px;">No ${category} findings</p>`;
   return findings.map((f) => {
     const sev = f.severity ?? f.risk ?? "INFO";
     const title = escapeHtml(f.title ?? "Untitled");
     const desc = escapeHtml(f.description ?? f.attackScenario ?? "");
-    const extra = f.estimatedSavings ? `<span style="color:#34d399;font-size:12px;">Saves ${escapeHtml(f.estimatedSavings)}</span>` : "";
-    return `<div style="margin-bottom:8px;padding:8px 12px;background:#0c0c1a;border-radius:6px;border-left:3px solid ${severityColor(sev)};">
+    const extra = f.estimatedSavings ? `<span style="color:var(--accent);font-size:12px;">Saves ${escapeHtml(f.estimatedSavings)}</span>` : "";
+    return `<div style="margin-bottom:8px;padding:8px 12px;background:var(--surface-2);border-radius:6px;border-left:3px solid ${severityColor(sev)};">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
     <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:${severityColor(sev)};">${escapeHtml(sev.toUpperCase())}</span>
-    <span style="font-size:14px;font-weight:600;color:#e8ecf0;">${title}</span>
+    <span style="font-size:14px;font-weight:600;color:var(--heading);">${title}</span>
   </div>
   <p style="font-size:13px;color:#8892a8;margin:0;">${desc}</p>
   ${extra}
@@ -357,37 +358,37 @@ function renderAuditCard(entry: GalleryResultEntry): string {
   return `<div class="gallery-card">
   <div class="gallery-card-header">
     <div>
-      <h3 style="margin:0 0 4px;font-size:20px;color:#e8ecf0;">${escapeHtml(entry.name)}</h3>
-      <p style="margin:0;font-size:13px;color:#5a5f72;">${escapeHtml(entry.description)}</p>
+      <h3 style="margin:0 0 4px;font-size:20px;color:var(--heading);">${escapeHtml(entry.name)}</h3>
+      <p style="margin:0;font-size:13px;color:var(--text-muted);">${escapeHtml(entry.description)}</p>
     </div>
     ${riskBadgeHtml(riskScore)}
   </div>
   <div style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0;">
     <div class="finding-count" style="border-color:rgba(248,113,113,0.3);">
-      <span style="font-size:24px;font-weight:800;color:#f87171;">${secCount}</span>
-      <span style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Security</span>
+      <span style="font-size:24px;font-weight:800;color:var(--red);">${secCount}</span>
+      <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Security</span>
     </div>
     <div class="finding-count" style="border-color:rgba(251,191,36,0.3);">
-      <span style="font-size:24px;font-weight:800;color:#fbbf24;">${econCount}</span>
-      <span style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Economic</span>
+      <span style="font-size:24px;font-weight:800;color:var(--yellow);">${econCount}</span>
+      <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Economic</span>
     </div>
     <div class="finding-count" style="border-color:rgba(96,165,250,0.3);">
-      <span style="font-size:24px;font-weight:800;color:#60a5fa;">${gasCount}</span>
-      <span style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">Gas</span>
+      <span style="font-size:24px;font-weight:800;color:var(--blue);">${gasCount}</span>
+      <span style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Gas</span>
     </div>
   </div>
-  <p style="font-size:14px;color:#c8ccd4;line-height:1.6;margin-bottom:16px;">${escapeHtml(summary)}</p>
+  <p style="font-size:14px;color:var(--text);line-height:1.6;margin-bottom:16px;">${escapeHtml(summary)}</p>
   <details style="margin-bottom:12px;">
-    <summary style="cursor:pointer;font-family:var(--mono);font-size:12px;color:#00d4aa;font-weight:600;">Show all findings</summary>
+    <summary style="cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;">Show all findings</summary>
     <div style="margin-top:12px;">
-      ${secCount > 0 ? `<h4 style="font-size:12px;color:#f87171;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Security</h4>${renderFindingsList(findings.security ?? [], "security")}` : ""}
-      ${econCount > 0 ? `<h4 style="font-size:12px;color:#fbbf24;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Economic</h4>${renderFindingsList(findings.economic ?? [], "economic")}` : ""}
-      ${gasCount > 0 ? `<h4 style="font-size:12px;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Gas Optimization</h4>${renderFindingsList(findings.gas ?? [], "gas")}` : ""}
+      ${secCount > 0 ? `<h4 style="font-size:12px;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Security</h4>${renderFindingsList(findings.security ?? [], "security")}` : ""}
+      ${econCount > 0 ? `<h4 style="font-size:12px;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Economic</h4>${renderFindingsList(findings.economic ?? [], "economic")}` : ""}
+      ${gasCount > 0 ? `<h4 style="font-size:12px;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Gas Optimization</h4>${renderFindingsList(findings.gas ?? [], "gas")}` : ""}
     </div>
   </details>
   <div class="gallery-card-meta">
     <span>This audit cost <strong>$${entry.priceUsd}</strong> and took <strong>${durationSec}s</strong></span>
-    <span style="color:#5a5f72;">4 agents &middot; ConcurrentWorkflow</span>
+    <span style="color:var(--text-muted);">4 agents &middot; ConcurrentWorkflow</span>
   </div>
 </div>`;
 }
@@ -405,25 +406,25 @@ function renderTokenRiskCard(entry: GalleryResultEntry): string {
   return `<div class="gallery-card">
   <div class="gallery-card-header">
     <div>
-      <h3 style="margin:0 0 4px;font-size:20px;color:#e8ecf0;">${escapeHtml(entry.name)}</h3>
-      <p style="margin:0;font-size:13px;color:#5a5f72;">${escapeHtml(entry.description)}</p>
+      <h3 style="margin:0 0 4px;font-size:20px;color:var(--heading);">${escapeHtml(entry.name)}</h3>
+      <p style="margin:0;font-size:13px;color:var(--text-muted);">${escapeHtml(entry.description)}</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       ${verdictBadgeHtml(verdict)}
       ${riskBadgeHtml(riskScore)}
     </div>
   </div>
-  <p style="font-size:14px;color:#c8ccd4;line-height:1.6;margin:16px 0;">${escapeHtml(summary)}</p>
+  <p style="font-size:14px;color:var(--text);line-height:1.6;margin:16px 0;">${escapeHtml(summary)}</p>
   <details style="margin-bottom:12px;">
-    <summary style="cursor:pointer;font-family:var(--mono);font-size:12px;color:#00d4aa;font-weight:600;">Show all findings</summary>
+    <summary style="cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;">Show all findings</summary>
     <div style="margin-top:12px;">
-      ${contractCount > 0 ? `<h4 style="font-size:12px;color:#fb923c;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Contract</h4>${renderFindingsList(findings.contract ?? [], "contract")}` : ""}
+      ${contractCount > 0 ? `<h4 style="font-size:12px;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Contract</h4>${renderFindingsList(findings.contract ?? [], "contract")}` : ""}
       ${tokenomicsCount > 0 ? `<h4 style="font-size:12px;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin:12px 0 8px;">Tokenomics</h4>${renderFindingsList(findings.tokenomics ?? [], "tokenomics")}` : ""}
     </div>
   </details>
   <div class="gallery-card-meta">
     <span>This assessment cost <strong>$${entry.priceUsd}</strong> and took <strong>${durationSec}s</strong></span>
-    <span style="color:#5a5f72;">3 agents &middot; SequentialWorkflow</span>
+    <span style="color:var(--text-muted);">3 agents &middot; SequentialWorkflow</span>
   </div>
 </div>`;
 }
@@ -457,23 +458,10 @@ function buildGalleryHtml(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SwarmX Results Gallery</title>
   <meta name="description" content="Real audit results from SwarmX multi-agent teams — contract audits, token risk assessments, and benchmarks vs single GPT.">
+${THEME_FONTS}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #060610;
-      --surface: #0c0c1a;
-      --surface-2: #10101f;
-      --border: #1a1a30;
-      --border-hover: #2a2a45;
-      --text: #c8ccd4;
-      --text-muted: #5a5f72;
-      --text-dim: #3d4155;
-      --heading: #e8ecf0;
-      --accent: #00d4aa;
-      --accent-2: #00b8d4;
-      --mono: "SF Mono", "Fira Code", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+${THEME_TOKENS}
     html { scroll-behavior: smooth; }
     body {
       background: var(--bg);
@@ -486,7 +474,7 @@ function buildGalleryHtml(): string {
     .bg-glow {
       position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
       width: 800px; height: 600px;
-      background: radial-gradient(ellipse, rgba(0,212,170,0.08) 0%, rgba(0,184,212,0.04) 40%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(0, 200, 5,0.08) 0%, rgba(0, 135, 61,0.04) 40%, transparent 70%);
       pointer-events: none; z-index: 0;
     }
     .page { position: relative; z-index: 1; }
@@ -501,7 +489,7 @@ function buildGalleryHtml(): string {
       font-size: 40px;
       font-weight: 800;
       letter-spacing: -2px;
-      background: linear-gradient(135deg, #00d4aa 0%, #00b8d4 50%, #60a5fa 100%);
+      background: linear-gradient(135deg, var(--heading) 0%, var(--accent) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -534,7 +522,7 @@ function buildGalleryHtml(): string {
       padding: 28px 24px;
       text-align: center;
     }
-    .bench-col.swarmx { background: rgba(0, 212, 170, 0.05); }
+    .bench-col.swarmx { background: rgba(0, 200, 5, 0.05); }
     .bench-col.gpt { background: var(--surface); }
     .bench-vs {
       display: flex;
@@ -645,8 +633,8 @@ function buildGalleryHtml(): string {
       text-align: center;
       margin: 48px 0 32px;
       padding: 32px;
-      background: linear-gradient(135deg, rgba(0,212,170,0.06) 0%, rgba(0,184,212,0.04) 100%);
-      border: 1px solid rgba(0,212,170,0.15);
+      background: linear-gradient(135deg, rgba(0, 200, 5,0.06) 0%, rgba(0, 135, 61,0.04) 100%);
+      border: 1px solid rgba(0, 200, 5,0.15);
       border-radius: 14px;
     }
     .cta-bar h3 {
@@ -663,8 +651,8 @@ function buildGalleryHtml(): string {
     .cta-btn {
       display: inline-block;
       padding: 12px 32px;
-      background: linear-gradient(135deg, #00d4aa, #00b8d4);
-      color: #060610;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: var(--bg);
       font-weight: 700;
       font-size: 15px;
       border-radius: 8px;
@@ -674,7 +662,7 @@ function buildGalleryHtml(): string {
     }
     .cta-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
+      box-shadow: 0 4px 20px rgba(0, 200, 5, 0.3);
     }
 
     .footer {
@@ -768,17 +756,17 @@ function buildGalleryHtml(): string {
         </div>
       </div>
 
-      <p style="text-align:center;font-size:13px;color:#5a5f72;margin-top:12px;">
+      <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:12px;">
         Multi-agent audits find 2-3x more issues across 3 distinct categories. Single GPT typically misses economic attack vectors and gas optimization entirely.
       </p>
 
       <!-- ========== CONTRACT AUDITS ========== -->
       <div class="section-title"><span class="hl">//</span> Contract Audit Results</div>
-      ${auditCards || '<p style="color:#5a5f72;">No audit results yet. Run: <code style="color:#00d4aa;">bun run scripts/generate-gallery.ts</code></p>'}
+      ${auditCards || '<p style="color:var(--text-muted);">No audit results yet. Run: <code style="color:var(--accent);">bun run scripts/generate-gallery.ts</code></p>'}
 
       <!-- ========== TOKEN RISK ========== -->
       <div class="section-title"><span class="hl">//</span> Token Risk Assessments</div>
-      ${tokenCards || '<p style="color:#5a5f72;">No token risk results yet.</p>'}
+      ${tokenCards || '<p style="color:var(--text-muted);">No token risk results yet.</p>'}
 
       <!-- ========== CTA ========== -->
       <div class="cta-bar">
@@ -873,9 +861,9 @@ function buildReportPageHtml(report: AuditReport): string {
 
   // Risk score badge color
   let scoreBg: string, scoreColor: string, scoreLabel: string;
-  if (riskScore >= 61) { scoreBg = "#3b0a0a"; scoreColor = "#f87171"; scoreLabel = "HIGH RISK"; }
-  else if (riskScore >= 26) { scoreBg = "#422006"; scoreColor = "#fbbf24"; scoreLabel = "CAUTION"; }
-  else { scoreBg = "#064e3b"; scoreColor = "#34d399"; scoreLabel = "LOW RISK"; }
+  if (riskScore >= 61) { scoreBg = "#3b0a0a"; scoreColor = "var(--red)"; scoreLabel = "HIGH RISK"; }
+  else if (riskScore >= 26) { scoreBg = "#422006"; scoreColor = "var(--yellow)"; scoreLabel = "CAUTION"; }
+  else { scoreBg = "#064e3b"; scoreColor = "var(--accent)"; scoreLabel = "LOW RISK"; }
 
   // Build findings HTML
   function renderFindingsSection(items: unknown[], label: string, color: string): string {
@@ -885,19 +873,19 @@ function buildReportPageHtml(report: AuditReport): string {
     for (const item of items) {
       const f = item as Record<string, string>;
       const sev = (f.severity ?? f.risk ?? "INFO").toUpperCase();
-      let sevColor = "#94a3b8";
-      if (sev === "CRITICAL") sevColor = "#f87171";
-      else if (sev === "HIGH") sevColor = "#fb923c";
-      else if (sev === "MEDIUM") sevColor = "#fbbf24";
-      else if (sev === "LOW") sevColor = "#60a5fa";
+      let sevColor = "var(--text-muted)";
+      if (sev === "CRITICAL") sevColor = "var(--red)";
+      else if (sev === "HIGH") sevColor = "var(--orange)";
+      else if (sev === "MEDIUM") sevColor = "var(--yellow)";
+      else if (sev === "LOW") sevColor = "var(--blue)";
       const t = escapeHtml(f.title ?? f.description ?? JSON.stringify(f));
       const desc = f.description ? escapeHtml(f.description) : "";
-      const attack = f.attackScenario ? `<div style="font-size:12px;color:#94a3b8;margin-top:4px;">Attack: ${escapeHtml(f.attackScenario)}</div>` : "";
-      const savings = f.estimatedSavings ? `<div style="font-size:12px;color:#34d399;margin-top:4px;">Saves ${escapeHtml(f.estimatedSavings)}</div>` : "";
-      html += `<div style="margin-bottom:8px;padding:10px 14px;background:#0c0c1a;border-radius:6px;border-left:3px solid ${sevColor};">
+      const attack = f.attackScenario ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Attack: ${escapeHtml(f.attackScenario)}</div>` : "";
+      const savings = f.estimatedSavings ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">Saves ${escapeHtml(f.estimatedSavings)}</div>` : "";
+      html += `<div style="margin-bottom:8px;padding:10px 14px;background:var(--surface-2);border-radius:6px;border-left:3px solid ${sevColor};">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
           <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${sevColor};">${sev}</span>
-          <span style="font-size:14px;font-weight:600;color:#e8ecf0;">${t}</span>
+          <span style="font-size:14px;font-weight:600;color:var(--heading);">${t}</span>
         </div>
         ${desc ? `<div style="font-size:13px;color:#8892a8;">${desc}</div>` : ""}
         ${attack}${savings}
@@ -909,11 +897,11 @@ function buildReportPageHtml(report: AuditReport): string {
 
   let findingsHtml = "";
   if (report.type === "contract-audit") {
-    findingsHtml += renderFindingsSection(findings.security as unknown[] ?? [], "Security", "#f87171");
-    findingsHtml += renderFindingsSection(findings.economic as unknown[] ?? [], "Economic", "#fbbf24");
-    findingsHtml += renderFindingsSection(findings.gas as unknown[] ?? [], "Gas Optimization", "#60a5fa");
+    findingsHtml += renderFindingsSection(findings.security as unknown[] ?? [], "Security", "var(--red)");
+    findingsHtml += renderFindingsSection(findings.economic as unknown[] ?? [], "Economic", "var(--yellow)");
+    findingsHtml += renderFindingsSection(findings.gas as unknown[] ?? [], "Gas Optimization", "var(--blue)");
   } else if (report.type === "token-risk") {
-    findingsHtml += renderFindingsSection(findings.contract as unknown[] ?? [], "Contract", "#fb923c");
+    findingsHtml += renderFindingsSection(findings.contract as unknown[] ?? [], "Contract", "var(--orange)");
     findingsHtml += renderFindingsSection(findings.tokenomics as unknown[] ?? [], "Tokenomics", "#a78bfa");
   }
 
@@ -940,9 +928,9 @@ function buildReportPageHtml(report: AuditReport): string {
   let verdictHtml = "";
   if (verdict) {
     let vBg: string, vColor: string;
-    if (verdict === "DANGER") { vBg = "#3b0a0a"; vColor = "#f87171"; }
-    else if (verdict === "CAUTION") { vBg = "#422006"; vColor = "#fbbf24"; }
-    else { vBg = "#064e3b"; vColor = "#34d399"; }
+    if (verdict === "DANGER") { vBg = "#3b0a0a"; vColor = "var(--red)"; }
+    else if (verdict === "CAUTION") { vBg = "#422006"; vColor = "var(--yellow)"; }
+    else { vBg = "#064e3b"; vColor = "var(--accent)"; }
     verdictHtml = `<span style="display:inline-block;padding:6px 18px;border-radius:8px;background:${vBg};color:${vColor};font-family:var(--mono);font-size:16px;font-weight:700;margin-right:12px;">${escapeHtml(verdict)}</span>`;
   }
 
@@ -959,22 +947,10 @@ function buildReportPageHtml(report: AuditReport): string {
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="${escapeHtml(title)} | SwarmX">
   <meta name="twitter:description" content="Risk Score: ${riskScore}/100 — ${scoreLabel}">
+${THEME_FONTS}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #060610;
-      --surface: #0c0c1a;
-      --surface-2: #10101f;
-      --border: #1a1a30;
-      --text: #c8ccd4;
-      --text-muted: #5a5f72;
-      --text-dim: #3d4155;
-      --heading: #e8ecf0;
-      --accent: #00d4aa;
-      --accent-2: #00b8d4;
-      --mono: "SF Mono", "Fira Code", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+${THEME_TOKENS}
     html { scroll-behavior: smooth; }
     body {
       background: var(--bg); color: var(--text); font-family: var(--sans);
@@ -983,7 +959,7 @@ function buildReportPageHtml(report: AuditReport): string {
     .bg-glow {
       position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
       width: 800px; height: 600px;
-      background: radial-gradient(ellipse, rgba(0,212,170,0.08) 0%, rgba(0,184,212,0.04) 40%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(0, 200, 5,0.08) 0%, rgba(0, 135, 61,0.04) 40%, transparent 70%);
       pointer-events: none; z-index: 0;
     }
     .page { position: relative; z-index: 1; }
@@ -993,7 +969,7 @@ function buildReportPageHtml(report: AuditReport): string {
     }
     .logo {
       font-family: var(--mono); font-size: 36px; font-weight: 800; letter-spacing: -2px;
-      background: linear-gradient(135deg, #00d4aa 0%, #00b8d4 50%, #60a5fa 100%);
+      background: linear-gradient(135deg, var(--heading) 0%, var(--accent) 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
       margin-bottom: 6px; display: inline-block;
     }
@@ -1072,18 +1048,18 @@ function buildReportPageHtml(report: AuditReport): string {
     }
     .cta-section {
       text-align: center; margin: 36px 0 24px;
-      padding: 28px; background: linear-gradient(135deg, rgba(0,212,170,0.06) 0%, rgba(0,184,212,0.04) 100%);
-      border: 1px solid rgba(0,212,170,0.15); border-radius: 14px;
+      padding: 28px; background: linear-gradient(135deg, rgba(0, 200, 5,0.06) 0%, rgba(0, 135, 61,0.04) 100%);
+      border: 1px solid rgba(0, 200, 5,0.15); border-radius: 14px;
     }
     .cta-section h3 { font-size: 20px; font-weight: 700; color: var(--heading); margin-bottom: 8px; }
     .cta-section p { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
     .cta-btn {
       display: inline-block; padding: 12px 32px;
-      background: linear-gradient(135deg, #00d4aa, #00b8d4);
-      color: #060610; font-weight: 700; font-size: 15px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: var(--bg); font-weight: 700; font-size: 15px; border-radius: 8px;
       text-decoration: none; font-family: var(--mono); transition: transform 0.15s, box-shadow 0.15s;
     }
-    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,212,170,0.3); }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0, 200, 5,0.3); }
     .footer {
       border-top: 1px solid var(--border); padding: 20px 0; text-align: center;
       font-size: 11px; color: var(--text-dim); font-family: var(--mono);
@@ -1092,7 +1068,7 @@ function buildReportPageHtml(report: AuditReport): string {
     .footer a:hover { color: var(--accent); }
     .copied-toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: var(--accent); color: #060610; padding: 8px 20px; border-radius: 8px;
+      background: var(--accent); color: var(--bg); padding: 8px 20px; border-radius: 8px;
       font-family: var(--mono); font-size: 13px; font-weight: 700;
       opacity: 0; transition: opacity 0.3s; pointer-events: none;
     }
@@ -1254,29 +1230,29 @@ function loadBenchmarkResults(): BenchmarkData | null {
 function buildBenchmarkHtml(): string {
   const data = loadBenchmarkResults();
   if (!data) {
-    return `<!DOCTYPE html><html><head><title>SwarmX Benchmark</title></head><body style="background:#060610;color:#c8ccd4;font-family:sans-serif;padding:40px;"><h1>Benchmark data not available</h1><p>Run <code>bun run scripts/benchmark-accuracy.ts</code> to generate results.</p></body></html>`;
+    return `<!DOCTYPE html><html><head><title>SwarmX Benchmark</title></head><body style="background:var(--bg);color:var(--text);font-family:sans-serif;padding:40px;"><h1>Benchmark data not available</h1><p>Run <code>bun run scripts/benchmark-accuracy.ts</code> to generate results.</p></body></html>`;
   }
 
   const s = data.summary;
-  const rateColor = s.detectionRate >= 90 ? "#34d399" : s.detectionRate >= 70 ? "#fbbf24" : "#f87171";
+  const rateColor = s.detectionRate >= 90 ? "var(--accent)" : s.detectionRate >= 70 ? "var(--yellow)" : "var(--red)";
 
   const rows = data.results.map((r) => {
     const mark = r.detected
-      ? `<span style="color:#34d399;font-weight:700;">YES</span>`
-      : `<span style="color:#f87171;font-weight:700;">MISS</span>`;
-    const live = r.liveTested ? `<span style="color:#00d4aa;" title="Live tested">*</span>` : "";
-    const sevColor = r.expectedSeverity === "CRITICAL" ? "#f87171" : r.expectedSeverity === "HIGH" ? "#fb923c" : "#fbbf24";
-    const scoreColor = r.riskScore >= 70 ? "#f87171" : r.riskScore >= 40 ? "#fbbf24" : "#34d399";
+      ? `<span style="color:var(--accent);font-weight:700;">YES</span>`
+      : `<span style="color:var(--red);font-weight:700;">MISS</span>`;
+    const live = r.liveTested ? `<span style="color:var(--accent);" title="Live tested">*</span>` : "";
+    const sevColor = r.expectedSeverity === "CRITICAL" ? "var(--red)" : r.expectedSeverity === "HIGH" ? "var(--orange)" : "var(--yellow)";
+    const scoreColor = r.riskScore >= 70 ? "var(--red)" : r.riskScore >= 40 ? "var(--yellow)" : "var(--accent)";
     const matchTitle = r.matchedFinding
       ? escapeHtml(r.matchedFinding.title)
       : r.missReason
-        ? `<span style="color:#5a5f72;font-style:italic;">${escapeHtml(r.missReason.slice(0, 80))}</span>`
-        : `<span style="color:#5a5f72;">--</span>`;
+        ? `<span style="color:var(--text-muted);font-style:italic;">${escapeHtml(r.missReason.slice(0, 80))}</span>`
+        : `<span style="color:var(--text-muted);">--</span>`;
     const time = (r.responseTimeMs / 1000).toFixed(1);
 
     return `<tr>
   <td style="text-align:center;">${r.id}${live}</td>
-  <td><span style="font-family:var(--mono);font-size:12px;background:#10101f;padding:2px 8px;border-radius:4px;">${escapeHtml(r.language)}</span></td>
+  <td><span style="font-family:var(--mono);font-size:12px;background:var(--surface-3);padding:2px 8px;border-radius:4px;">${escapeHtml(r.language)}</span></td>
   <td style="text-align:center;"><span style="color:${sevColor};font-weight:600;">${escapeHtml(r.expectedSeverity)}</span></td>
   <td style="text-align:center;">${mark}</td>
   <td style="text-align:center;"><span style="color:${scoreColor};font-weight:700;">${r.riskScore}</span></td>
@@ -1290,8 +1266,8 @@ function buildBenchmarkHtml(): string {
     .filter((r) => !r.detected)
     .map((r) => {
       return `<div style="margin-bottom:16px;padding:12px 16px;background:#1a0a0a;border:1px solid #3b0a0a;border-radius:8px;">
-  <div style="font-weight:600;color:#f87171;margin-bottom:4px;">#${r.id} ${escapeHtml(r.name)}</div>
-  <div style="font-size:13px;color:#94a3b8;">${escapeHtml(r.missReason ?? "No matching keywords found in response")}</div>
+  <div style="font-weight:600;color:var(--red);margin-bottom:4px;">#${r.id} ${escapeHtml(r.name)}</div>
+  <div style="font-size:13px;color:var(--text-muted);">${escapeHtml(r.missReason ?? "No matching keywords found in response")}</div>
 </div>`;
     }).join("\n");
 
@@ -1308,22 +1284,10 @@ function buildBenchmarkHtml(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SwarmX Accuracy Benchmark</title>
   <meta name="description" content="Accuracy benchmark for SwarmX contract audit — ${s.detected}/${s.totalContracts} known vulnerabilities detected (${s.detectionRate}%).">
+${THEME_FONTS}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #060610;
-      --surface: #0c0c1a;
-      --surface-2: #10101f;
-      --border: #1a1a30;
-      --border-hover: #2a2a45;
-      --text: #c8ccd4;
-      --text-muted: #5a5f72;
-      --heading: #e8ecf0;
-      --accent: #00d4aa;
-      --accent-2: #00b8d4;
-      --mono: "SF Mono", "Fira Code", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
-      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+${THEME_TOKENS}
     html { scroll-behavior: smooth; }
     body {
       background: var(--bg);
@@ -1336,7 +1300,7 @@ function buildBenchmarkHtml(): string {
     .bg-glow {
       position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
       width: 800px; height: 600px;
-      background: radial-gradient(ellipse, rgba(0,212,170,0.08) 0%, rgba(0,184,212,0.04) 40%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(0, 200, 5,0.08) 0%, rgba(0, 135, 61,0.04) 40%, transparent 70%);
       pointer-events: none; z-index: 0;
     }
     .page { position: relative; z-index: 1; }
@@ -1424,7 +1388,7 @@ function buildBenchmarkHtml(): string {
       vertical-align: middle;
     }
     tr:hover td {
-      background: rgba(0, 212, 170, 0.03);
+      background: rgba(0, 200, 5, 0.03);
     }
     .methodology {
       font-size: 13px;
@@ -1521,10 +1485,10 @@ function buildBenchmarkHtml(): string {
 
       <!-- Missed -->
       ${s.missed > 0 ? `<div class="card">
-        <div class="card-title" style="color:#f87171;">Missed Vulnerabilities (${s.missed})</div>
+        <div class="card-title" style="color:var(--red);">Missed Vulnerabilities (${s.missed})</div>
         ${missedDetails}
       </div>` : `<div class="card">
-        <div class="card-title" style="color:#34d399;">All Vulnerabilities Detected</div>
+        <div class="card-title" style="color:var(--accent);">All Vulnerabilities Detected</div>
         <p style="color:var(--text-muted);">Every known vulnerability in the benchmark was successfully identified.</p>
       </div>`}
 
@@ -1549,7 +1513,7 @@ function buildBenchmarkHtml(): string {
       <!-- CTA -->
       <div style="text-align:center;margin:40px 0 20px;">
         <p style="font-size:16px;color:var(--heading);margin-bottom:12px;">Try the audit yourself</p>
-        <a href="/" style="display:inline-block;padding:12px 32px;background:var(--accent);color:#060610;font-weight:700;border-radius:8px;text-decoration:none;font-size:15px;">Open Playground</a>
+        <a href="/" style="display:inline-block;padding:12px 32px;background:var(--accent);color:var(--bg);font-weight:700;border-radius:8px;text-decoration:none;font-size:15px;">Open Playground</a>
         <a href="/x402/gallery" style="display:inline-block;padding:12px 32px;background:var(--surface);color:var(--accent);font-weight:700;border-radius:8px;text-decoration:none;font-size:15px;border:1px solid var(--border);margin-left:12px;">View Gallery</a>
       </div>
 
@@ -1639,43 +1603,12 @@ async function startServer(): Promise<void> {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SwarmX — AI Agent Teams. One Payment.</title>
-  <meta name="description" content="Try AI agent teams for contract audits, token risk analysis, and research — free, no wallet needed. Powered by x402 micropayments.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>SwarmX — Tokenized stocks, fully researched.</title>
+  <meta name="description" content="A panel of analyst agents researches any tokenized equity — momentum, valuation, downside — and returns a rated verdict. $0.29 a report in USDC, or 5 free calls a day. No account.">
+${THEME_FONTS}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #000000;
-      --surface: rgba(255, 255, 255, 0.02);
-      --surface-2: rgba(255, 255, 255, 0.04);
-      --surface-3: rgba(255, 255, 255, 0.06);
-      --border: rgba(255, 255, 255, 0.1);
-      --border-hover: rgba(255, 255, 255, 0.2);
-      --border-focus: rgba(255, 255, 255, 0.3);
-      --text: rgba(255, 255, 255, 0.85);
-      --text-muted: rgba(255, 255, 255, 0.45);
-      --text-dim: rgba(255, 255, 255, 0.25);
-      --heading: #fafafa;
-      --accent: #ef4444;
-      --accent-2: #dc2626;
-      --accent-glow: rgba(239, 68, 68, 0.1);
-      --blue: #60a5fa;
-      --blue-bg: rgba(96, 165, 250, 0.1);
-      --green: #34d399;
-      --green-bg: rgba(52, 211, 153, 0.1);
-      --yellow: #fbbf24;
-      --yellow-bg: rgba(251, 191, 36, 0.1);
-      --purple: #a78bfa;
-      --purple-bg: rgba(167, 139, 250, 0.1);
-      --orange: #fb923c;
-      --orange-bg: rgba(251, 146, 60, 0.1);
-      --red: #f87171;
-      --red-bg: rgba(248, 113, 113, 0.1);
-      --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
-      --font: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
+${THEME_TOKENS}
     html { scroll-behavior: smooth; }
     body {
       background: var(--bg); color: var(--text); font-family: var(--font);
@@ -1695,28 +1628,28 @@ async function startServer(): Promise<void> {
       max-width: 100%;
     }
     .nav-logo {
-      font-family: var(--font); font-size: 20px; font-weight: 700;
-      color: #fafafa; text-decoration: none; letter-spacing: -0.5px;
+      font-family: var(--display); font-size: 19px; font-weight: 700;
+      color: var(--heading); text-decoration: none; letter-spacing: 0.2px;
     }
-    .nav-logo span { color: rgba(255,255,255,0.4); font-weight: 400; }
+    .nav-logo span { color: var(--accent); font-weight: 700; }
     .nav-links {
       display: flex; align-items: center; gap: 8px;
     }
     .nav-links a {
-      color: rgba(255, 255, 255, 0.6); text-decoration: none;
+      color: var(--text-muted); text-decoration: none;
       font-size: 14px; font-weight: 500; padding: 6px 14px;
       border-radius: 8px; transition: all 0.2s;
     }
-    .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .nav-links a:hover { color: var(--heading); background: var(--surface-2); }
     .nav-cta {
-      background: rgba(255, 255, 255, 0.02) !important;
-      border: 0.67px solid rgba(255, 255, 255, 0.15) !important;
-      border-radius: 10px !important; color: #fff !important; font-weight: 500 !important;
+      background: var(--green-bg) !important;
+      border: 0.67px solid var(--accent-2) !important;
+      border-radius: 8px !important; color: var(--accent) !important; font-weight: 600 !important;
       padding: 7px 18px !important; font-size: 13px !important; transition: all 0.2s !important;
     }
     .nav-cta:hover {
-      background: rgba(255, 255, 255, 0.08) !important;
-      border-color: rgba(255, 255, 255, 0.3) !important;
+      background: var(--accent) !important; color: #04140A !important;
+      border-color: var(--accent) !important;
     }
     @media (max-width: 768px) {
       .nav-links { gap: 2px; }
@@ -1724,45 +1657,130 @@ async function startServer(): Promise<void> {
       .nav-cta { display: none !important; }
     }
 
-    /* ── Hero ── */
-    .hero { padding: 80px 0 40px; text-align: center; }
-    .logo {
-      font-family: var(--font); font-size: 56px; font-weight: 700; letter-spacing: -2px;
-      color: #fafafa;
-      margin-bottom: 16px;
+    /* ── Hero ──
+       Asymmetric: the thesis on the left, the product running on the right. */
+    .hero { padding: 72px 0 48px; }
+    .hero-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center;
+    }
+    .logo { display: none; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
+      letter-spacing: 1.4px; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 20px;
+    }
+    .hero-eyebrow::before {
+      content: ""; width: 18px; height: 1px; background: var(--accent);
     }
     .hero-headline {
-      font-family: var(--font); font-size: 42px; font-weight: 600; color: #fafafa; letter-spacing: -1px;
-      margin-bottom: 16px; line-height: 1.15;
+      font-family: var(--display); font-size: clamp(38px, 4.4vw, 56px); font-weight: 700;
+      color: var(--heading); letter-spacing: -0.5px;
+      margin-bottom: 18px; line-height: 1.04;
+    }
+    .hero-headline em {
+      font-style: normal; color: var(--accent);
     }
     .hero-sub {
-      font-size: 17px; color: rgba(255, 255, 255, 0.6); max-width: 560px; margin: 0 auto 32px; line-height: 1.6;
+      font-size: 16px; color: var(--text-muted); max-width: 44ch; margin: 0 0 28px; line-height: 1.65;
       font-weight: 400;
     }
     .hero-ctas {
-      display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px;
     }
     .hero-cta-btn {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 28px; border-radius: 12px; font-family: var(--font);
-      font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+      padding: 12px 26px; border-radius: 8px; font-family: var(--sans);
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
       text-decoration: none;
     }
     .hero-cta-primary {
-      background: #fff; color: #000; border: 0.67px solid #fff;
+      background: var(--accent); color: #04140A; border: 0.67px solid var(--accent);
     }
-    .hero-cta-primary:hover { background: rgba(255,255,255,0.9); }
+    .hero-cta-primary:hover { background: #00E006; border-color: #00E006; }
     .hero-cta-secondary {
-      background: rgba(255,255,255,0.02); color: #fff;
-      border: 0.67px solid rgba(255,255,255,0.15);
+      background: transparent; color: var(--text);
+      border: 0.67px solid var(--border-hover);
     }
     .hero-cta-secondary:hover {
-      background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.3);
+      background: var(--surface-2); border-color: var(--accent-2); color: var(--heading);
     }
     .hero-badges { display: none; }
     .hero-stats {
-      font-family: var(--mono); font-size: 13px; color: rgba(255,255,255,0.35);
-      margin-top: 0; letter-spacing: 0.3px;
+      font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+      margin-top: 0; letter-spacing: 0.2px;
+    }
+
+    /* ── Hero terminal — the signature element.
+       Replays a real captured stock-dd run; the CTA runs a live one. ── */
+    .term {
+      background: var(--surface); border: 0.67px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0, 200, 5, 0.04), 0 24px 60px -24px rgba(0, 200, 5, 0.18);
+    }
+    .term-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; border-bottom: 0.67px solid var(--border);
+      background: var(--surface-2);
+    }
+    .term-title {
+      font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+      letter-spacing: 0.4px;
+    }
+    .term-tag {
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.6px;
+      text-transform: uppercase; color: var(--text-dim);
+      border: 0.67px solid var(--border); border-radius: 4px; padding: 2px 7px;
+    }
+    .term-body {
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+      padding: 16px; min-height: 400px;
+      display: flex; flex-direction: column;
+    }
+    .term-line, .term-foot {
+      white-space: pre-wrap; word-break: break-word;
+      opacity: 0; animation: term-in 0.24s ease-out forwards; animation-delay: var(--d, 0s);
+    }
+    @keyframes term-in { from { opacity: 0; } to { opacity: 1; } }
+    .term-line.dim { color: var(--text-dim); }
+    .term-line.muted { color: var(--text-muted); }
+    .term-line.in { color: var(--heading); }
+    .term-line.ok { color: var(--accent); }
+    .term-line.risk { color: var(--red); }
+    .term-line.agent { color: var(--text); }
+    .term-line .who { color: var(--accent-2); }
+    .term-cursor {
+      display: inline-block; width: 7px; height: 14px; vertical-align: -2px;
+      background: var(--accent); margin-left: 2px;
+      animation: term-blink 1.1s steps(1) infinite;
+    }
+    @keyframes term-blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+    .term-foot {
+      margin-top: auto; padding-top: 12px; display: flex; align-items: center; gap: 10px;
+      border-top: 0.67px solid var(--border);
+    }
+    .term-run {
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
+      background: var(--green-bg); color: var(--accent);
+      border: 0.67px solid var(--accent-2); border-radius: 6px;
+      padding: 6px 12px; cursor: pointer; transition: all 0.2s;
+      text-decoration: none; white-space: nowrap; flex-shrink: 0;
+    }
+    .term-run:hover { background: var(--accent); color: #04140A; }
+    .term-note {
+      font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .term-cursor { animation: none; }
+      .term-line, .term-foot { opacity: 1; animation: none; }
+    }
+    @media (max-width: 900px) {
+      .hero { padding: 48px 0 32px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .hero-sub { max-width: none; }
+      .term-body { min-height: 0; font-size: 11.5px; }
     }
 
     /* ── Tabs ── */
@@ -1770,23 +1788,23 @@ async function startServer(): Promise<void> {
     .tabs {
       display: flex; gap: 6px; border-bottom: none; margin-bottom: 16px;
       overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
-      padding: 4px; background: rgba(255,255,255,0.02); border-radius: 12px;
+      padding: 4px; background: var(--surface); border-radius: 12px;
       border: 0.67px solid var(--border);
     }
     .tabs::-webkit-scrollbar { display: none; }
     .tab {
       padding: 10px 18px; font-family: var(--font); font-size: 13px; font-weight: 500;
-      color: rgba(255,255,255,0.5); background: transparent; border: 0.67px solid transparent;
+      color: var(--text-muted); background: transparent; border: 0.67px solid transparent;
       border-radius: 8px; cursor: pointer;
       transition: all 0.2s; letter-spacing: 0; white-space: nowrap; flex-shrink: 0;
     }
-    .tab:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.03); }
+    .tab:hover { color: var(--text); background: var(--surface-2); }
     .tab.active {
-      color: #fff; background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.15);
+      color: var(--heading); background: var(--surface-3);
+      border-color: var(--border-hover);
     }
     .tab-panel {
-      display: none; background: rgba(255,255,255,0.02);
+      display: none; background: var(--surface);
       border: 0.67px solid var(--border);
       border-radius: 16px; padding: 32px;
     }
@@ -1796,63 +1814,63 @@ async function startServer(): Promise<void> {
       margin-bottom: 24px; flex-wrap: wrap; gap: 8px;
     }
     .tab-panel-title {
-      font-family: var(--font); font-size: 22px; font-weight: 600; color: #fafafa;
+      font-family: var(--font); font-size: 22px; font-weight: 600; color: var(--heading);
     }
     .tab-panel-price {
       font-family: var(--mono); font-size: 13px; padding: 6px 14px;
-      border-radius: 8px; background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.7);
+      border-radius: 8px; background: var(--surface-2); color: var(--text);
       border: 0.67px solid var(--border);
     }
     .tab-panel-desc {
-      font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 24px; line-height: 1.6;
+      font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6;
     }
 
     /* ── Form controls ── */
     .form-group { margin-bottom: 18px; }
     .form-label {
       display: block; font-family: var(--font); font-size: 12px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.35); margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-dim); margin-bottom: 8px;
     }
     .form-textarea {
-      width: 100%; min-height: 180px; padding: 16px 18px; background: rgba(255,255,255,0.02);
-      border: 0.67px solid var(--border); border-radius: 12px; color: rgba(255,255,255,0.85);
+      width: 100%; min-height: 180px; padding: 16px 18px; background: var(--surface);
+      border: 0.67px solid var(--border); border-radius: 12px; color: var(--text);
       font-family: var(--mono); font-size: 13px; line-height: 1.6; resize: vertical;
       transition: border-color 0.2s;
     }
-    .form-textarea:focus { outline: none; border-color: rgba(255,255,255,0.3); }
-    .form-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .form-textarea:focus { outline: none; border-color: var(--border-focus); }
+    .form-textarea::placeholder { color: var(--border-hover); }
     .form-input {
-      width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.02);
-      border: 0.67px solid var(--border); border-radius: 12px; color: rgba(255,255,255,0.85);
+      width: 100%; padding: 12px 16px; background: var(--surface);
+      border: 0.67px solid var(--border); border-radius: 12px; color: var(--text);
       font-family: var(--mono); font-size: 13px; transition: border-color 0.2s;
     }
-    .form-input:focus { outline: none; border-color: rgba(255,255,255,0.3); }
-    .form-input::placeholder { color: rgba(255,255,255,0.2); }
+    .form-input:focus { outline: none; border-color: var(--border-focus); }
+    .form-input::placeholder { color: var(--border-hover); }
     .form-select {
-      padding: 10px 14px; background: rgba(255,255,255,0.02); border: 0.67px solid var(--border);
-      border-radius: 12px; color: rgba(255,255,255,0.85); font-family: var(--mono); font-size: 13px;
+      padding: 10px 14px; background: var(--surface); border: 0.67px solid var(--border);
+      border-radius: 12px; color: var(--text); font-family: var(--mono); font-size: 13px;
       cursor: pointer; transition: border-color 0.2s; appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.4)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='var(--text-muted)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
       background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
     }
-    .form-select:focus { outline: none; border-color: rgba(255,255,255,0.3); }
-    .form-select option { background: #111; color: #fff; }
+    .form-select:focus { outline: none; border-color: var(--border-focus); }
+    .form-select option { background: #111; color: var(--heading); }
     .form-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
     .form-row .form-group { flex: 1; min-width: 140px; }
 
     /* ── Buttons ── */
     .btn-submit {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 28px; border: 0.67px solid rgba(255,255,255,0.15);
+      padding: 12px 28px; border: 0.67px solid var(--border-hover);
       border-radius: 12px; cursor: pointer;
       font-family: var(--font); font-size: 14px; font-weight: 600;
       transition: all 0.2s; margin-top: 4px;
     }
     .btn-submit.green {
-      background: #fff; color: #000; border-color: #fff;
+      background: #fff; color: #000; border-color: var(--heading);
     }
     .btn-submit.green:hover {
-      background: rgba(255,255,255,0.9); transform: translateY(-1px);
+      background: var(--accent-2); transform: translateY(-1px);
     }
     .btn-submit.green:active { transform: translateY(0); }
     .btn-submit:disabled {
@@ -1863,7 +1881,7 @@ async function startServer(): Promise<void> {
     .spinner {
       display: none; flex-direction: column; align-items: flex-start;
       padding: 24px 28px; font-family: var(--mono); font-size: 13px;
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 16px;
+      background: var(--surface); border: 0.67px solid var(--border); border-radius: 16px;
       margin-top: 16px;
     }
     .spinner.visible { display: flex; }
@@ -1871,25 +1889,25 @@ async function startServer(): Promise<void> {
       display: flex; align-items: center; gap: 10px; margin-bottom: 14px; width: 100%;
     }
     .spinner-ring {
-      width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.1);
-      border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--heading); border-radius: 50%; animation: spin 0.8s linear infinite;
       flex-shrink: 0;
     }
-    .spinner-title { color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .spinner-title { color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .agent-steps { width: 100%; }
     .agent-step {
       display: flex; align-items: center; gap: 10px;
       padding: 8px 12px; margin-bottom: 4px; border-radius: 8px;
-      font-size: 13px; line-height: 1.5; color: rgba(255,255,255,0.25);
+      font-size: 13px; line-height: 1.5; color: var(--text-dim);
       transition: all 0.3s ease;
     }
     .agent-step.active {
-      color: #fafafa; background: rgba(255,255,255,0.04);
-      border-left: 2px solid #fafafa;
+      color: var(--heading); background: var(--surface-2);
+      border-left: 2px solid var(--heading);
     }
     .agent-step.done {
-      color: rgba(255,255,255,0.4); opacity: 0.7;
+      color: var(--text-muted); opacity: 0.7;
     }
     .agent-step.done .step-icon::after { content: '\2713'; }
     .agent-step.active .step-icon::after { content: '\25B6'; }
@@ -1906,18 +1924,18 @@ async function startServer(): Promise<void> {
     .results-area { margin-top: 20px; }
     .results-area.hidden { display: none; }
     .result-box {
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 16px; overflow: hidden;
+      background: var(--surface); border: 0.67px solid var(--border); border-radius: 16px; overflow: hidden;
     }
     .result-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px; border-bottom: 0.67px solid var(--border); background: rgba(255,255,255,0.03);
+      padding: 16px 20px; border-bottom: 0.67px solid var(--border); background: var(--surface-2);
     }
     .result-header-left { display: flex; align-items: center; gap: 10px; }
     .result-label {
       font-family: var(--font); font-size: 12px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.35);
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-dim);
     }
-    .result-time { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.3); }
+    .result-time { font-family: var(--mono); font-size: 11px; color: var(--border-focus); }
     .result-body { padding: 20px; }
 
     /* ── Score badge ── */
@@ -1935,19 +1953,19 @@ async function startServer(): Promise<void> {
     .finding-group { margin-bottom: 16px; }
     .finding-group-title {
       font-family: var(--font); font-size: 12px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.45);
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted);
       margin-bottom: 10px; padding-bottom: 8px; border-bottom: 0.67px solid var(--border);
     }
     .finding {
       padding: 12px 16px; margin-bottom: 6px; border-radius: 10px;
-      font-size: 13px; line-height: 1.5; background: rgba(255,255,255,0.02);
+      font-size: 13px; line-height: 1.5; background: var(--surface);
       border-left: 2px solid var(--border);
     }
     .finding.critical { border-left-color: var(--red); }
     .finding.high { border-left-color: var(--orange); }
     .finding.medium { border-left-color: var(--yellow); }
     .finding.low { border-left-color: var(--blue); }
-    .finding.info { border-left-color: rgba(255,255,255,0.15); }
+    .finding.info { border-left-color: var(--border-hover); }
     .finding-sev {
       font-family: var(--mono); font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px;
@@ -1956,11 +1974,11 @@ async function startServer(): Promise<void> {
     .finding-sev.high { color: var(--orange); }
     .finding-sev.medium { color: var(--yellow); }
     .finding-sev.low { color: var(--blue); }
-    .finding-sev.info { color: rgba(255,255,255,0.3); }
+    .finding-sev.info { color: var(--border-focus); }
 
     /* ── Summary text ── */
     .result-summary {
-      font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.8);
+      font-size: 14px; line-height: 1.7; color: var(--text);
       white-space: pre-wrap; word-break: break-word;
     }
 
@@ -1977,26 +1995,26 @@ async function startServer(): Promise<void> {
 
     /* ── Payment required banner ── */
     .payment-banner {
-      background: rgba(255,255,255,0.02);
-      border: 0.67px solid rgba(255,255,255,0.1); border-radius: 12px;
+      background: var(--surface);
+      border: 0.67px solid var(--border); border-radius: 12px;
       padding: 20px 24px; margin-top: 16px; display: none; text-align: center;
     }
     .payment-banner.visible { display: block; }
-    .payment-banner-title { font-family: var(--font); font-size: 16px; font-weight: 600; color: #fafafa; margin-bottom: 6px; }
-    .payment-banner-msg { font-size: 13px; color: rgba(255,255,255,0.5); }
-    .payment-banner-msg a { color: #fafafa; text-decoration: none; border-bottom: 0.67px solid rgba(255,255,255,0.3); }
-    .payment-banner-msg a:hover { border-color: #fff; }
+    .payment-banner-title { font-family: var(--font); font-size: 16px; font-weight: 600; color: var(--heading); margin-bottom: 6px; }
+    .payment-banner-msg { font-size: 13px; color: var(--text-muted); }
+    .payment-banner-msg a { color: var(--heading); text-decoration: none; border-bottom: 0.67px solid var(--border-focus); }
+    .payment-banner-msg a:hover { border-color: var(--heading); }
 
     /* ── Section divider ── */
     .section { margin-bottom: 64px; }
     .section-title {
       font-family: var(--font); font-size: 28px; font-weight: 600;
-      color: #fafafa; margin-bottom: 12px; padding-bottom: 0; border-bottom: none;
+      color: var(--heading); margin-bottom: 12px; padding-bottom: 0; border-bottom: none;
       text-transform: none; letter-spacing: -0.5px;
     }
     .section-title .hl { display: none; }
     .section-subtitle {
-      color: rgba(255,255,255,0.5); font-size: 15px; margin-bottom: 32px; line-height: 1.6;
+      color: var(--text-muted); font-size: 15px; margin-bottom: 32px; line-height: 1.6;
     }
 
     /* ── Endpoint cards ── */
@@ -2004,15 +2022,15 @@ async function startServer(): Promise<void> {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
     }
     .ep-card {
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 16px;
+      background: var(--surface); border: 0.67px solid var(--border); border-radius: 16px;
       padding: 20px; transition: border-color 0.2s, background 0.2s; cursor: default;
     }
-    .ep-card:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.04); }
+    .ep-card:hover { border-color: var(--border-hover); background: var(--surface-2); }
     .ep-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .ep-name { font-family: var(--font); font-weight: 600; color: #fafafa; font-size: 14px; }
-    .ep-price { font-family: var(--mono); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .ep-name { font-family: var(--font); font-weight: 600; color: var(--heading); font-size: 14px; }
+    .ep-price { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text-muted); }
     .ep-price.free { color: var(--green); }
-    .ep-desc { font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.5; margin-bottom: 10px; }
+    .ep-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
     .ep-meta { display: flex; align-items: center; gap: 8px; }
     .method-badge {
       display: inline-block; padding: 3px 8px; border-radius: 6px;
@@ -2020,16 +2038,16 @@ async function startServer(): Promise<void> {
     }
     .method-badge.post { background: rgba(96,165,250,0.1); color: var(--blue); }
     .method-badge.get { background: rgba(52,211,153,0.1); color: var(--green); }
-    .ep-path { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.35); }
+    .ep-path { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
     .cat-heading {
       font-family: var(--font); font-size: 13px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.5);
+      text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
       margin-top: 32px; margin-bottom: 14px; padding-bottom: 8px;
       border-bottom: 0.67px solid var(--border);
     }
     .cat-heading:first-child { margin-top: 0; }
     .pricing-table .cat-row td {
-      background: rgba(255,255,255,0.03); font-weight: 600; color: rgba(255,255,255,0.6);
+      background: var(--surface-2); font-weight: 600; color: var(--text-muted);
       font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
       padding: 12px 16px; border-bottom: 0.67px solid var(--border);
     }
@@ -2044,15 +2062,15 @@ async function startServer(): Promise<void> {
     }
     .pricing-table th {
       text-align: left; padding: 12px 16px; font-family: var(--font); font-size: 11px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.35);
-      border-bottom: 0.67px solid var(--border); background: rgba(255,255,255,0.02);
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-dim);
+      border-bottom: 0.67px solid var(--border); background: var(--surface);
     }
     .pricing-table td {
-      padding: 10px 16px; border-bottom: 0.67px solid rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.5); font-family: var(--mono); font-size: 13px;
+      padding: 10px 16px; border-bottom: 0.67px solid var(--surface-2);
+      color: var(--text-muted); font-family: var(--mono); font-size: 13px;
     }
-    .pricing-table tr:hover td { background: rgba(255,255,255,0.02); }
-    .pricing-table .price-val { color: #fafafa; font-weight: 600; }
+    .pricing-table tr:hover td { background: var(--surface); }
+    .pricing-table .price-val { color: var(--heading); font-weight: 600; }
     .pricing-table .tier-label {
       display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 10px; font-weight: 600;
       font-family: var(--font);
@@ -2063,36 +2081,36 @@ async function startServer(): Promise<void> {
 
     /* ── Integration section ── */
     .integration {
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border);
+      background: var(--surface); border: 0.67px solid var(--border);
       border-radius: 16px; padding: 32px; margin-bottom: 64px;
     }
     .integration h3 {
       font-family: var(--font); font-size: 18px; font-weight: 600;
-      color: #fafafa; margin-bottom: 20px;
+      color: var(--heading); margin-bottom: 20px;
     }
     .code-block {
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 12px;
+      background: var(--surface); border: 0.67px solid var(--border); border-radius: 12px;
       padding: 20px; font-family: var(--mono); font-size: 12px; line-height: 1.7;
-      color: rgba(255,255,255,0.75); overflow-x: auto; margin-bottom: 16px;
+      color: var(--text); overflow-x: auto; margin-bottom: 16px;
     }
     .code-block .kw { color: #c792ea; }
     .code-block .fn { color: #82aaff; }
     .code-block .str { color: #c3e88d; }
-    .code-block .cmt { color: rgba(255,255,255,0.25); }
+    .code-block .cmt { color: var(--text-dim); }
     .code-label {
       font-family: var(--font); font-size: 11px; text-transform: uppercase;
-      letter-spacing: 0.8px; color: rgba(255,255,255,0.35); margin-bottom: 8px; font-weight: 600;
+      letter-spacing: 0.8px; color: var(--text-dim); margin-bottom: 8px; font-weight: 600;
     }
 
     /* ── Quick links ── */
     .quick-links { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 64px; }
     .qlink {
-      display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.5);
+      display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted);
       text-decoration: none; padding: 10px 18px; border: 0.67px solid var(--border);
       border-radius: 10px; font-size: 13px; font-family: var(--font); font-weight: 500;
       transition: all 0.2s;
     }
-    .qlink:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.2); color: #fff; }
+    .qlink:hover { background: var(--surface-2); border-color: var(--border-hover); color: var(--heading); }
 
     /* ── Footer ── */
     .footer { border-top: 0.67px solid var(--border); padding: 48px 0 32px; }
@@ -2102,32 +2120,32 @@ async function startServer(): Promise<void> {
     }
     .footer-brand { }
     .footer-brand-name {
-      font-family: var(--font); font-size: 18px; font-weight: 700; color: #fafafa;
+      font-family: var(--font); font-size: 18px; font-weight: 700; color: var(--heading);
       margin-bottom: 8px;
     }
     .footer-brand-desc {
-      font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6; max-width: 240px;
+      font-size: 13px; color: var(--text-muted); line-height: 1.6; max-width: 240px;
     }
     .footer-col-title {
       font-family: var(--font); font-size: 12px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.5);
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted);
       margin-bottom: 16px;
     }
     .footer-col a {
-      display: block; color: rgba(255,255,255,0.4); text-decoration: none;
+      display: block; color: var(--text-muted); text-decoration: none;
       font-size: 13px; padding: 4px 0; transition: color 0.2s;
     }
-    .footer-col a:hover { color: #fafafa; }
+    .footer-col a:hover { color: var(--heading); }
     .footer-bottom {
       text-align: center; padding-top: 24px; border-top: 0.67px solid var(--border);
     }
     .footer-powered {
-      font-size: 13px; color: rgba(255,255,255,0.25); font-family: var(--font);
+      font-size: 13px; color: var(--text-dim); font-family: var(--font);
     }
     .footer-powered a {
-      color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s;
+      color: var(--text-dim); text-decoration: none; transition: color 0.15s;
     }
-    .footer-powered a:hover { color: rgba(255,255,255,0.6); }
+    .footer-powered a:hover { color: var(--text-muted); }
     /* Legacy footer-links for compat */
     .footer-links { display: none; }
 
@@ -2137,25 +2155,25 @@ async function startServer(): Promise<void> {
     }
     .landing-section-title {
       font-family: var(--font); font-size: 28px; font-weight: 600;
-      color: #fafafa; margin-bottom: 12px;
+      color: var(--heading); margin-bottom: 12px;
       text-transform: none; letter-spacing: -0.5px;
     }
     .landing-section-title .hl { display: none; }
     .landing-section-subtitle {
-      color: rgba(255,255,255,0.5); font-size: 15px; margin-bottom: 32px;
+      color: var(--text-muted); font-size: 15px; margin-bottom: 32px;
     }
 
     /* What is SwarmX */
     .what-is {
       text-align: center; max-width: 760px; margin: 0 auto 64px;
-      padding: 40px 32px; background: rgba(255,255,255,0.02); border: 0.67px solid var(--border);
+      padding: 40px 32px; background: var(--surface); border: 0.67px solid var(--border);
       border-radius: 16px;
     }
     .what-is p {
-      font-size: 16px; line-height: 1.7; color: rgba(255,255,255,0.7);
+      font-size: 16px; line-height: 1.7; color: var(--text);
     }
     .what-is .stat-line {
-      font-family: var(--mono); font-size: 13px; color: rgba(255,255,255,0.3);
+      font-family: var(--mono); font-size: 13px; color: var(--border-focus);
       margin-top: 16px; letter-spacing: 0.3px;
     }
 
@@ -2165,28 +2183,28 @@ async function startServer(): Promise<void> {
       margin-bottom: 8px;
     }
     .step-card {
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 16px;
+      background: var(--surface); border: 0.67px solid var(--border); border-radius: 16px;
       padding: 28px 24px; text-align: center; position: relative;
       transition: border-color 0.2s;
     }
-    .step-card:hover { border-color: rgba(255,255,255,0.2); }
+    .step-card:hover { border-color: var(--border-hover); }
     .step-num {
       font-family: var(--font); font-size: 12px; font-weight: 600;
-      color: rgba(255,255,255,0.4); letter-spacing: 0.8px; margin-bottom: 12px;
+      color: var(--text-muted); letter-spacing: 0.8px; margin-bottom: 12px;
       text-transform: uppercase;
     }
     .step-icon {
-      font-size: 28px; margin-bottom: 12px; line-height: 1; color: rgba(255,255,255,0.6);
+      font-size: 28px; margin-bottom: 12px; line-height: 1; color: var(--text-muted);
     }
     .step-card h3 {
-      font-family: var(--font); font-size: 15px; font-weight: 600; color: #fafafa; margin-bottom: 10px;
+      font-family: var(--font); font-size: 15px; font-weight: 600; color: var(--heading); margin-bottom: 10px;
     }
     .step-card p {
-      font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.6;
+      font-size: 13px; color: var(--text-muted); line-height: 1.6;
     }
     .step-arrow {
       display: none; position: absolute; right: -18px; top: 50%;
-      transform: translateY(-50%); color: rgba(255,255,255,0.15); font-size: 18px;
+      transform: translateY(-50%); color: var(--border-hover); font-size: 18px;
     }
     @media (min-width: 769px) {
       .step-card:not(:last-child) .step-arrow { display: block; }
@@ -2197,16 +2215,16 @@ async function startServer(): Promise<void> {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
     }
     .prop-card {
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 16px;
+      background: var(--surface); border: 0.67px solid var(--border); border-radius: 16px;
       padding: 24px; transition: border-color 0.2s;
     }
-    .prop-card:hover { border-color: rgba(255,255,255,0.2); }
+    .prop-card:hover { border-color: var(--border-hover); }
     .prop-card h3 {
-      font-family: var(--font); font-size: 15px; font-weight: 600; color: #fafafa; margin-bottom: 8px;
+      font-family: var(--font); font-size: 15px; font-weight: 600; color: var(--heading); margin-bottom: 8px;
     }
-    .prop-card h3 .accent { color: #fafafa; }
+    .prop-card h3 .accent { color: var(--heading); }
     .prop-card p {
-      font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.6;
+      font-size: 13px; color: var(--text-muted); line-height: 1.6;
     }
 
     /* Personas — 4 cards */
@@ -2214,10 +2232,10 @@ async function startServer(): Promise<void> {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
     }
     .persona-card {
-      background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 16px;
+      background: var(--surface); border: 0.67px solid var(--border); border-radius: 16px;
       padding: 20px 18px; transition: border-color 0.2s;
     }
-    .persona-card:hover { border-color: rgba(255,255,255,0.2); }
+    .persona-card:hover { border-color: var(--border-hover); }
     .persona-label {
       font-family: var(--font); font-size: 11px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;
@@ -2227,7 +2245,7 @@ async function startServer(): Promise<void> {
     .persona-label.dev { color: var(--blue); }
     .persona-label.agent { color: var(--purple); }
     .persona-card p {
-      font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6;
+      font-size: 13px; color: var(--text-muted); line-height: 1.6;
     }
 
     /* Responsive ── */
@@ -2251,29 +2269,29 @@ async function startServer(): Promise<void> {
     /* ── Share section ── */
     .share-section {
       margin-top: 16px; padding: 20px 24px;
-      background: rgba(255,255,255,0.02);
+      background: var(--surface);
       border: 0.67px solid var(--border); border-radius: 12px;
     }
     .share-title {
       font-family: var(--font); font-size: 13px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.5); margin-bottom: 12px;
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 12px;
     }
     .share-row {
       display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;
     }
     .share-link {
-      flex: 1; min-width: 200px; padding: 10px 14px; background: rgba(255,255,255,0.02);
+      flex: 1; min-width: 200px; padding: 10px 14px; background: var(--surface);
       border: 0.67px solid var(--border); border-radius: 8px;
-      font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.7);
+      font-family: var(--mono); font-size: 11px; color: var(--text);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .share-btn {
-      padding: 10px 18px; border: 0.67px solid rgba(255,255,255,0.15); border-radius: 8px; cursor: pointer;
+      padding: 10px 18px; border: 0.67px solid var(--border-hover); border-radius: 8px; cursor: pointer;
       font-family: var(--font); font-size: 12px; font-weight: 500;
-      background: rgba(255,255,255,0.02); color: #fff;
+      background: var(--surface); color: var(--heading);
       transition: all 0.2s;
     }
-    .share-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.3); }
+    .share-btn:hover { background: var(--surface-3); border-color: var(--border-focus); }
     .share-badge-preview {
       text-align: center; margin: 10px 0 6px;
     }
@@ -2294,7 +2312,7 @@ async function startServer(): Promise<void> {
 
     <!-- ===== TOP NAV ===== -->
     <nav class="top-nav">
-      <a class="nav-logo" href="/">SwarmX</a>
+      <a class="nav-logo" href="/">Swarm<span>X</span></a>
       <div class="nav-links">
         <a href="#pricing">Pricing</a>
         <a href="/x402/docs">Docs</a>
@@ -2307,19 +2325,51 @@ async function startServer(): Promise<void> {
     <!-- ===== HERO ===== -->
     <header class="hero">
       <div class="container">
-        <div class="logo">SwarmX</div>
-        <h1 class="hero-headline">AI Agent Teams.<br>One Payment.</h1>
-        <p class="hero-sub">Deploy teams of specialized AI agents for security audits, research, and analysis. Pay per task with USDC via x402 &mdash; or try free.</p>
-        <div class="hero-ctas">
-          <a class="hero-cta-btn hero-cta-primary" href="#playground">Get Started</a>
-          <a class="hero-cta-btn hero-cta-secondary" href="/x402/docs">Documentation</a>
+        <div class="hero-grid">
+
+          <div class="hero-thesis">
+            <div class="hero-eyebrow">Tokenized equities &middot; Robinhood Chain</div>
+            <h1 class="hero-headline">Tokenized stocks,<br><em>fully researched.</em></h1>
+            <p class="hero-sub">A panel of analyst agents reads the market data on any tokenized equity &mdash; momentum, valuation, downside &mdash; and returns a structured verdict you can act on. $0.29 a report, paid in USDC. No account.</p>
+            <div class="hero-ctas">
+              <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
+              <a class="hero-cta-btn hero-cta-secondary" href="/x402/docs">Read the docs</a>
+            </div>
+            <p class="hero-stats">5 RWA endpoints &bull; 44 total &bull; $0.19&ndash;$0.49 &bull; 5 free calls/day</p>
+          </div>
+
+          <!-- Signature: a real captured stock-dd run, replayed. -->
+          <div class="term" aria-label="Sample SwarmX stock due-diligence output">
+            <div class="term-bar">
+              <span class="term-title">swarmx &mdash; stock-dd</span>
+              <span class="term-tag">sample run</span>
+            </div>
+            <div class="term-body">
+              <div class="term-line in" style="--d:0s">$ swarmx stock-dd --ticker AAPL</div>
+              <div class="term-line dim" style="--d:.3s">&nbsp;</div>
+              <div class="term-line muted" style="--d:.4s">POST /x402/rwa/stock-dd</div>
+              <div class="term-line dim" style="--d:.48s">402 &rarr; settle 0.29 USDC &rarr; <span style="color:var(--accent)">200 OK</span></div>
+              <div class="term-line dim" style="--d:.56s">&nbsp;</div>
+              <div class="term-line agent" style="--d:.64s"><span class="who">market </span> AAPL  314.86 USD  <span style="color:var(--red)">-0.77%</span>  NasdaqGS</div>
+              <div class="term-line dim" style="--d:.72s"><span class="who">       </span> 6mo 243.42 &mdash; 323.45 &middot; pos 89.3%</div>
+              <div class="term-line dim" style="--d:.8s">&nbsp;</div>
+              <div class="term-line agent" style="--d:.88s"><span class="who">panel  </span> LocalPanel &middot; 3 analysts &middot; via llm</div>
+              <div class="term-line dim" style="--d:.96s">&nbsp;</div>
+              <div class="term-line ok" style="--d:1.04s"><span class="who">bull   </span> 6-month price trend up 21.9%</div>
+              <div class="term-line ok" style="--d:1.12s"><span class="who">bull   </span> High average daily volume</div>
+              <div class="term-line risk" style="--d:1.2s"><span class="who">bear   </span> Trading 2.7% below 6-month high</div>
+              <div class="term-line risk" style="--d:1.28s"><span class="who">bear   </span> Position at 89.3% &mdash; overvaluation concerns</div>
+              <div class="term-line risk" style="--d:1.36s"><span class="who">risk   </span> Downside toward 6-month low of 243.42</div>
+              <div class="term-line dim" style="--d:1.44s">&nbsp;</div>
+              <div class="term-line in" style="--d:1.52s"><span class="who">verdict</span> NEUTRAL &middot; confidence 0.50<span class="term-cursor"></span></div>
+              <div class="term-foot" style="--d:1.6s">
+                <a class="term-run" href="#playground">Run your own &rarr;</a>
+                <span class="term-note">Real output, captured 2026-07-14. Not investment advice.</span>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div class="hero-badges">
-          <span class="badge badge-live"><span class="dot"></span> LIVE</span>
-          <span class="badge badge-free">5 free calls/day &mdash; no wallet needed</span>
-          <span class="badge badge-network">${networkId}</span>
-        </div>
-        <p class="hero-stats">44 endpoints &bull; 9 categories &bull; $0.001 &ndash; $5.00 &bull; 5 free calls/day</p>
       </div>
     </header>
 
@@ -2328,8 +2378,8 @@ async function startServer(): Promise<void> {
       <!-- ===== WHAT IS SWARMX ===== -->
       <div class="what-is">
         <div class="landing-section-title">What is SwarmX</div>
-        <p>SwarmX deploys teams of 2&ndash;6 specialized AI agents to handle complex tasks &mdash; security audits, research reports, investment due diligence, compliance checks, and more. Each agent brings a unique perspective. You pay per task via x402 micropayments (USDC), not subscriptions.</p>
-        <p class="stat-line">44 endpoints &bull; No accounts &bull; No API keys &bull; Pay per call or try free</p>
+        <p>Stocks are moving on-chain. SwarmX is the research layer that moved with them. Point it at a tokenized equity and a panel of specialist agents &mdash; each arguing a different side &mdash; returns a rated verdict with the bull case, the bear case, and the downside spelled out. Crypto and DeFi endpoints are here too, but tokenized real-world assets are what we build for.</p>
+        <p class="stat-line">5 RWA endpoints &bull; 44 total &bull; No accounts &bull; No API keys &bull; Pay per call or try free</p>
       </div>
 
       <!-- ===== HOW IT WORKS ===== -->
@@ -2337,24 +2387,24 @@ async function startServer(): Promise<void> {
         <div class="landing-section-title">How it works</div>
         <div class="steps-grid">
           <div class="step-card">
-            <div class="step-num">Step 1</div>
+            <div class="step-num">POST</div>
             <div class="step-icon">&lbrace;&nbsp;&rbrace;</div>
-            <h3>Call any endpoint</h3>
-            <p>Send an HTTP POST with your task. The x402 gate handles payment automatically &mdash; or use 5 free calls/day.</p>
+            <h3>Name a ticker</h3>
+            <p>One HTTP POST with the symbol you want researched. No account, no API key, no SDK. Your first 5 calls each day are free.</p>
             <span class="step-arrow">&rarr;</span>
           </div>
           <div class="step-card">
-            <div class="step-num">Step 2</div>
-            <div class="step-icon">&#x2693;&#x2693;</div>
-            <h3>Agents collaborate</h3>
-            <p>2&ndash;6 specialized agents work together &mdash; SecurityAuditor checks vulnerabilities while EconomicAttacker probes for exploits, then a Synthesizer combines findings.</p>
+            <div class="step-num">402</div>
+            <div class="step-icon">&#x25CE;</div>
+            <h3>Settle $0.29</h3>
+            <p>The endpoint answers 402, your wallet settles USDC, the request retries itself. Market data is fetched before you are ever charged.</p>
             <span class="step-arrow">&rarr;</span>
           </div>
           <div class="step-card">
-            <div class="step-num">Step 3</div>
+            <div class="step-num">200</div>
             <div class="step-icon">&#x2713;</div>
-            <h3>Get structured results</h3>
-            <p>Receive a JSON response with findings, scores, verdicts, and shareable reports. Badges for your README.</p>
+            <h3>Read the verdict</h3>
+            <p>Structured JSON: rating, confidence, bull case, bear case, risks &mdash; plus a shareable report page and a badge for your README.</p>
           </div>
         </div>
       </div>
@@ -2364,16 +2414,16 @@ async function startServer(): Promise<void> {
         <div class="landing-section-title">Why SwarmX</div>
         <div class="props-grid">
           <div class="prop-card">
-            <h3><span class="accent">50x</span> cheaper than CrewAI</h3>
-            <p>CrewAI charges $0.50/execution. SwarmX starts at $0.001. Same multi-agent orchestration, native USDC payments.</p>
+            <h3>A panel, not <span class="accent">one opinion</span></h3>
+            <p>Three analysts argue the ticker from different sides before anything is rated. You see the bull case and the bear case, not a single model's guess.</p>
           </div>
           <div class="prop-card">
-            <h3>Zero friction</h3>
-            <p>No accounts. No API keys. No subscriptions. Pay per call with USDC via x402, or try 5 free calls/day.</p>
+            <h3>Priced like <span class="accent">a query</span></h3>
+            <p>$0.29 a report. No seat, no subscription, no minimum. Pay in USDC per call, or run 5 free every day.</p>
           </div>
           <div class="prop-card">
-            <h3>Built for <span class="accent">agents</span></h3>
-            <p>Any AI agent with a USDC wallet can call SwarmX endpoints. MCP server included. Agent-to-agent commerce, native.</p>
+            <h3>Callable by <span class="accent">agents</span></h3>
+            <p>Any agent with a USDC wallet can pull research on its own. MCP server included, 44 tools, no human in the loop.</p>
           </div>
         </div>
       </div>
@@ -2383,20 +2433,20 @@ async function startServer(): Promise<void> {
         <div class="landing-section-title">Who uses SwarmX</div>
         <div class="personas-grid">
           <div class="persona-card">
-            <div class="persona-label sec">Security Teams</div>
-            <p>Automated contract audits at $0.03&ndash;$0.25/call vs $5K&ndash;$500K for manual audits.</p>
+            <div class="persona-label sec">Tokenized-equity traders</div>
+            <p>Screen a list, compare two names, or pull full diligence on one &mdash; before the position, not after.</p>
           </div>
           <div class="persona-card">
-            <div class="persona-label defi">DeFi Traders</div>
-            <p>Memecoin scoring, yield optimization, wallet risk &mdash; per-call, real-time.</p>
+            <div class="persona-label defi">RWA platforms</div>
+            <p>Check which assets are eligible to tokenize, and what catalysts are already on the calendar.</p>
           </div>
           <div class="persona-card">
             <div class="persona-label dev">Developers</div>
-            <p>Code audits, SEO content, document extraction &mdash; 44 endpoints via one API.</p>
+            <p>Research, audits, extraction &mdash; 44 endpoints behind one API, priced per call.</p>
           </div>
           <div class="persona-card">
-            <div class="persona-label agent">AI Agents</div>
-            <p>Any agent can pay and consume SwarmX services via x402 + MCP. No human in the loop.</p>
+            <div class="persona-label agent">AI agents</div>
+            <p>Any agent can pay and consume SwarmX via x402 + MCP. No human in the loop.</p>
           </div>
         </div>
       </div>
@@ -2404,7 +2454,7 @@ async function startServer(): Promise<void> {
       <!-- ===== PLAYGROUND TABS (9 categories) ===== -->
       <div class="playground" id="playground">
         <div class="tabs" role="tablist">
-          <button class="tab active" data-tab="crypto" role="tab" aria-selected="true">Crypto</button>
+          <button class="tab active" data-tab="crypto" role="tab" aria-selected="true">Stocks &amp; Crypto</button>
           <button class="tab" data-tab="content" role="tab" aria-selected="false">Content</button>
           <button class="tab" data-tab="code" role="tab" aria-selected="false">Code</button>
           <button class="tab" data-tab="research" role="tab" aria-selected="false">Research</button>
@@ -2418,31 +2468,31 @@ async function startServer(): Promise<void> {
         <!-- TAB 1: Crypto -->
         <div class="tab-panel active" id="panel-crypto" role="tabpanel">
           <div class="tab-panel-header">
-            <span class="tab-panel-title">Crypto Analysis</span>
-            <span class="tab-panel-price" id="crypto-price">$0.10</span>
+            <span class="tab-panel-title">Stock DD &amp; Crypto</span>
+            <span class="tab-panel-price" id="crypto-price">$0.29</span>
           </div>
-          <p class="tab-panel-desc">Smart contract audits, token risk scoring, memecoin analysis, wallet risk, transaction explanations, and DAO governance review.</p>
+          <p class="tab-panel-desc">Due diligence on any tokenized equity, plus the crypto suite &mdash; contract audits, token risk, wallet risk, transaction explanations, and DAO governance review.</p>
           <div class="form-group">
             <label class="form-label" for="crypto-endpoint">Endpoint</label>
             <select class="form-select" id="crypto-endpoint" onchange="updateCryptoForm()">
+              <option value="rwa/stock-dd" data-price="$0.29" selected>Stock DD &mdash; RWA ($0.29) &mdash; 3 agents</option>
               <option value="contract-audit" data-price="$0.10">Contract Audit ($0.10) &mdash; 4 agents</option>
               <option value="contract-audit/quick" data-price="$0.03">Quick Audit ($0.03) &mdash; 1 agent</option>
               <option value="contract-audit/deep" data-price="$0.25">Deep Audit ($0.25) &mdash; 6 agents</option>
               <option value="token-risk" data-price="$0.05">Token Risk ($0.05) &mdash; 3 agents</option>
               <option value="memecoin-score" data-price="$0.05">Memecoin Score ($0.05) &mdash; 3 agents</option>
-              <option value="rwa/stock-dd" data-price="$0.29">Stock DD &mdash; RWA ($0.29) &mdash; 3 agents</option>
               <option value="wallet-risk-score" data-price="$0.05">Wallet Risk Score ($0.05) &mdash; 2 agents</option>
               <option value="tx-explainer" data-price="$0.03">TX Explainer ($0.03) &mdash; AI</option>
               <option value="dao-analyze" data-price="$0.10">DAO Analysis ($0.10) &mdash; 4 agents</option>
             </select>
           </div>
-          <div class="form-group" id="crypto-textarea-group">
+          <div class="form-group" id="crypto-textarea-group" style="display:none;">
             <label class="form-label" id="crypto-input-label">Contract Code</label>
             <textarea class="form-textarea" id="crypto-textarea" placeholder="// Paste your smart contract code here...&#10;pragma solidity ^0.8.20;&#10;&#10;contract SimpleVault {&#10;    mapping(address => uint256) public balances;&#10;    function deposit() external payable { balances[msg.sender] += msg.value; }&#10;    function withdraw(uint256 amount) external {&#10;        require(balances[msg.sender] >= amount);&#10;        (bool ok, ) = msg.sender.call{value: amount}(&quot;&quot;);&#10;        require(ok);&#10;        balances[msg.sender] -= amount;&#10;    }&#10;}" rows="8"></textarea>
           </div>
-          <div class="form-group" id="crypto-text-group" style="display:none;">
-            <label class="form-label" id="crypto-text-label">Address</label>
-            <input class="form-input" id="crypto-text" type="text" placeholder="e.g. So11111111111111111111111111111111111111112">
+          <div class="form-group" id="crypto-text-group">
+            <label class="form-label" id="crypto-text-label">Stock Ticker</label>
+            <input class="form-input" id="crypto-text" type="text" placeholder="e.g. NVDA">
           </div>
           <div class="form-row">
             <div class="form-group" id="crypto-lang-group">
@@ -3277,22 +3327,36 @@ console.log(<span class="kw">await</span> res.json());</div>
       setTimeout(function() { btnEl.textContent = orig; }, 1500);
     });
   }
+  function escAttr(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
   function renderShareSection(data) {
     if (!data.reportUrl) return '';
     return '<div class="share-section">' +
       '<div class="share-title">Share This Report</div>' +
-      '<div class="share-badge-preview"><img src="' + escHtml(data.badgeUrl) + '" alt="SwarmX Badge"></div>' +
+      '<div class="share-badge-preview"><img src="' + escAttr(data.badgeUrl) + '" alt="SwarmX Badge"></div>' +
       '<div class="share-row">' +
         '<div class="share-link" title="Report URL">' + escHtml(data.reportUrl) + '</div>' +
-        '<button class="share-btn" onclick="copyToClipboard(\'' + data.reportUrl.replace(/'/g, "\\'") + '\', this)">Copy Link</button>' +
-        '<a class="share-btn" href="' + escHtml(data.reportUrl) + '" target="_blank" style="text-decoration:none;">Open</a>' +
+        '<button class="share-btn" data-copy="' + escAttr(data.reportUrl) + '">Copy Link</button>' +
+        '<a class="share-btn" href="' + escAttr(data.reportUrl) + '" target="_blank" style="text-decoration:none;">Open</a>' +
       '</div>' +
       '<div class="share-row">' +
         '<div class="share-link" title="Embed badge (Markdown)">' + escHtml(data.badgeMarkdown) + '</div>' +
-        '<button class="share-btn" onclick="copyToClipboard(\'' + data.badgeMarkdown.replace(/'/g, "\\'").replace(/\[/g, "\\[").replace(/\]/g, "\\]") + '\', this)">Copy Markdown</button>' +
+        '<button class="share-btn" data-copy="' + escAttr(data.badgeMarkdown) + '">Copy Markdown</button>' +
       '</div>' +
     '</div>';
   }
+  // Delegated so copy targets survive re-renders. Carries the payload in a
+  // data attribute: interpolating it into inline onclick required backslash
+  // escapes that the surrounding template literal silently ate.
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    if (!t || typeof t.closest !== 'function') return;
+    var btn = t.closest('[data-copy]');
+    if (btn) copyToClipboard(btn.getAttribute('data-copy'), btn);
+  });
 
   /* ── Score color ── */
   function scoreClass(score) {
@@ -3417,6 +3481,10 @@ console.log(<span class="kw">await</span> res.json());</div>
   /* ══════════════════════════════════════════════════════════
      CRYPTO TAB — form switching + submit
      ══════════════════════════════════════════════════════════ */
+  // The select drives which inputs are shown, but it only fired on change —
+  // a restored or default selection left the form showing the wrong fields.
+  document.addEventListener('DOMContentLoaded', function() { updateCryptoForm(); });
+
   function updateCryptoForm() {
     var ep = document.getElementById('crypto-endpoint').value;
     updatePrice('crypto-endpoint', 'crypto-price');

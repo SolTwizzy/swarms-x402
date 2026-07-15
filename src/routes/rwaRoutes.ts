@@ -956,7 +956,12 @@ export const rwaRoutes: Route[] = [
     type: "GET",
     path: "/x402/rwa/stock-dd",
     handler: async (req, res, runtime) => {
-      const resourceUrl = (req as any).url ?? "/x402/rwa/stock-dd";
+      // Traefik terminates TLS, so req.url arrives http:// — schema validators
+      // (Swarms x402 integration, x402scan) reject non-https resource URLs.
+      const resourceUrl = String((req as any).url ?? "/x402/rwa/stock-dd").replace(
+        /^http:\/\//,
+        "https://"
+      );
       const rhReq = buildRhChainRequirements({
         amountAtomic: usdToUsdgAtomic(STOCK_DD_PRICE_USD),
         resourceUrl,
@@ -982,7 +987,13 @@ export const rwaRoutes: Route[] = [
             resourceUrl,
             description: STOCK_DD_DESCRIPTION,
           });
-          accepts.push(solReq);
+          // Dexter returns a full v2 PaymentRequired envelope; accepts[] must
+          // hold flat requirement objects, so unwrap its inner entries.
+          if (solReq && Array.isArray((solReq as any).accepts)) {
+            accepts.push(...(solReq as any).accepts);
+          } else if (solReq) {
+            accepts.push(solReq);
+          }
         }
       } catch (err) {
         runtime.logger?.warn?.(
