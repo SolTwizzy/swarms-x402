@@ -502,6 +502,31 @@ async function settleRwaPayment(
   return { paid: gate.paid, paidWithRhChain: false, gate };
 }
 
+/**
+ * Answer an unauthenticated discovery probe (x402scan/Bazaar registration:
+ * no payment header, empty body) with the 402 challenge BEFORE input
+ * validation runs. A 402 challenge never settles and (per x402Gate) never
+ * consumes free-tier quota, so the money-bug ordering (validate → fetch →
+ * pay) is fully preserved for real requests.
+ * Returns true when the probe was answered and the handler must return.
+ */
+async function answeredDiscoveryProbe(
+  runtime: any,
+  req: any,
+  res: any,
+  opts: { priceUsd: string; description: string }
+): Promise<boolean> {
+  const body = (req as any).body;
+  const hasInput =
+    body !== null &&
+    body !== undefined &&
+    typeof body === "object" &&
+    Object.keys(body).length > 0;
+  if (getPaymentHeader(req) || hasInput) return false;
+  await settleRwaPayment(runtime, req, res, opts);
+  return true;
+}
+
 /** Build the response `payment` block, matching the stock-dd shape. */
 function paymentBlock(paidWithRhChain: boolean, gate: any, priceUsd: string) {
   return paidWithRhChain
@@ -789,6 +814,14 @@ export const rwaRoutes: Route[] = [
     type: "POST",
     path: "/x402/rwa/stock-dd",
     handler: async (req, res, runtime) => {
+      if (
+        await answeredDiscoveryProbe(runtime, req, res, {
+          priceUsd: STOCK_DD_PRICE_USD,
+          description: STOCK_DD_DESCRIPTION,
+        })
+      )
+        return;
+
       const body = (req as any).body ?? {};
       const rawTicker = typeof body.ticker === "string" ? body.ticker.trim().toUpperCase() : "";
       if (!TICKER_RE.test(rawTicker)) {
@@ -1051,6 +1084,14 @@ export const rwaRoutes: Route[] = [
     type: "POST",
     path: "/x402/rwa/screen",
     handler: async (req, res, runtime) => {
+      if (
+        await answeredDiscoveryProbe(runtime, req, res, {
+          priceUsd: SCREEN_PRICE_USD,
+          description: "Tokenized-stock screener: rank 2-8 tickers by momentum, value, and risk",
+        })
+      )
+        return;
+
       const body = (req as any).body ?? {};
       const rawList = Array.isArray(body.tickers) ? body.tickers : [];
       const seen = new Set<string>();
@@ -1220,6 +1261,14 @@ export const rwaRoutes: Route[] = [
     type: "POST",
     path: "/x402/rwa/compare",
     handler: async (req, res, runtime) => {
+      if (
+        await answeredDiscoveryProbe(runtime, req, res, {
+          priceUsd: COMPARE_PRICE_USD,
+          description: "Tokenized-stock comparison: head-to-head A vs B verdict",
+        })
+      )
+        return;
+
       const body = (req as any).body ?? {};
       let a = typeof body.tickerA === "string" ? body.tickerA : "";
       let b = typeof body.tickerB === "string" ? body.tickerB : "";
@@ -1373,6 +1422,14 @@ export const rwaRoutes: Route[] = [
     type: "POST",
     path: "/x402/rwa/eligibility",
     handler: async (req, res, runtime) => {
+      if (
+        await answeredDiscoveryProbe(runtime, req, res, {
+          priceUsd: ELIGIBILITY_PRICE_USD,
+          description: "Tokenized-asset eligibility screen (deterministic, jurisdiction-aware)",
+        })
+      )
+        return;
+
       const body = (req as any).body ?? {};
       const ticker = typeof body.ticker === "string" ? body.ticker.trim().toUpperCase() : "";
       if (!TICKER_RE.test(ticker)) {
@@ -1436,6 +1493,14 @@ export const rwaRoutes: Route[] = [
     type: "POST",
     path: "/x402/rwa/catalyst",
     handler: async (req, res, runtime) => {
+      if (
+        await answeredDiscoveryProbe(runtime, req, res, {
+          priceUsd: CATALYST_PRICE_USD,
+          description: "Tokenized-stock catalyst brief: dividends, splits, notable moves",
+        })
+      )
+        return;
+
       const body = (req as any).body ?? {};
       const ticker = typeof body.ticker === "string" ? body.ticker.trim().toUpperCase() : "";
       if (!TICKER_RE.test(ticker)) {
