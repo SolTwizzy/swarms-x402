@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 //   - api.openai.com    -> OpenAI chat/completions shape
 const originalFetch = globalThis.fetch;
 
-import { callLLM, callOpenAI, callSwarmsAgent } from "../../src/utils/llm.js";
+import { callLLM, callOpenAI, callSwarmsAgent, runLocalPanel } from "../../src/utils/llm.js";
 
 function mockFetchByUrl() {
   globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
@@ -337,5 +337,65 @@ describe("callSwarmsAgent", () => {
     await expect(
       callSwarmsAgent({ swarmsApiKey: "swarms-test", systemPrompt: "s", userPrompt: "t" }),
     ).rejects.toThrow("empty output");
+  });
+});
+
+describe("runLocalPanel", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("returns a transcript with each agent that produced output", async () => {
+    const runtime = createMockRuntime({ OPENAI_API_KEY: "test-key" });
+    // OpenAI echoes a per-agent line so we can see all three in the transcript.
+    let n = 0;
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { content: `analysis-${++n}` } }] }),
+        { status: 200 },
+      ),
+    ) as unknown as typeof fetch;
+
+    const result = await runLocalPanel(runtime as any, {
+      agents: [
+        { name: "Bull", systemPrompt: "bull" },
+        { name: "Bear", systemPrompt: "bear" },
+        { name: "Risk", systemPrompt: "risk" },
+      ],
+      task: "analyze",
+    });
+
+    expect(result.agentCount).toBe(3);
+    expect(result.transcript).toContain("[Bull]");
+    expect(result.transcript).toContain("[Bear]");
+    expect(result.transcript).toContain("[Risk]");
+  });
+
+  it("drops prompt-scaffolding output (never passes it off as analysis)", async () => {
+    const runtime = createMockRuntime({ OPENAI_API_KEY: "test-key" });
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            { message: { content: "Present your argument in favor of: is NVDA a buy?" } },
+          ],
+        }),
+        { status: 200 },
+      ),
+    ) as unknown as typeof fetch;
+
+    const result = await runLocalPanel(runtime as any, {
+      agents: [
+        { name: "Bull", systemPrompt: "bull" },
+        { name: "Bear", systemPrompt: "bear" },
+      ],
+      task: "analyze",
+    });
+
+    expect(result.agentCount).toBe(0);
+    expect(result.transcript).toBe("");
   });
 });

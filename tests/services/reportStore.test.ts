@@ -4,6 +4,7 @@ import {
   getReport,
   getRecentReports,
   getReportCount,
+  MAX_REPORTS,
 } from "../../src/utils/reportStore.js";
 
 describe("reportStore", () => {
@@ -77,7 +78,9 @@ describe("reportStore", () => {
       riskScore: 50,
       paid: false,
     });
-    expect(getReportCount()).toBe(before + 1);
+    // The in-memory store is capped at MAX_REPORTS; below the cap the count
+    // grows by one, at the cap it holds steady (oldest is evicted).
+    expect(getReportCount()).toBe(Math.min(before + 1, MAX_REPORTS));
   });
 
   it("report includes all fields", () => {

@@ -252,6 +252,15 @@ export interface LocalPanelResult {
 }
 
 /**
+ * Marker of Swarms `DebateWithJudge` prompt scaffolding (the framework's role
+ * prompts, which its broken serialization returned in place of completions).
+ * If the Swarms single-agent endpoint ever recovers but echoes such scaffolding
+ * through the cascade, we drop it rather than pass it off as analysis.
+ */
+const PANEL_SCAFFOLD_RE =
+  /Present your (?:argument in favor|counter-argument against)|Loop \d+\/\d+: Evaluate the debate/i;
+
+/**
  * Run a multi-agent analyst panel LOCALLY: each agent is one `callLLM` call
  * (Swarms → OpenAI cascade), all run concurrently, and their arguments are
  * concatenated into a transcript. A downstream "judge" call (via `callLLM`)
@@ -284,7 +293,9 @@ export async function runLocalPanel(
           maxTokens: opts.maxTokens ?? 400,
           temperature: opts.temperature ?? 0.4,
         });
-        return { name: a.name, text: (text ?? "").trim() };
+        const trimmed = (text ?? "").trim();
+        // Never pass off prompt scaffolding as analysis — drop it (→ empty).
+        return { name: a.name, text: PANEL_SCAFFOLD_RE.test(trimmed) ? "" : trimmed };
       } catch {
         return { name: a.name, text: "" };
       }

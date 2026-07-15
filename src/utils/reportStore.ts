@@ -26,7 +26,7 @@ export interface AuditReport {
   paid: boolean;
 }
 
-const MAX_REPORTS = 1000;
+export const MAX_REPORTS = 1000;
 const reports = new Map<string, AuditReport>();
 const insertionOrder: string[] = [];
 
