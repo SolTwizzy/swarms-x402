@@ -442,9 +442,21 @@ export const x402Routes: Route[] = [
                 resourceUrl: resource,
                 description: e.description,
               });
-              // Dexter returns a full v2 envelope; accepts[] holds flat entries.
-              if (solReq && Array.isArray(solReq.accepts)) accepts.push(...solReq.accepts);
-              else if (solReq) accepts.push(solReq);
+              // Dexter returns a full v2 envelope; accepts[] holds flat entries
+              // backfilled with the v1 fields strict schema validators require.
+              const inner = Array.isArray(solReq?.accepts)
+                ? solReq.accepts
+                : solReq
+                  ? [solReq]
+                  : [];
+              for (const entry of inner) {
+                accepts.push({
+                  resource,
+                  description: e.description,
+                  mimeType: "application/json",
+                  ...entry,
+                });
+              }
             } catch {
               /* Solana rail optional */
             }

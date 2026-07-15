@@ -1550,7 +1550,7 @@ async function startServer(): Promise<void> {
     port: PORT,
     async fetch(request: Request): Promise<Response> {
       const url = new URL(request.url);
-      const method = request.method.toUpperCase();
+      let method = request.method.toUpperCase();
       const pathname = url.pathname;
 
       // ── Rate limit check (before any route dispatch) ───────────────
@@ -1559,7 +1559,15 @@ async function startServer(): Promise<void> {
 
       // ── CORS preflight ─────────────────────────────────────────────
       if (method === "OPTIONS") {
-        return new Response(null, { status: 204, headers: CORS_HEADERS });
+        // Real preflights carry Access-Control-Request-Method. A bare OPTIONS
+        // is how x402 schema fetchers (Swarms integration widget) probe the
+        // payment schema without triggering a paid call — serve them the GET
+        // response (the 402 challenge) instead of an empty 204.
+        const isPreflight = request.headers.has("access-control-request-method");
+        if (isPreflight || !routeMap.has(`GET ${pathname}`)) {
+          return new Response(null, { status: 204, headers: CORS_HEADERS });
+        }
+        method = "GET";
       }
 
       // ── 402 Index domain verification (well-known file) ────────────

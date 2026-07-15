@@ -988,11 +988,20 @@ export const rwaRoutes: Route[] = [
             description: STOCK_DD_DESCRIPTION,
           });
           // Dexter returns a full v2 PaymentRequired envelope; accepts[] must
-          // hold flat requirement objects, so unwrap its inner entries.
-          if (solReq && Array.isArray((solReq as any).accepts)) {
-            accepts.push(...(solReq as any).accepts);
-          } else if (solReq) {
-            accepts.push(solReq);
+          // hold flat requirement objects, so unwrap its inner entries and
+          // backfill the v1 fields strict schema validators require.
+          const inner = Array.isArray((solReq as any)?.accepts)
+            ? (solReq as any).accepts
+            : solReq
+              ? [solReq]
+              : [];
+          for (const entry of inner) {
+            accepts.push({
+              resource: resourceUrl,
+              description: STOCK_DD_DESCRIPTION,
+              mimeType: "application/json",
+              ...entry,
+            });
           }
         }
       } catch (err) {
