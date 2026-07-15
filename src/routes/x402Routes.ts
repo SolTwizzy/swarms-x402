@@ -169,6 +169,18 @@ const SERVICE_CATALOG: X402ServiceEndpoint[] = [
   },
 ];
 
+/**
+ * Resolve the public https base URL from a request.
+ * Proxy-terminated TLS means req.url arrives http:// — resources must be https.
+ */
+function resolveBaseUrl(req: unknown): string {
+  try {
+    return `https://${new URL(String((req as { url?: string }).url)).host}`;
+  } catch {
+    return "https://swarmx.io";
+  }
+}
+
 // ── Discovery input metadata (path → inputSchema + example) ─────────────
 // Built lazily from the MCP tool definitions so schema fetchers can generate
 // runnable request code without a second source of truth.
@@ -445,13 +457,7 @@ export const x402Routes: Route[] = [
       const limit = Math.min(Math.max(parseInt(query.limit ?? "50", 10) || 50, 1), 100);
       const offset = Math.max(parseInt(query.offset ?? "0", 10) || 0, 0);
 
-      // Proxy-terminated TLS means req.url arrives http:// — resources must be https.
-      let base = "https://swarmx.io";
-      try {
-        base = `https://${new URL(String((req as any).url)).host}`;
-      } catch {
-        /* keep default */
-      }
+      const base = resolveBaseUrl(req);
 
       let entries = SERVICE_CATALOG.filter((e) => !e.free && !e.path.includes(":"));
       if (filterUrl) {
@@ -545,6 +551,104 @@ export const x402Routes: Route[] = [
       });
 
       res.json({ x402Version: 1, items, resources, pagination: { limit, offset, total } });
+    },
+  },
+
+  // ── GET /.well-known/x402 — FREE (x402scan discovery document) ────
+  // Minimal well-known payload per x402scan's DISCOVERY.md: version + the
+  // list of paid resource URLs. x402scan falls back to this when no
+  // OpenAPI document is found.
+  {
+    type: "GET",
+    path: "/.well-known/x402",
+    name: "x402-well-known",
+    public: true,
+    handler: async (req, res, _runtime) => {
+      const base = resolveBaseUrl(req);
+      const resources = SERVICE_CATALOG.filter(
+        (e) => !e.free && !e.path.includes(":")
+      ).map((e) => `${base}${e.path}`);
+
+      res.json({
+        version: 1,
+        resources,
+        instructions:
+          "SwarmX paid AI endpoints. POST JSON per the input schema in " +
+          `${base}/openapi.json — unauthenticated requests receive an x402 ` +
+          "402 challenge (Solana + Base USDC via the Dexter facilitator).",
+      });
+    },
+  },
+
+  // ── GET /openapi.json — FREE (x402scan primary discovery source) ──
+  // OpenAPI 3 document with per-operation `x-payment-info` and a declared
+  // 402 response, per x402scan's DISCOVERY.md. Input schemas come from the
+  // MCP tool definitions (same source as /discovery/resources).
+  {
+    type: "GET",
+    path: "/openapi.json",
+    name: "x402-openapi",
+    public: true,
+    handler: async (req, res, _runtime) => {
+      const base = resolveBaseUrl(req);
+      const paths: Record<string, Record<string, unknown>> = {};
+
+      for (const e of SERVICE_CATALOG) {
+        if (e.path.includes(":")) continue;
+        const method = e.method.toLowerCase();
+        const input = getEndpointInputMeta(e.path);
+        const isPaid = !e.free && parseFloat(e.priceUsd) > 0;
+
+        const operation: Record<string, unknown> = {
+          operationId: e.path.replace(/^\//, "").replace(/\//g, "-"),
+          summary: e.name,
+          description: e.description,
+          responses: {
+            "200": { description: "Successful result (JSON)" },
+            ...(isPaid
+              ? {
+                  "402": {
+                    description:
+                      "Payment required — x402 challenge with `accepts` payment requirements (Solana/Base USDC)",
+                  },
+                }
+              : {}),
+          },
+        };
+
+        if (method === "post") {
+          operation.requestBody = {
+            required: true,
+            content: {
+              "application/json": {
+                schema: input?.schema ?? { type: "object" },
+                ...(input?.example ? { example: input.example } : {}),
+              },
+            },
+          };
+        }
+
+        if (isPaid) {
+          operation["x-payment-info"] = {
+            protocols: ["x402"],
+            price: { mode: "fixed", currency: "USD", amount: e.priceUsd },
+          };
+        }
+
+        paths[e.path] = { ...(paths[e.path] ?? {}), [method]: operation };
+      }
+
+      res.json({
+        openapi: "3.0.3",
+        info: {
+          title: "SwarmX — AI Agent Teams, One Payment",
+          version: "1.0.0",
+          description:
+            "x402-monetized AI endpoints: multi-agent swarms, RWA/stock due diligence, crypto analysis, and Solana data. Pay per call in USDC (Solana or Base) via the x402 protocol — no API keys.",
+        },
+        servers: [{ url: base }],
+        paths,
+      });
     },
   },
 

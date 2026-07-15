@@ -74,6 +74,50 @@ describe("x402Gate", () => {
     expect(res.setHeader).toHaveBeenCalledWith("PAYMENT-REQUIRED", "encoded-requirements");
   });
 
+  it("sends 402 (not free tier) to discovery probes with an empty body", async () => {
+    const serverService = createMockServerService();
+    const runtime = createMockRuntime({ services: { X402_SERVER: serverService } });
+    // x402scan/Bazaar probe shape: no payment header, empty JSON body
+    const req = { headers: {}, url: "/api/test", method: "POST", body: {} };
+    const res = createMockRes();
+
+    const result = await x402Gate(runtime, req, res, {
+      amountUsd: "0.05",
+      freeTierEnabled: true,
+    });
+
+    expect(result.paid).toBe(false);
+    expect(res.status).toHaveBeenCalledWith(402);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        x402Version: 1,
+        accepts: [expect.objectContaining({ type: "x402", amount: "50000" })],
+      })
+    );
+  });
+
+  it("grants free tier to unpaid requests that carry a real body", async () => {
+    const serverService = createMockServerService();
+    const runtime = createMockRuntime({ services: { X402_SERVER: serverService } });
+    const req = {
+      headers: { "x-forwarded-for": "203.0.113.7" },
+      url: "/api/test",
+      method: "POST",
+      body: { query: "real user input" },
+    };
+    const res = createMockRes();
+
+    const result = await x402Gate(runtime, req, res, {
+      amountUsd: "0.05",
+      freeTierEnabled: true,
+    });
+
+    expect(result.paid).toBe(true);
+    expect(result.amountUsd).toBe(0);
+    expect(result.freeRemaining).toBeGreaterThanOrEqual(0);
+    expect(res.status).not.toHaveBeenCalledWith(402);
+  });
+
   it("includes additional advertised payment options in the unpaid 402 body", async () => {
     const serverService = createMockServerService();
     const runtime = createMockRuntime({ services: { X402_SERVER: serverService } });
@@ -91,11 +135,18 @@ describe("x402Gate", () => {
     });
 
     // extraAccepts (RH-Chain USDG) is advertised FIRST as the primary rail.
+    // Dexter entries are backfilled with v1 resource/mimeType fields that
+    // strict discovery validators (x402scan, Bazaar) require.
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         accepts: [
           expect.objectContaining({ network: "eip155:4663", asset: "0xUSDG" }),
-          { type: "x402", amount: "50000" },
+          expect.objectContaining({
+            type: "x402",
+            amount: "50000",
+            resource: "/api/test",
+            mimeType: "application/json",
+          }),
         ],
       })
     );

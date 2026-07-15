@@ -202,10 +202,20 @@ export async function x402Gate(
     (headers["x-payment"] as string) ??
     null;
 
+  // Discovery probes (x402scan, Bazaar indexers) send unauthenticated requests
+  // with an empty body — they must reach the 402 challenge, never a free-tier
+  // 200 or a handler-level 400. All paid routes are POST with required fields,
+  // so "no payment + no body" is never a legitimate free-tier call.
+  const probeBody = (req as { body?: unknown }).body;
+  const hasRequestInput =
+    probeBody !== null &&
+    typeof probeBody === "object" &&
+    Object.keys(probeBody as Record<string, unknown>).length > 0;
+
   // Step 2a: Free tier — 3 calls/day per IP + cookie without payment
   // Enabled by default in production. Disable with freeTierEnabled: false in tests.
   const freeTierOn = options.freeTierEnabled ?? (typeof process !== "undefined" && process.env.NODE_ENV !== "test");
-  if (!paymentHeader && freeTierOn) {
+  if (!paymentHeader && freeTierOn && hasRequestInput) {
     const remaining = checkFreeTier(req);
     if (remaining >= 0) {
       // Set cookie and remaining-count header so clients can track usage
@@ -222,7 +232,12 @@ export async function x402Gate(
   if (!paymentHeader) {
     // No payment — send 402 with requirements
     try {
-      const resourceUrl = options.resourceUrl ?? req.url ?? "/unknown";
+      // Proxy-terminated TLS means req.url arrives http:// — the advertised
+      // resource must be the public https URL.
+      const resourceUrl = (options.resourceUrl ?? req.url ?? "/unknown").replace(
+        /^http:\/\//,
+        "https://"
+      );
       const requirements = await server.buildRequirements({
         amountAtomic: usdToAtomic(options.amountUsd),
         resourceUrl,
@@ -235,19 +250,29 @@ export async function x402Gate(
         res.setHeader("PAYMENT-REQUIRED", encoded);
       }
       if (res.status && res.json) {
+        // x402 v1 challenge body — discovery validators (x402scan, Bazaar)
+        // require a non-empty `accepts` array in the JSON body, not just
+        // the encoded PAYMENT-REQUIRED header.
+        // Backfill v1 fields (resource/description/mimeType) that strict
+        // schema validators require — same shape as /discovery/resources.
+        const inner = Array.isArray((requirements as any).accepts)
+          ? (requirements as any).accepts
+          : [requirements];
+        const dexterAccepts = inner.map((entry: object) => ({
+          resource: resourceUrl,
+          description: options.description,
+          mimeType: "application/json",
+          ...entry,
+        }));
         const body: Record<string, unknown> = {
+          x402Version: 1,
           error: "Payment required",
           description: options.description,
           amount: options.amountUsd,
           network: serverService.getNetwork(),
           payTo: serverService.getReceiveAddress(),
+          accepts: [...(options.extraAccepts ?? []), ...dexterAccepts],
         };
-        if (options.extraAccepts?.length) {
-          const dexterAccepts = Array.isArray((requirements as any).accepts)
-            ? (requirements as any).accepts
-            : [requirements];
-          body.accepts = [...options.extraAccepts, ...dexterAccepts];
-        }
         res.status(402).json(body);
       }
     } catch (err) {
