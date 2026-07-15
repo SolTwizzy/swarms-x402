@@ -208,6 +208,67 @@ function sampleForProp(
   }
 }
 
+// Endpoints without an MCP tool definition still need an input schema in
+// /openapi.json — discovery validators (x402scan) reject paid operations
+// whose requestBody has no property schema.
+const EXTRA_INPUT_META: Record<
+  string,
+  { schema: unknown; example: Record<string, unknown> }
+> = {
+  "/swarm/token-diligence": {
+    schema: {
+      type: "object",
+      properties: {
+        mint: { type: "string", description: "SPL token mint address to research" },
+      },
+      required: ["mint"],
+    },
+    example: { mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" },
+  },
+  "/swarm/defi-risk-score": {
+    schema: {
+      type: "object",
+      properties: {
+        protocol: { type: "string", description: "DeFi protocol name or URL to assess" },
+      },
+      required: ["protocol"],
+    },
+    example: { protocol: "marinade.finance" },
+  },
+  "/swarm/fact-check": {
+    schema: {
+      type: "object",
+      properties: {
+        claim: { type: "string", description: "Claim to fact-check (max 5000 chars)" },
+      },
+      required: ["claim"],
+    },
+    example: { claim: "Solana processes more transactions per day than Ethereum" },
+  },
+  "/swarm/deep-research": {
+    schema: {
+      type: "object",
+      properties: {
+        topic: { type: "string", description: "Research topic (max 500 chars)" },
+        focus: { type: "string", description: "Optional focus area" },
+      },
+      required: ["topic"],
+    },
+    example: { topic: "x402 payment protocol adoption" },
+  },
+  "/swarm/monitor": {
+    schema: {
+      type: "object",
+      properties: {
+        target: { type: "string", description: "Address or identifier to monitor" },
+        type: { type: "string", description: "Optional target type" },
+      },
+      required: ["target"],
+    },
+    example: { target: "H1ooMkPx8uXoPS5WYz5JMY7dnYacqGLD3ZfEEku5caAZ" },
+  },
+};
+
 function getEndpointInputMeta(
   path: string
 ): { schema: unknown; example: Record<string, unknown> } | undefined {
@@ -222,7 +283,7 @@ function getEndpointInputMeta(
       mcpSchemaByPath.set(t.metadata.endpoint, { schema, example });
     }
   }
-  return mcpSchemaByPath.get(path);
+  return mcpSchemaByPath.get(path) ?? EXTRA_INPUT_META[path];
 }
 
 /**
