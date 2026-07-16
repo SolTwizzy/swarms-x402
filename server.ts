@@ -1607,7 +1607,13 @@ async function startServer(): Promise<void> {
 
       // ── HTML Playground ────────────────────────────────────────────
       if (pathname === "/" && method === "GET") {
-        const networkId = process.env.X402_NETWORK_ID ?? "base-mainnet";
+        const configuredNetworkIds = (process.env.X402_NETWORKS ?? "")
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean);
+        const networkId = configuredNetworkIds.length > 0
+          ? configuredNetworkIds.join(", ")
+          : (process.env.X402_NETWORK_ID ?? "base-mainnet");
         const baseUrl = process.env.SWARMX_BASE_URL
           ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${PORT}`);
 
@@ -1711,13 +1717,6 @@ ${THEME_TOKENS}
       background: var(--accent); color: #04140A; border: 0.67px solid var(--accent);
     }
     .hero-cta-primary:hover { background: #00E006; border-color: #00E006; }
-    .hero-cta-secondary {
-      background: transparent; color: var(--text);
-      border: 0.67px solid var(--border-hover);
-    }
-    .hero-cta-secondary:hover {
-      background: var(--surface-2); border-color: var(--accent-2); color: var(--heading);
-    }
     .hero-badges { display: none; }
     .hero-stats {
       font-family: var(--mono); font-size: 12px; color: var(--text-dim);
@@ -2328,7 +2327,6 @@ ${THEME_TOKENS}
       <a class="nav-logo" href="/">Swarm<span>X</span></a>
       <div class="nav-links">
         <a href="#pricing">Pricing</a>
-        <a href="/x402/docs">Docs</a>
         <a href="/x402/catalog">Catalog</a>
         <a href="https://github.com/SolTwizzy/swarms-x402" target="_blank">GitHub</a>
         <a class="nav-cta" href="#playground">Try Free &rarr;</a>
@@ -2346,7 +2344,6 @@ ${THEME_TOKENS}
             <p class="hero-sub">A panel of analyst agents reads the market data on any tokenized equity &mdash; momentum, valuation, downside &mdash; and returns a structured verdict you can act on. $0.29 a report, paid in USDC. No account.</p>
             <div class="hero-ctas">
               <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
-              <a class="hero-cta-btn hero-cta-secondary" href="/x402/docs">Read the docs</a>
             </div>
             <p class="hero-stats">5 RWA endpoints &bull; 44 total &bull; $0.19&ndash;$0.49 &bull; 5 free calls/day</p>
           </div>
@@ -2519,7 +2516,7 @@ ${THEME_TOKENS}
               <label class="form-label">Chain</label>
               <select class="form-select" id="crypto-chain">
                 <option value="solana">Solana</option>
-                <option value="evm">EVM</option>
+                <option value="evm">EVM (Base, Arbitrum + more)</option>
               </select>
             </div>
             <div class="form-group" style="flex:0 0 auto;">
@@ -2989,8 +2986,9 @@ curl ${baseUrl}/x402/catalog</div>
         <div class="code-block"><span class="kw">import</span> { <span class="fn">wrapFetch</span> } <span class="kw">from</span> <span class="str">"@dexterai/x402/client"</span>;
 
 <span class="kw">const</span> payingFetch = <span class="fn">wrapFetch</span>(fetch, {
-  privateKey: process.env.SOLANA_PRIVATE_KEY,
-  network: <span class="str">"solana-mainnet"</span>,
+  <span class="cmt">// Server accepts: ${networkId}</span>
+  evmPrivateKey: process.env.EVM_PRIVATE_KEY,
+  preferredNetwork: <span class="str">"eip155:8453"</span>, <span class="cmt">// Base</span>
 });
 
 <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">payingFetch</span>(<span class="str">"${baseUrl}/x402/research"</span>, {
@@ -3003,7 +3001,6 @@ console.log(<span class="kw">await</span> res.json());</div>
 
       <!-- ===== QUICK LINKS ===== -->
       <div class="quick-links">
-        <a class="qlink" href="/x402/docs">API Docs</a>
         <a class="qlink" href="/x402/catalog">Catalog JSON</a>
         <a class="qlink" href="/x402/health">Health</a>
         <a class="qlink" href="/x402/revenue">Revenue Dashboard</a>
@@ -3027,7 +3024,6 @@ console.log(<span class="kw">await</span> res.json());</div>
           <div class="footer-col">
             <div class="footer-col-title">Products</div>
             <a href="/x402/catalog">API Catalog</a>
-            <a href="/x402/docs">Documentation</a>
             <a href="/mcp-manifest.json">MCP Manifest</a>
             <a href="/x402/benchmark">Benchmark</a>
           </div>
@@ -3047,7 +3043,6 @@ console.log(<span class="kw">await</span> res.json());</div>
           </div>
           <div class="footer-col">
             <div class="footer-col-title">Support</div>
-            <a href="/x402/docs">Getting Started</a>
             <a href="/x402/catalog">API Reference</a>
             <a href="https://github.com/SolTwizzy/swarms-x402/issues" target="_blank">Report Issue</a>
           </div>
@@ -3291,12 +3286,13 @@ console.log(<span class="kw">await</span> res.json());</div>
     if (!banner) return;
     banner.innerHTML = '<div class="payment-banner-title">Your free calls are used up for today</div>' +
       '<div class="payment-banner-msg" style="text-align:left;margin-top:12px;">' +
-      '<p>To continue, use the <strong>x402 payment protocol</strong> with any Solana or EVM wallet:</p>' +
+      '<p>To continue, use the <strong>x402 payment protocol</strong> with any Solana or EVM wallet (Base, Arbitrum + more):</p>' +
       '<pre style="background:rgba(255,255,255,0.02);border:0.67px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 18px;margin:12px 0;font-family:var(--mono);font-size:11px;line-height:1.6;color:rgba(255,255,255,0.75);overflow-x:auto;white-space:pre-wrap;">' +
       'import { wrapFetch } from "@dexterai/x402/client";\\n\\n' +
+      '// Server accepts: ${networkId}\\n' +
       'const payingFetch = wrapFetch(fetch, {\\n' +
-      '  privateKey: process.env.SOLANA_PRIVATE_KEY,\\n' +
-      '  network: "solana-mainnet",\\n' +
+      '  evmPrivateKey: process.env.EVM_PRIVATE_KEY,\\n' +
+      '  preferredNetwork: "eip155:8453", // Base\\n' +
       '});\\n\\n' +
       'const res = await payingFetch("' + location.origin + '/x402/contract-audit", {\\n' +
       '  method: "POST",\\n' +
@@ -3304,7 +3300,7 @@ console.log(<span class="kw">await</span> res.json());</div>
       '  body: JSON.stringify({ code: "..." }),\\n' +
       '});' +
       '</pre>' +
-      '<p style="margin-top:8px;"><a href="/x402/docs" style="color:#fafafa;border-bottom:0.67px solid rgba(255,255,255,0.3);">Full API reference</a> &middot; <a href="/x402/catalog" style="color:#fafafa;border-bottom:0.67px solid rgba(255,255,255,0.3);">All endpoints + pricing</a></p>' +
+      '<p style="margin-top:8px;"><a href="/x402/catalog" style="color:#fafafa;border-bottom:0.67px solid rgba(255,255,255,0.3);">All endpoints + pricing</a></p>' +
       '</div>';
     showEl(prefix + '-payment', 'visible');
   }
