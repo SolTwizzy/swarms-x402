@@ -2684,7 +2684,7 @@ ${THEME_TOKENS}
         <div class="hero-grid">
 
           <div class="hero-thesis">
-            <div class="hero-eyebrow">Tokenized equities &middot; Crypto &middot; Robinhood Chain</div>
+            <div class="hero-eyebrow">Tokenized equities &middot; Crypto &middot; Real-world assets</div>
             <h1 class="hero-headline">AI due diligence on<br><em>everything tradeable.</em></h1>
             <p class="hero-sub">Adversarial analyst panels &mdash; bull, bear, risk &mdash; read the real market data on any tokenized stock, crypto token, or wallet and return a structured verdict you can act on. Flagship Stock DD $0.29 a report, paid in USDC. No account.</p>
             <div class="hero-ctas">
