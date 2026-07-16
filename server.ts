@@ -1625,8 +1625,8 @@ async function startServer(): Promise<void> {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SwarmX — Tokenized stocks, fully researched.</title>
-  <meta name="description" content="A panel of analyst agents researches any tokenized equity — momentum, valuation, downside — and returns a rated verdict. $0.29 a report in USDC, or 5 free calls a day. No account.">
+  <title>SwarmX — AI due diligence on everything tradeable.</title>
+  <meta name="description" content="Adversarial analyst panels research any tokenized stock, crypto token, or wallet — momentum, valuation, downside — and return a rated verdict. Flagship Stock DD $0.29 in USDC, or 5 free calls a day. No account.">
 ${THEME_FONTS}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -2342,13 +2342,13 @@ ${THEME_TOKENS}
         <div class="hero-grid">
 
           <div class="hero-thesis">
-            <div class="hero-eyebrow">Tokenized equities &middot; Robinhood Chain</div>
-            <h1 class="hero-headline">Tokenized stocks,<br><em>fully researched.</em></h1>
-            <p class="hero-sub">A panel of analyst agents reads the market data on any tokenized equity &mdash; momentum, valuation, downside &mdash; and returns a structured verdict you can act on. $0.29 a report, paid in USDC. No account.</p>
+            <div class="hero-eyebrow">Tokenized equities &middot; Crypto &middot; Robinhood Chain</div>
+            <h1 class="hero-headline">AI due diligence on<br><em>everything tradeable.</em></h1>
+            <p class="hero-sub">Adversarial analyst panels &mdash; bull, bear, risk &mdash; read the real market data on any tokenized stock, crypto token, or wallet and return a structured verdict you can act on. Flagship Stock DD $0.29 a report, paid in USDC. No account.</p>
             <div class="hero-ctas">
               <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
             </div>
-            <p class="hero-stats">5 RWA endpoints &bull; 44 total &bull; $0.19&ndash;$0.49 &bull; 5 free calls/day</p>
+            <p class="hero-stats">Equities &amp; RWA &bull; Crypto &amp; On-chain &bull; General Agents &bull; 45 endpoints &bull; 5 free calls/day</p>
           </div>
 
           <!-- Signature: a real captured stock-dd run, replayed. -->

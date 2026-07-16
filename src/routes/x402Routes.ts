@@ -7,7 +7,7 @@ import {
   researchPipelineTemplate,
   analysisPanelTemplate,
 } from "../templates/swarmTemplates.js";
-import type { X402ServiceEndpoint, X402RevenueRecord } from "../types.js";
+import type { X402ServiceEndpoint, X402RevenueRecord, X402ProductLine } from "../types.js";
 import { TASK_CATALOG } from "./taskRoutes.js";
 import { TRADING_CATALOG } from "./tradingRoutes.js";
 import { CRYPTO_CATALOG } from "./cryptoRoutes.js";
@@ -46,10 +46,38 @@ function truncateOutputForFreeTier(text: string, gate: X402GateResult, priceUsd:
   };
 }
 
+// ── Product lines (brand architecture) ──────────────────────────────────
+// One umbrella brand — "SwarmX: AI due diligence on everything tradeable" —
+// with three coverage areas. Every discovery surface (catalog, openapi,
+// well-known) groups and orders entries Equities → Crypto → Agents.
+
+const LINE_EQUITIES = "Equities & RWA" as const;
+const LINE_CRYPTO = "Crypto & On-chain" as const;
+const LINE_AGENTS = "General Agents" as const;
+const PRODUCT_LINE_ORDER: X402ProductLine[] = [LINE_EQUITIES, LINE_CRYPTO, LINE_AGENTS];
+
+const PRODUCT_LINE_DESCRIPTIONS: Record<X402ProductLine, string> = {
+  [LINE_EQUITIES]:
+    "Due diligence on tokenized stocks and equities — adversarial bull/bear/risk agent panels grounded in real market data. Flagship: Stock DD ($0.29).",
+  [LINE_CRYPTO]:
+    "On-chain intelligence — token diligence, wallet analytics, contract audits, memecoin and DeFi risk scoring on Solana.",
+  [LINE_AGENTS]:
+    "General multi-agent workers — research, analysis, writing, code review, extraction. Same pay-per-call rail.",
+};
+
+/** Tag catalog entries with a product line, with per-path overrides. */
+function tagLine(
+  entries: X402ServiceEndpoint[],
+  line: X402ProductLine,
+  overrides?: Record<string, X402ProductLine>
+): X402ServiceEndpoint[] {
+  return entries.map((e) => ({ ...e, productLine: overrides?.[e.path] ?? line }));
+}
+
 /**
  * Catalog of all x402 endpoints (used by /x402/catalog).
  */
-const SERVICE_CATALOG: X402ServiceEndpoint[] = [
+const CORE_ENTRIES: X402ServiceEndpoint[] = [
   {
     name: "SwarmX Research Pipeline",
     description:
@@ -114,17 +142,34 @@ const SERVICE_CATALOG: X402ServiceEndpoint[] = [
     method: "POST",
     priceUsd: "0.03",
   },
-  ...TASK_CATALOG,
-  ...TRADING_CATALOG,
-  ...CRYPTO_CATALOG,
-  ...CODE_AUDIT_CATALOG,
-  ...CONTENT_CATALOG,
-  ...BATCH_CATALOG,
-  ...ADVANCED_CATALOG,
-  ...CRYPTO_ANALYSIS_CATALOG,
-  ...SWARM_ROUTE_CATALOG,
-  ...SWARM_PREMIUM_CATALOG,
-  ...RWA_CATALOG,
+];
+
+// Every paid entry tagged with its product line. CORE_ENTRIES split: the
+// three agent pipelines are General Agents; the wallet/token/tx/DeFi
+// bundle is Crypto & On-chain.
+const TAGGED_PAID: X402ServiceEndpoint[] = [
+  ...tagLine(RWA_CATALOG, LINE_EQUITIES),
+  ...tagLine(CORE_ENTRIES, LINE_CRYPTO, {
+    "/x402/research": LINE_AGENTS,
+    "/x402/analyze": LINE_AGENTS,
+    "/x402/agent": LINE_AGENTS,
+  }),
+  ...tagLine(TRADING_CATALOG, LINE_CRYPTO),
+  ...tagLine(CRYPTO_CATALOG, LINE_CRYPTO),
+  ...tagLine(CRYPTO_ANALYSIS_CATALOG, LINE_CRYPTO),
+  ...tagLine(SWARM_ROUTE_CATALOG, LINE_CRYPTO, { "/swarm/fact-check": LINE_AGENTS }),
+  ...tagLine(SWARM_PREMIUM_CATALOG, LINE_AGENTS, { "/swarm/monitor": LINE_CRYPTO }),
+  ...tagLine(ADVANCED_CATALOG, LINE_AGENTS, {
+    "/x402/investment-dd": LINE_EQUITIES,
+    "/x402/yield-optimizer": LINE_CRYPTO,
+  }),
+  ...tagLine(TASK_CATALOG, LINE_AGENTS),
+  ...tagLine(CODE_AUDIT_CATALOG, LINE_AGENTS),
+  ...tagLine(CONTENT_CATALOG, LINE_AGENTS),
+  ...tagLine(BATCH_CATALOG, LINE_AGENTS),
+];
+
+const FREE_UTILITY_ENTRIES: X402ServiceEndpoint[] = [
   {
     name: "SwarmX Service Catalog",
     description: "List all available SwarmX paid endpoints with pricing",
@@ -167,6 +212,15 @@ const SERVICE_CATALOG: X402ServiceEndpoint[] = [
     priceUsd: "0.00",
     free: true,
   },
+];
+
+// Stable presentation order: Equities & RWA → Crypto & On-chain → General
+// Agents → free utility. This is the order every discovery surface shows.
+const SERVICE_CATALOG: X402ServiceEndpoint[] = [
+  ...PRODUCT_LINE_ORDER.flatMap((line) =>
+    TAGGED_PAID.filter((e) => e.productLine === line)
+  ),
+  ...FREE_UTILITY_ENTRIES,
 ];
 
 /**
@@ -659,7 +713,8 @@ export const x402Routes: Route[] = [
         version: 1,
         resources,
         instructions:
-          "SwarmX paid AI endpoints. POST JSON per the input schema in " +
+          "SwarmX — AI due diligence on everything tradeable: tokenized stocks (RWA), " +
+          "crypto, and equities. POST JSON per the input schema in " +
           `${base}/openapi.json — unauthenticated requests receive an x402 ` +
           `402 challenge (${networkNames} USDC via the Dexter facilitator).`,
       });
@@ -695,6 +750,7 @@ export const x402Routes: Route[] = [
           operationId: e.path.replace(/^\//, "").replace(/\//g, "-"),
           summary: e.name,
           description: e.description,
+          tags: [e.productLine ?? "Platform"],
           responses: {
             "200": { description: "Successful result (JSON)" },
             ...(isPaid
@@ -733,13 +789,22 @@ export const x402Routes: Route[] = [
       res.json({
         openapi: "3.0.3",
         info: {
-          title: "SwarmX — AI Agent Teams, One Payment",
+          title: "SwarmX — AI Due Diligence on Everything Tradeable",
           version: "1.0.0",
           contact: { email: "Management@swarmx.io" },
           description:
-            `x402-monetized AI endpoints: multi-agent swarms, RWA/stock due diligence, crypto analysis, and Solana data. Pay per call in USDC (${networkNames}) via the x402 protocol — no API keys.`,
+            "Adversarial AI agent teams research anything tradeable — tokenized stocks (RWA), crypto, and equities — " +
+            `paid per call in USDC (${networkNames}) via the x402 protocol. No API keys, no accounts. ` +
+            "Product lines: Equities & RWA (flagship: Stock DD $0.29), Crypto & On-chain, General Agents.",
         },
         servers: [{ url: base }],
+        tags: [
+          ...PRODUCT_LINE_ORDER.map((line) => ({
+            name: line,
+            description: PRODUCT_LINE_DESCRIPTIONS[line],
+          })),
+          { name: "Platform", description: "Free platform utilities — catalog, health, async tasks." },
+        ],
         paths,
       });
     },

@@ -141,6 +141,13 @@ export interface SwarmWithPaymentResult {
 /**
  * Server-side x402 endpoint definition for selling services.
  */
+/**
+ * Brand product lines. One umbrella brand (SwarmX = AI due diligence on
+ * everything tradeable), three coverage areas. Used to group and order
+ * every discovery surface (catalog, openapi tags, well-known).
+ */
+export type X402ProductLine = "Equities & RWA" | "Crypto & On-chain" | "General Agents";
+
 export interface X402ServiceEndpoint {
   name: string;
   description: string;
@@ -148,6 +155,8 @@ export interface X402ServiceEndpoint {
   method: "GET" | "POST";
   priceUsd: string;
   free?: boolean;
+  /** Product line for grouping/ordering in discovery surfaces. */
+  productLine?: X402ProductLine;
 }
 
 /**
