@@ -30,6 +30,27 @@ function createMockRes() {
   return res;
 }
 
+const MOCK_NETWORKS = [
+  {
+    friendlyId: "base-mainnet",
+    caip2: "eip155:8453",
+    kind: "evm",
+    payTo: "0xBasePayTo",
+  },
+  {
+    friendlyId: "solana-mainnet",
+    caip2: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+    kind: "solana",
+    payTo: "SolanaPayTo",
+  },
+  {
+    friendlyId: "arbitrum-mainnet",
+    caip2: "eip155:42161",
+    kind: "evm",
+    payTo: "0xArbitrumPayTo",
+  },
+] as const;
+
 describe("x402Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -82,7 +103,8 @@ describe("x402Routes", () => {
 
       const mockServerService = {
         getReceiveAddress: vi.fn(() => "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
-        getNetwork: vi.fn(() => "eip155:84532"),
+        getNetwork: vi.fn(() => "eip155:8453"),
+        getNetworks: vi.fn(() => MOCK_NETWORKS),
         getTotalRevenueUsd: vi.fn(() => 0.15),
         getSettlementCount: vi.fn(() => 3),
       };
@@ -99,7 +121,15 @@ describe("x402Routes", () => {
       const health = res.json.mock.calls[0][0];
       expect(health.status).toBe("ok");
       expect(health.receiveAddress).toBe("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
-      expect(health.network).toBe("eip155:84532");
+      expect(health.payTo).toBe("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+      expect(health.network).toBe("eip155:8453");
+      expect(health.networks).toEqual(
+        MOCK_NETWORKS.map(({ caip2, friendlyId, payTo }) => ({
+          network: caip2,
+          friendlyId,
+          payTo,
+        }))
+      );
       expect(health.totalRevenue).toBe(0.15);
       expect(health.settlements).toBe(3);
       expect(health.freeTierCallsToday).toBe(0);
@@ -120,10 +150,107 @@ describe("x402Routes", () => {
       const health = res.json.mock.calls[0][0];
       expect(health.status).toBe("ok");
       expect(health.receiveAddress).toBe("");
+      expect(health.payTo).toBe("");
+      expect(health.networks).toEqual([]);
       expect(health.totalRevenue).toBe(0);
       expect(health.settlements).toBe(0);
       expect(health.freeTierCallsToday).toBe(0);
       expect(health.freeTierUniqueIPs).toBe(0);
+    });
+  });
+
+  describe("x402 discovery surfaces", () => {
+    it("includes every active Dexter network after RH-Chain for each resource", async () => {
+      const route = x402Routes.find(
+        (r) => r.path === "/discovery/resources" && r.type === "GET"
+      );
+      const buildAllRequirements = vi.fn(async ({ resourceUrl }: { resourceUrl: string }) => ({
+        x402Version: 2,
+        resource: { url: resourceUrl },
+        accepts: MOCK_NETWORKS.map(({ caip2, payTo }) => ({
+          scheme: "exact",
+          network: caip2,
+          payTo,
+          maxAmountRequired: "50000",
+        })),
+      }));
+      const runtime = createMockRuntime({
+        services: {
+          X402_SERVER: {
+            isAvailable: vi.fn(() => true),
+            buildAllRequirements,
+          },
+        },
+      });
+      const res = createMockRes();
+
+      await route!.handler(
+        {
+          url: "http://localhost/discovery/resources",
+          query: { url: "https://localhost/x402/research" },
+        } as any,
+        res,
+        runtime
+      );
+
+      const body = res.json.mock.calls[0][0];
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].accepts[0].network).toBe("eip155:4663");
+      expect(body.items[0].accepts.slice(1).map((entry: any) => entry.network)).toEqual(
+        MOCK_NETWORKS.map(({ caip2 }) => caip2)
+      );
+      for (const entry of body.items[0].accepts.slice(1)) {
+        expect(entry).toEqual(
+          expect.objectContaining({
+            resource: "https://localhost/x402/research",
+            mimeType: "application/json",
+          })
+        );
+        expect(entry.description).toEqual(expect.any(String));
+      }
+      expect(buildAllRequirements).toHaveBeenCalledTimes(1);
+    });
+
+    it("mentions every active chain in well-known instructions", async () => {
+      const route = x402Routes.find(
+        (r) => r.path === "/.well-known/x402" && r.type === "GET"
+      );
+      const runtime = createMockRuntime({
+        services: { X402_SERVER: { getNetworks: vi.fn(() => MOCK_NETWORKS) } },
+      });
+      const res = createMockRes();
+
+      await route!.handler(
+        { url: "http://localhost/.well-known/x402" } as any,
+        res,
+        runtime
+      );
+
+      expect(res.json.mock.calls[0][0].instructions).toContain(
+        "Base, Solana + Arbitrum USDC via the Dexter facilitator"
+      );
+    });
+
+    it("generates OpenAPI payment copy from every active chain", async () => {
+      const route = x402Routes.find(
+        (r) => r.path === "/openapi.json" && r.type === "GET"
+      );
+      const runtime = createMockRuntime({
+        services: { X402_SERVER: { getNetworks: vi.fn(() => MOCK_NETWORKS) } },
+      });
+      const res = createMockRes();
+
+      await route!.handler(
+        { url: "http://localhost/openapi.json" } as any,
+        res,
+        runtime
+      );
+
+      const body = res.json.mock.calls[0][0];
+      expect(body.info.description).toContain("USDC (Base, Solana + Arbitrum)");
+      expect(body.paths["/x402/research"].post.responses["402"].description).toContain(
+        "Base, Solana + Arbitrum USDC"
+      );
     });
   });
 

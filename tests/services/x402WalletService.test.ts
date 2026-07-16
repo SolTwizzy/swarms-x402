@@ -135,6 +135,40 @@ describe("X402WalletService", () => {
         );
       }
     });
+
+    it("prefers the first X402_NETWORKS entry over X402_NETWORK_ID", async () => {
+      const runtime = createMockRuntime({
+        settings: {
+          ...DEFAULT_TEST_SETTINGS,
+          X402_NETWORKS: "base-mainnet,solana-mainnet",
+          X402_NETWORK_ID: "solana-mainnet",
+        },
+      });
+
+      await X402WalletService.start(runtime);
+
+      expect(createBudgetAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ preferredNetwork: "eip155:8453" })
+      );
+    });
+
+    it("falls back to X402_NETWORK_ID when the first X402_NETWORKS entry is unknown", async () => {
+      const runtime = createMockRuntime({
+        settings: {
+          ...DEFAULT_TEST_SETTINGS,
+          X402_NETWORKS: "unknown-chain,base-mainnet",
+          X402_NETWORK_ID: "solana-mainnet",
+        },
+      });
+
+      await X402WalletService.start(runtime);
+
+      expect(createBudgetAccount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          preferredNetwork: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        })
+      );
+    });
   });
 
   describe("payForResource()", () => {

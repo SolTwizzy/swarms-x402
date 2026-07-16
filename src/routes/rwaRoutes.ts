@@ -1035,12 +1035,11 @@ export const rwaRoutes: Route[] = [
           })
         );
       }
-      // Solana/USDC (Dexter) as a secondary option.
+      // Dexter USDC rails as secondary options, in configured priority order.
       try {
         const serverService = runtime.getService("X402_SERVER" as any) as any;
         if (serverService?.isAvailable?.()) {
-          const server = serverService.getServer();
-          const solReq = await server.buildRequirements({
+          const dexterReq = await serverService.buildAllRequirements({
             amountAtomic: String(Math.round(parseFloat(STOCK_DD_PRICE_USD) * 1_000_000)),
             resourceUrl,
             description: STOCK_DD_DESCRIPTION,
@@ -1048,10 +1047,10 @@ export const rwaRoutes: Route[] = [
           // Dexter returns a full v2 PaymentRequired envelope; accepts[] must
           // hold flat requirement objects, so unwrap its inner entries and
           // backfill the v1 fields strict schema validators require.
-          const inner = Array.isArray((solReq as any)?.accepts)
-            ? (solReq as any).accepts
-            : solReq
-              ? [solReq]
+          const inner = Array.isArray((dexterReq as any)?.accepts)
+            ? (dexterReq as any).accepts
+            : dexterReq
+              ? [dexterReq]
               : [];
           for (const entry of inner) {
             accepts.push({
@@ -1065,7 +1064,7 @@ export const rwaRoutes: Route[] = [
       } catch (err) {
         runtime.logger?.warn?.(
           { error: err instanceof Error ? err.message : String(err) },
-          "[x402/rwa/stock-dd GET] Solana requirements unavailable"
+          "[x402/rwa/stock-dd GET] Dexter requirements unavailable"
         );
       }
       res.status(402).json({

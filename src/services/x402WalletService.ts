@@ -9,6 +9,7 @@ import {
   type PaymentReceipt,
 } from "@dexterai/x402/client";
 import type { X402PaymentConfig, PaymentHistoryRecord } from "../types.js";
+import { caip2ForFriendlyId } from "../server/networkRegistry.js";
 import type { PaymentMemoryService } from "./paymentMemoryService.js";
 
 export interface PayForResourceOptions {
@@ -56,6 +57,7 @@ export class X402WalletService extends Service {
     this.agentRuntime = runtime;
 
     const networkRaw = runtime.getSetting("X402_NETWORK_ID");
+    const networksRaw = runtime.getSetting("X402_NETWORKS");
     const receiveRaw = runtime.getSetting("X402_RECEIVE_ADDRESS");
     const maxPayRaw = runtime.getSetting("X402_MAX_AUTO_PAY_USD");
     const solanaKey = runtime.getSetting("SOLANA_PRIVATE_KEY");
@@ -113,15 +115,14 @@ export class X402WalletService extends Service {
     }
 
     // Determine preferred network from config
-    const networkMap: Record<string, string> = {
-      "base-mainnet": "eip155:8453",
-      "base-sepolia": "eip155:84532",
-      "ethereum-mainnet": "eip155:1",
-      "solana-mainnet": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-      "polygon-mainnet": "eip155:137",
-      "arbitrum-mainnet": "eip155:42161",
-    };
-    const preferred = networkMap[String(networkRaw ?? "base-mainnet")];
+    const firstConfiguredNetwork = networksRaw != null
+      ? String(networksRaw).split(",")[0]?.trim()
+      : undefined;
+    const preferred =
+      (firstConfiguredNetwork
+        ? caip2ForFriendlyId(firstConfiguredNetwork)
+        : undefined) ??
+      caip2ForFriendlyId(String(networkRaw ?? "base-mainnet"));
     if (preferred) {
       fetchOpts.preferredNetwork = preferred;
     }

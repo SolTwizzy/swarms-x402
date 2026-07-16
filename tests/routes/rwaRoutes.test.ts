@@ -17,6 +17,9 @@ import { callLLM, runLocalPanel } from "../../src/utils/llm.js";
 
 const originalFetch = globalThis.fetch;
 const route = rwaRoutes.find((r) => r.path === "/x402/rwa/stock-dd" && r.type === "POST");
+const discoveryRoute = rwaRoutes.find(
+  (r) => r.path === "/x402/rwa/stock-dd" && r.type === "GET",
+);
 const screenRoute = rwaRoutes.find((r) => r.path === "/x402/rwa/screen" && r.type === "POST");
 const compareRoute = rwaRoutes.find((r) => r.path === "/x402/rwa/compare" && r.type === "POST");
 const eligibilityRoute = rwaRoutes.find((r) => r.path === "/x402/rwa/eligibility" && r.type === "POST");
@@ -357,6 +360,61 @@ describe("POST /x402/rwa/stock-dd", () => {
     expect(runLocalPanel).toHaveBeenCalledTimes(1);
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(x402Gate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("GET /x402/rwa/stock-dd", () => {
+  it("keeps RH-Chain first and appends every active Dexter network", async () => {
+    const dexterAccepts = [
+      { scheme: "exact", network: "eip155:8453", payTo: "0xBasePayTo" },
+      {
+        scheme: "exact",
+        network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        payTo: "SolanaPayTo",
+      },
+      { scheme: "exact", network: "eip155:42161", payTo: "0xArbitrumPayTo" },
+    ];
+    const buildAllRequirements = vi.fn(async () => ({
+      x402Version: 2,
+      resource: { url: "https://swarmx.io/x402/rwa/stock-dd" },
+      accepts: dexterAccepts,
+    }));
+    const runtime = createMockRuntime({
+      services: {
+        X402_SERVER: {
+          isAvailable: vi.fn(() => true),
+          buildAllRequirements,
+        },
+      },
+    });
+    const res = createMockRes();
+
+    await discoveryRoute!.handler(
+      { url: "http://swarmx.io/x402/rwa/stock-dd" } as any,
+      res,
+      runtime,
+    );
+
+    const body = vi.mocked(res.json).mock.calls[0][0];
+    expect(res.status).toHaveBeenCalledWith(402);
+    expect(body.accepts.map((entry: any) => entry.network)).toEqual([
+      "eip155:4663",
+      ...dexterAccepts.map(({ network }) => network),
+    ]);
+    for (const entry of body.accepts.slice(1)) {
+      expect(entry).toEqual(
+        expect.objectContaining({
+          resource: "https://swarmx.io/x402/rwa/stock-dd",
+          description: expect.any(String),
+          mimeType: "application/json",
+        }),
+      );
+    }
+    expect(buildAllRequirements).toHaveBeenCalledTimes(1);
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "PAYMENT-REQUIRED",
+      expect.any(String),
+    );
   });
 });
 

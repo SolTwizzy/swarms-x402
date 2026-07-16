@@ -181,6 +181,26 @@ function resolveBaseUrl(req: unknown): string {
   }
 }
 
+const NETWORK_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  "base-mainnet": "Base",
+  "solana-mainnet": "Solana",
+  "arbitrum-mainnet": "Arbitrum",
+  "polygon-mainnet": "Polygon",
+  "ethereum-mainnet": "Ethereum",
+  "base-sepolia": "Base Sepolia",
+};
+
+function formatNetworkDisplayNames(
+  networks: readonly { friendlyId: string }[]
+): string {
+  const names = networks.map(
+    ({ friendlyId }) => NETWORK_DISPLAY_NAMES[friendlyId] ?? friendlyId
+  );
+  if (names.length === 0) return "Base";
+  if (names.length === 1) return names[0] ?? "Base";
+  return `${names.slice(0, -1).join(", ")} + ${names.at(-1)}`;
+}
+
 // ── Discovery input metadata (path → inputSchema + example) ─────────────
 // Built lazily from the MCP tool definitions so schema fetchers can generate
 // runnable request code without a second source of truth.
@@ -531,7 +551,6 @@ export const x402Routes: Route[] = [
       const page = entries.slice(offset, offset + limit);
 
       const serverService = runtime.getService("X402_SERVER" as any) as any;
-      const server = serverService?.isAvailable?.() ? serverService.getServer() : null;
       const lastUpdated = new Date().toISOString();
 
       const items = await Promise.all(
@@ -549,19 +568,19 @@ export const x402Routes: Route[] = [
           } catch {
             /* RH rail optional */
           }
-          if (server) {
+          if (serverService?.isAvailable?.()) {
             try {
-              const solReq = await server.buildRequirements({
+              const dexterReq = await serverService.buildAllRequirements({
                 amountAtomic: String(Math.round(parseFloat(e.priceUsd) * 1_000_000)),
                 resourceUrl: resource,
                 description: e.description,
               });
               // Dexter returns a full v2 envelope; accepts[] holds flat entries
               // backfilled with the v1 fields strict schema validators require.
-              const inner = Array.isArray(solReq?.accepts)
-                ? solReq.accepts
-                : solReq
-                  ? [solReq]
+              const inner = Array.isArray(dexterReq?.accepts)
+                ? dexterReq.accepts
+                : dexterReq
+                  ? [dexterReq]
                   : [];
               for (const entry of inner) {
                 accepts.push({
@@ -572,7 +591,7 @@ export const x402Routes: Route[] = [
                 });
               }
             } catch {
-              /* Solana rail optional */
+              /* Dexter rails optional */
             }
           }
           return {
@@ -624,8 +643,14 @@ export const x402Routes: Route[] = [
     path: "/.well-known/x402",
     name: "x402-well-known",
     public: true,
-    handler: async (req, res, _runtime) => {
+    handler: async (req, res, runtime) => {
       const base = resolveBaseUrl(req);
+      const serverService = runtime.getService<X402ServerService>(
+        "X402_SERVER" as any
+      );
+      const networkNames = formatNetworkDisplayNames(
+        serverService?.getNetworks?.() ?? []
+      );
       const resources = SERVICE_CATALOG.filter(
         (e) => !e.free && !e.path.includes(":")
       ).map((e) => `${base}${e.path}`);
@@ -636,7 +661,7 @@ export const x402Routes: Route[] = [
         instructions:
           "SwarmX paid AI endpoints. POST JSON per the input schema in " +
           `${base}/openapi.json — unauthenticated requests receive an x402 ` +
-          "402 challenge (Solana + Base USDC via the Dexter facilitator).",
+          `402 challenge (${networkNames} USDC via the Dexter facilitator).`,
       });
     },
   },
@@ -650,8 +675,14 @@ export const x402Routes: Route[] = [
     path: "/openapi.json",
     name: "x402-openapi",
     public: true,
-    handler: async (req, res, _runtime) => {
+    handler: async (req, res, runtime) => {
       const base = resolveBaseUrl(req);
+      const serverService = runtime.getService<X402ServerService>(
+        "X402_SERVER" as any
+      );
+      const networkNames = formatNetworkDisplayNames(
+        serverService?.getNetworks?.() ?? []
+      );
       const paths: Record<string, Record<string, unknown>> = {};
 
       for (const e of SERVICE_CATALOG) {
@@ -670,7 +701,7 @@ export const x402Routes: Route[] = [
               ? {
                   "402": {
                     description:
-                      "Payment required — x402 challenge with `accepts` payment requirements (Solana/Base USDC)",
+                      `Payment required — x402 challenge with \`accepts\` payment requirements (${networkNames} USDC)`,
                   },
                 }
               : {}),
@@ -706,7 +737,7 @@ export const x402Routes: Route[] = [
           version: "1.0.0",
           contact: { email: "Management@swarmx.io" },
           description:
-            "x402-monetized AI endpoints: multi-agent swarms, RWA/stock due diligence, crypto analysis, and Solana data. Pay per call in USDC (Solana or Base) via the x402 protocol — no API keys.",
+            `x402-monetized AI endpoints: multi-agent swarms, RWA/stock due diligence, crypto analysis, and Solana data. Pay per call in USDC (${networkNames}) via the x402 protocol — no API keys.`,
         },
         servers: [{ url: base }],
         paths,
@@ -725,11 +756,19 @@ export const x402Routes: Route[] = [
         "X402_SERVER" as any
       );
       const freeTier = typeof getFreeTierStats === "function" ? getFreeTierStats() : null;
+      const receiveAddress = serverService?.getReceiveAddress() ?? "";
+      const networks = (serverService?.getNetworks?.() ?? []).map((config) => ({
+        network: config.caip2,
+        friendlyId: config.friendlyId,
+        payTo: config.payTo,
+      }));
 
       res.json({
         status: "ok",
-        receiveAddress: serverService?.getReceiveAddress() ?? "",
+        receiveAddress,
+        payTo: receiveAddress,
         network: serverService?.getNetwork() ?? "",
+        networks,
         totalRevenue: serverService?.getTotalRevenueUsd() ?? 0,
         settlements: serverService?.getSettlementCount() ?? 0,
         freeTierCallsToday: freeTier?.totalFreeCallsToday ?? 0,
