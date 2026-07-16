@@ -19,7 +19,8 @@ import { advancedRoutes } from "./src/routes/advancedRoutes.js";
 import { swarmRoutes } from "./src/routes/swarmRoutes.js";
 import { swarmPremiumRoutes } from "./src/routes/swarmPremiumRoutes.js";
 import { rwaRoutes } from "./src/routes/rwaRoutes.js";
-import { THEME_FONTS, THEME_TOKENS } from "./src/ui/theme.js";
+import { THEME_FONTS, THEME_TOKENS, THEME_FAVICON } from "./src/ui/theme.js";
+import { LOGO_FAVICON_B64, LOGO_NAV_B64, logoBytes } from "./src/ui/logo.js";
 import { X402WalletService } from "./src/services/x402WalletService.js";
 import { SwarmsService } from "./src/services/swarmsService.js";
 import { PaymentMemoryService } from "./src/services/paymentMemoryService.js";
@@ -108,6 +109,184 @@ function withCORS(response: Response): Response {
     statusText: response.statusText,
     headers: newHeaders,
   });
+}
+
+// ── Market data (Yahoo Finance proxy, in-memory cache) ──────────────────────
+// Powers the landing tape + charts. Yahoo's chart API is keyless but CORS-
+// blocked in browsers, so the server proxies and caches it. Stocks and
+// crypto (BTC-USD style) come from the same source.
+
+const MARKET_SYMBOL_RE = /^[A-Z0-9.\-^=]{1,12}$/;
+const MARKET_RANGES = new Set(["1d", "5d", "1mo", "6mo", "1y", "5y"]);
+const MARKET_RANGE_INTERVALS: Record<string, string> = {
+  "1d": "5m",
+  "5d": "30m",
+  "1mo": "1d",
+  "6mo": "1d",
+  "1y": "1wk",
+  "5y": "1mo",
+};
+
+/** Curated tape: liquid tokenized-equity names + majors + crypto. */
+const TAPE_SYMBOLS: Array<{ symbol: string; label: string; kind: "equity" | "crypto" }> = [
+  { symbol: "AAPL", label: "AAPL", kind: "equity" },
+  { symbol: "NVDA", label: "NVDA", kind: "equity" },
+  { symbol: "TSLA", label: "TSLA", kind: "equity" },
+  { symbol: "MSFT", label: "MSFT", kind: "equity" },
+  { symbol: "AMZN", label: "AMZN", kind: "equity" },
+  { symbol: "META", label: "META", kind: "equity" },
+  { symbol: "GOOGL", label: "GOOGL", kind: "equity" },
+  { symbol: "HOOD", label: "HOOD", kind: "equity" },
+  { symbol: "COIN", label: "COIN", kind: "equity" },
+  { symbol: "SPY", label: "SPY", kind: "equity" },
+  { symbol: "BTC-USD", label: "BTC", kind: "crypto" },
+  { symbol: "ETH-USD", label: "ETH", kind: "crypto" },
+  { symbol: "SOL-USD", label: "SOL", kind: "crypto" },
+];
+
+const marketCache = new Map<string, { at: number; data: unknown }>();
+
+function marketCacheGet(key: string, ttlMs: number): unknown | null {
+  const hit = marketCache.get(key);
+  if (hit && Date.now() - hit.at < ttlMs) return hit.data;
+  return null;
+}
+
+interface MarketQuote {
+  symbol: string;
+  label: string;
+  kind: "equity" | "crypto";
+  price: number;
+  pctChange: number;
+  currency: string;
+}
+
+interface MarketChart extends MarketQuote {
+  range: string;
+  prevClose: number;
+  high: number;
+  low: number;
+  timestamps: number[];
+  closes: number[];
+  exchange: string;
+}
+
+async function fetchYahooChart(symbol: string, range: string): Promise<any | null> {
+  const interval = MARKET_RANGE_INTERVALS[range] ?? "1d";
+  const url =
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
+    `?interval=${interval}&range=${range}`;
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0" },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) return null;
+  const json = (await res.json()) as any;
+  return json?.chart?.result?.[0] ?? null;
+}
+
+function quoteFromChartResult(
+  entry: { symbol: string; label: string; kind: "equity" | "crypto" },
+  result: any
+): MarketQuote | null {
+  const meta = result?.meta;
+  if (!meta || typeof meta.regularMarketPrice !== "number") return null;
+  const closes: number[] = (result.indicators?.quote?.[0]?.close ?? []).filter(
+    (x: unknown): x is number => typeof x === "number" && Number.isFinite(x)
+  );
+  const price = meta.regularMarketPrice;
+  const prevClose =
+    typeof meta.previousClose === "number" && Number.isFinite(meta.previousClose)
+      ? meta.previousClose
+      : typeof meta.chartPreviousClose === "number" && Number.isFinite(meta.chartPreviousClose)
+        ? meta.chartPreviousClose
+        : closes.length > 1
+          ? closes[closes.length - 2]
+          : price;
+  const pctChange = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+  return {
+    symbol: entry.symbol,
+    label: entry.label,
+    kind: entry.kind,
+    price: Math.round(price * 100) / 100,
+    pctChange: Math.round(pctChange * 100) / 100,
+    currency: typeof meta.currency === "string" ? meta.currency : "USD",
+  };
+}
+
+/** Quotes for the curated tape, cached 60s. Failed symbols are dropped. */
+async function getMarketTape(): Promise<{ quotes: MarketQuote[]; asOf: string }> {
+  const cached = marketCacheGet("tape", 60_000);
+  if (cached) return cached as { quotes: MarketQuote[]; asOf: string };
+
+  const results = await Promise.allSettled(
+    TAPE_SYMBOLS.map(async (entry) => {
+      const result = await fetchYahooChart(entry.symbol, "1d");
+      return quoteFromChartResult(entry, result);
+    })
+  );
+  const quotes = results
+    .map((r) => (r.status === "fulfilled" ? r.value : null))
+    .filter((q): q is MarketQuote => q !== null);
+  const data = { quotes, asOf: new Date().toISOString() };
+  if (quotes.length) marketCache.set("tape", { at: Date.now(), data });
+  return data;
+}
+
+/** Chart series for one symbol, cached 120s per (symbol, range). */
+async function getMarketChart(symbol: string, range: string): Promise<MarketChart | null> {
+  const key = `chart:${symbol}:${range}`;
+  const cached = marketCacheGet(key, 120_000);
+  if (cached) return cached as MarketChart;
+
+  const result = await fetchYahooChart(symbol, range);
+  if (!result) return null;
+  const known = TAPE_SYMBOLS.find((t) => t.symbol === symbol);
+  const entry = known ?? {
+    symbol,
+    label: symbol.replace(/-USD$/, ""),
+    kind: symbol.endsWith("-USD") ? ("crypto" as const) : ("equity" as const),
+  };
+  const quote = quoteFromChartResult(entry, result);
+  if (!quote) return null;
+
+  const rawTs: number[] = Array.isArray(result.timestamp) ? result.timestamp : [];
+  const rawCloses: Array<number | null> = result.indicators?.quote?.[0]?.close ?? [];
+  const timestamps: number[] = [];
+  const closes: number[] = [];
+  for (let i = 0; i < rawTs.length; i++) {
+    const c = rawCloses[i];
+    if (typeof c === "number" && Number.isFinite(c)) {
+      timestamps.push(rawTs[i]);
+      closes.push(Math.round(c * 10000) / 10000);
+    }
+  }
+  if (!closes.length) return null;
+
+  const meta = result.meta ?? {};
+  const prevClose =
+    typeof meta.previousClose === "number"
+      ? meta.previousClose
+      : typeof meta.chartPreviousClose === "number"
+        ? meta.chartPreviousClose
+        : closes[0];
+  const data: MarketChart = {
+    ...quote,
+    range,
+    prevClose: Math.round(prevClose * 100) / 100,
+    high: Math.max(...closes),
+    low: Math.min(...closes),
+    timestamps,
+    closes,
+    exchange:
+      typeof meta.fullExchangeName === "string"
+        ? meta.fullExchangeName
+        : typeof meta.exchangeName === "string"
+          ? meta.exchangeName
+          : "",
+  };
+  marketCache.set(key, { at: Date.now(), data });
+  return data;
 }
 
 // ── Rate Limiting (in-memory per IP) ─────────────────────────────────────────
@@ -309,7 +488,7 @@ function riskBadgeHtml(score: number): string {
   let bg: string, color: string, label: string;
   if (score >= 61) { bg = "#3b0a0a"; color = "var(--red)"; label = "HIGH RISK"; }
   else if (score >= 26) { bg = "#422006"; color = "var(--yellow)"; label = "MEDIUM"; }
-  else { bg = "#064e3b"; color = "var(--accent)"; label = "LOW RISK"; }
+  else { bg = "#064e3b"; color = "var(--green)"; label = "LOW RISK"; }
   return `<span style="display:inline-block;padding:3px 12px;border-radius:12px;background:${bg};color:${color};font-family:var(--mono);font-size:13px;font-weight:700;">${score}/100 ${label}</span>`;
 }
 
@@ -317,7 +496,7 @@ function verdictBadgeHtml(verdict: string): string {
   let bg: string, color: string;
   if (verdict === "DANGER") { bg = "#3b0a0a"; color = "var(--red)"; }
   else if (verdict === "CAUTION") { bg = "#422006"; color = "var(--yellow)"; }
-  else { bg = "#064e3b"; color = "var(--accent)"; }
+  else { bg = "#064e3b"; color = "var(--green)"; }
   return `<span style="display:inline-block;padding:3px 12px;border-radius:12px;background:${bg};color:${color};font-family:var(--mono);font-size:13px;font-weight:700;">${escapeHtml(verdict)}</span>`;
 }
 
@@ -336,7 +515,7 @@ function renderFindingsList(findings: GalleryFinding[], category: string): strin
     const sev = f.severity ?? f.risk ?? "INFO";
     const title = escapeHtml(f.title ?? "Untitled");
     const desc = escapeHtml(f.description ?? f.attackScenario ?? "");
-    const extra = f.estimatedSavings ? `<span style="color:var(--accent);font-size:12px;">Saves ${escapeHtml(f.estimatedSavings)}</span>` : "";
+    const extra = f.estimatedSavings ? `<span style="color:var(--green);font-size:12px;">Saves ${escapeHtml(f.estimatedSavings)}</span>` : "";
     return `<div style="margin-bottom:8px;padding:8px 12px;background:var(--surface-2);border-radius:6px;border-left:3px solid ${severityColor(sev)};">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
     <span style="font-family:var(--mono);font-size:11px;font-weight:700;color:${severityColor(sev)};">${escapeHtml(sev.toUpperCase())}</span>
@@ -463,6 +642,7 @@ function buildGalleryHtml(): string {
   <title>SwarmX Results Gallery</title>
   <meta name="description" content="Real audit results from SwarmX multi-agent teams — contract audits, token risk assessments, and benchmarks vs single GPT.">
 ${THEME_FONTS}
+${THEME_FAVICON}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 ${THEME_TOKENS}
@@ -867,7 +1047,7 @@ function buildReportPageHtml(report: AuditReport): string {
   let scoreBg: string, scoreColor: string, scoreLabel: string;
   if (riskScore >= 61) { scoreBg = "#3b0a0a"; scoreColor = "var(--red)"; scoreLabel = "HIGH RISK"; }
   else if (riskScore >= 26) { scoreBg = "#422006"; scoreColor = "var(--yellow)"; scoreLabel = "CAUTION"; }
-  else { scoreBg = "#064e3b"; scoreColor = "var(--accent)"; scoreLabel = "LOW RISK"; }
+  else { scoreBg = "#064e3b"; scoreColor = "var(--green)"; scoreLabel = "LOW RISK"; }
 
   // Build findings HTML
   function renderFindingsSection(items: unknown[], label: string, color: string): string {
@@ -885,7 +1065,7 @@ function buildReportPageHtml(report: AuditReport): string {
       const t = escapeHtml(f.title ?? f.description ?? JSON.stringify(f));
       const desc = f.description ? escapeHtml(f.description) : "";
       const attack = f.attackScenario ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Attack: ${escapeHtml(f.attackScenario)}</div>` : "";
-      const savings = f.estimatedSavings ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">Saves ${escapeHtml(f.estimatedSavings)}</div>` : "";
+      const savings = f.estimatedSavings ? `<div style="font-size:12px;color:var(--green);margin-top:4px;">Saves ${escapeHtml(f.estimatedSavings)}</div>` : "";
       html += `<div style="margin-bottom:8px;padding:10px 14px;background:var(--surface-2);border-radius:6px;border-left:3px solid ${sevColor};">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
           <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:${sevColor};">${sev}</span>
@@ -934,7 +1114,7 @@ function buildReportPageHtml(report: AuditReport): string {
     let vBg: string, vColor: string;
     if (verdict === "DANGER") { vBg = "#3b0a0a"; vColor = "var(--red)"; }
     else if (verdict === "CAUTION") { vBg = "#422006"; vColor = "var(--yellow)"; }
-    else { vBg = "#064e3b"; vColor = "var(--accent)"; }
+    else { vBg = "#064e3b"; vColor = "var(--green)"; }
     verdictHtml = `<span style="display:inline-block;padding:6px 18px;border-radius:8px;background:${vBg};color:${vColor};font-family:var(--mono);font-size:16px;font-weight:700;margin-right:12px;">${escapeHtml(verdict)}</span>`;
   }
 
@@ -952,6 +1132,7 @@ function buildReportPageHtml(report: AuditReport): string {
   <meta name="twitter:title" content="${escapeHtml(title)} | SwarmX">
   <meta name="twitter:description" content="Risk Score: ${riskScore}/100 — ${scoreLabel}">
 ${THEME_FONTS}
+${THEME_FAVICON}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 ${THEME_TOKENS}
@@ -1238,15 +1419,15 @@ function buildBenchmarkHtml(): string {
   }
 
   const s = data.summary;
-  const rateColor = s.detectionRate >= 90 ? "var(--accent)" : s.detectionRate >= 70 ? "var(--yellow)" : "var(--red)";
+  const rateColor = s.detectionRate >= 90 ? "var(--green)" : s.detectionRate >= 70 ? "var(--yellow)" : "var(--red)";
 
   const rows = data.results.map((r) => {
     const mark = r.detected
-      ? `<span style="color:var(--accent);font-weight:700;">YES</span>`
+      ? `<span style="color:var(--green);font-weight:700;">YES</span>`
       : `<span style="color:var(--red);font-weight:700;">MISS</span>`;
-    const live = r.liveTested ? `<span style="color:var(--accent);" title="Live tested">*</span>` : "";
+    const live = r.liveTested ? `<span style="color:var(--green);" title="Live tested">*</span>` : "";
     const sevColor = r.expectedSeverity === "CRITICAL" ? "var(--red)" : r.expectedSeverity === "HIGH" ? "var(--orange)" : "var(--yellow)";
-    const scoreColor = r.riskScore >= 70 ? "var(--red)" : r.riskScore >= 40 ? "var(--yellow)" : "var(--accent)";
+    const scoreColor = r.riskScore >= 70 ? "var(--red)" : r.riskScore >= 40 ? "var(--yellow)" : "var(--green)";
     const matchTitle = r.matchedFinding
       ? escapeHtml(r.matchedFinding.title)
       : r.missReason
@@ -1289,6 +1470,7 @@ function buildBenchmarkHtml(): string {
   <title>SwarmX Accuracy Benchmark</title>
   <meta name="description" content="Accuracy benchmark for SwarmX contract audit — ${s.detected}/${s.totalContracts} known vulnerabilities detected (${s.detectionRate}%).">
 ${THEME_FONTS}
+${THEME_FAVICON}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 ${THEME_TOKENS}
@@ -1608,6 +1790,46 @@ async function startServer(): Promise<void> {
         return withCORS(Response.json(stats));
       }
 
+      // ── Brand assets (embedded PNGs — see src/ui/logo.ts) ─────────
+      if ((pathname === "/favicon.png" || pathname === "/favicon.ico") && method === "GET") {
+        return new Response(logoBytes(LOGO_FAVICON_B64), {
+          status: 200,
+          headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" },
+        });
+      }
+      if (pathname === "/logo.png" && method === "GET") {
+        return new Response(logoBytes(LOGO_NAV_B64), {
+          status: 200,
+          headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" },
+        });
+      }
+
+      // ── Market data (free, cached) — powers the tape + charts ─────
+      if (pathname === "/api/market/tape" && method === "GET") {
+        try {
+          return withCORS(Response.json(await getMarketTape()));
+        } catch {
+          return withCORS(Response.json({ error: "Market data unavailable" }, { status: 502 }));
+        }
+      }
+      if (pathname === "/api/market/chart" && method === "GET") {
+        const symbol = (url.searchParams.get("symbol") ?? "").toUpperCase();
+        const range = url.searchParams.get("range") ?? "6mo";
+        if (!MARKET_SYMBOL_RE.test(symbol)) {
+          return withCORS(Response.json({ error: "Invalid symbol" }, { status: 400 }));
+        }
+        if (!MARKET_RANGES.has(range)) {
+          return withCORS(Response.json({ error: "Invalid range" }, { status: 400 }));
+        }
+        try {
+          const chart = await getMarketChart(symbol, range);
+          if (!chart) return withCORS(Response.json({ error: "Symbol not found" }, { status: 404 }));
+          return withCORS(Response.json(chart));
+        } catch {
+          return withCORS(Response.json({ error: "Market data unavailable" }, { status: 502 }));
+        }
+      }
+
       // ── HTML Playground ────────────────────────────────────────────
       if (pathname === "/" && method === "GET") {
         const configuredNetworkIds = (process.env.X402_NETWORKS ?? "")
@@ -1628,6 +1850,7 @@ async function startServer(): Promise<void> {
   <title>SwarmX — AI due diligence on everything tradeable.</title>
   <meta name="description" content="Adversarial analyst panels research any tokenized stock, crypto token, or wallet — momentum, valuation, downside — and return a rated verdict. Flagship Stock DD $0.29 in USDC, or 5 free calls a day. No account.">
 ${THEME_FONTS}
+${THEME_FAVICON}
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 ${THEME_TOKENS}
@@ -1652,7 +1875,9 @@ ${THEME_TOKENS}
     .nav-logo {
       font-family: var(--display); font-size: 19px; font-weight: 700;
       color: var(--heading); text-decoration: none; letter-spacing: 0.2px;
+      display: inline-flex; align-items: center; gap: 9px;
     }
+    .nav-logo-img { border-radius: 6px; display: block; }
     .nav-logo span { color: var(--accent); font-weight: 700; }
     .nav-links {
       display: flex; align-items: center; gap: 8px;
@@ -1664,13 +1889,13 @@ ${THEME_TOKENS}
     }
     .nav-links a:hover { color: var(--heading); background: var(--surface-2); }
     .nav-cta {
-      background: var(--green-bg) !important;
+      background: var(--brand-bg) !important;
       border: 0.67px solid var(--accent-2) !important;
       border-radius: 8px !important; color: var(--accent) !important; font-weight: 600 !important;
       padding: 7px 18px !important; font-size: 13px !important; transition: all 0.2s !important;
     }
     .nav-cta:hover {
-      background: var(--accent) !important; color: #04140A !important;
+      background: var(--accent) !important; color: #140404 !important;
       border-color: var(--accent) !important;
     }
     @media (max-width: 768px) {
@@ -1717,7 +1942,7 @@ ${THEME_TOKENS}
       text-decoration: none;
     }
     .hero-cta-primary {
-      background: var(--accent); color: #04140A; border: 0.67px solid var(--accent);
+      background: var(--accent); color: #140404; border: 0.67px solid var(--accent);
     }
     .hero-cta-primary:hover { background: #00E006; border-color: #00E006; }
     .hero-badges { display: none; }
@@ -1760,7 +1985,7 @@ ${THEME_TOKENS}
     .term-line.dim { color: var(--text-dim); }
     .term-line.muted { color: var(--text-muted); }
     .term-line.in { color: var(--heading); }
-    .term-line.ok { color: var(--accent); }
+    .term-line.ok { color: var(--green); }
     .term-line.risk { color: var(--red); }
     .term-line.agent { color: var(--text); }
     .term-line .who { color: var(--accent-2); }
@@ -1776,12 +2001,12 @@ ${THEME_TOKENS}
     }
     .term-run {
       font-family: var(--mono); font-size: 11px; font-weight: 500;
-      background: var(--green-bg); color: var(--accent);
+      background: var(--brand-bg); color: var(--accent);
       border: 0.67px solid var(--accent-2); border-radius: 6px;
       padding: 6px 12px; cursor: pointer; transition: all 0.2s;
       text-decoration: none; white-space: nowrap; flex-shrink: 0;
     }
-    .term-run:hover { background: var(--accent); color: #04140A; }
+    .term-run:hover { background: var(--accent); color: #140404; }
     .term-note {
       font-family: var(--mono); font-size: 10.5px; color: var(--text-dim);
       line-height: 1.5;
@@ -2281,7 +2506,118 @@ ${THEME_TOKENS}
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
       .footer-brand { grid-column: 1 / -1; }
     }
-    /* ── Share section ── */
+    /* == Ticker tape == */
+    .tape {
+      border-bottom: 0.67px solid var(--border);
+      background: var(--surface); overflow: hidden; white-space: nowrap;
+      position: relative; height: 34px;
+    }
+    .tape-track {
+      display: inline-flex; align-items: center; height: 34px;
+      animation: tape-scroll 60s linear infinite; will-change: transform;
+    }
+    .tape:hover .tape-track { animation-play-state: paused; }
+    @keyframes tape-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .tape-item {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 0 18px; font-family: var(--mono); font-size: 11.5px;
+      color: var(--text-muted); cursor: pointer; border: none; background: none;
+      height: 34px; border-right: 0.67px solid var(--border);
+    }
+    .tape-item:hover { background: var(--surface-2); color: var(--heading); }
+    .tape-item .t-sym { color: var(--heading); font-weight: 600; }
+    .tape-item .t-up { color: var(--green); }
+    .tape-item .t-down { color: var(--red); }
+    @media (prefers-reduced-motion: reduce) {
+      .tape-track { animation: none; }
+      .tape { overflow-x: auto; }
+    }
+
+    /* == Markets section == */
+    .markets { padding: 56px 0 8px; }
+    .market-title {
+      font-family: var(--display); font-size: 28px; font-weight: 700;
+      color: var(--heading); margin: 4px 0 12px; letter-spacing: -0.3px;
+    }
+    .markets-sub { color: var(--text-muted); font-size: 14px; margin: 0 0 24px; max-width: 560px; }
+    .market-panel {
+      background: var(--surface); border: 0.67px solid var(--border);
+      border-radius: 16px; padding: 24px; margin-bottom: 48px;
+    }
+    .market-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+    }
+    .market-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .market-chip {
+      font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+      padding: 6px 12px; border-radius: 7px; cursor: pointer;
+      background: var(--surface-2); color: var(--text-muted);
+      border: 0.67px solid var(--border); transition: all 0.15s;
+    }
+    .market-chip:hover { color: var(--heading); border-color: var(--border-hover); }
+    .market-chip.active {
+      background: var(--brand-bg); color: var(--accent); border-color: var(--accent-2);
+    }
+    .market-search { display: flex; gap: 6px; }
+    .market-search-input {
+      width: 190px; font-family: var(--mono); font-size: 12px;
+      padding: 8px 12px; text-transform: uppercase;
+    }
+    .market-search-btn {
+      font-family: var(--mono); font-size: 12px; font-weight: 600;
+      background: var(--brand-bg); color: var(--accent);
+      border: 0.67px solid var(--accent-2); border-radius: 8px;
+      padding: 8px 16px; cursor: pointer; transition: all 0.2s;
+    }
+    .market-search-btn:hover { background: var(--accent); color: #140404; }
+    .market-quote {
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+      font-family: var(--mono); margin-bottom: 14px; min-height: 34px;
+    }
+    .market-quote .q-sym { font-size: 18px; font-weight: 700; color: var(--heading); }
+    .market-quote .q-price { font-size: 26px; font-weight: 600; color: var(--heading); }
+    .market-quote .q-chg { font-size: 14px; font-weight: 600; }
+    .market-quote .q-chg.up { color: var(--green); }
+    .market-quote .q-chg.down { color: var(--red); }
+    .market-quote .q-meta { font-size: 11.5px; color: var(--text-dim); }
+    .market-loading { color: var(--text-dim); font-size: 12.5px; font-family: var(--mono); }
+    .market-chart-wrap { position: relative; height: 300px; }
+    #market-chart { width: 100%; height: 100%; display: block; }
+    .market-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; margin-top: 14px;
+    }
+    .market-ranges { display: flex; gap: 4px; }
+    .market-range {
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      padding: 5px 11px; border-radius: 6px; cursor: pointer;
+      background: transparent; color: var(--text-muted);
+      border: 0.67px solid transparent; transition: all 0.15s;
+    }
+    .market-range:hover { color: var(--heading); background: var(--surface-2); }
+    .market-range.active { background: var(--surface-3); color: var(--heading); border-color: var(--border-hover); }
+    .market-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .market-action {
+      font-family: var(--mono); font-size: 12px; font-weight: 600;
+      background: var(--accent); color: #140404;
+      border: 0.67px solid var(--accent); border-radius: 8px;
+      padding: 8px 16px; cursor: pointer; transition: all 0.2s;
+      text-decoration: none;
+    }
+    .market-action:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .market-action.secondary {
+      background: var(--surface-2); color: var(--text); border-color: var(--border);
+    }
+    .market-action.secondary:hover { border-color: var(--border-hover); color: var(--heading); }
+    .market-note { margin-top: 12px; font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+    @media (max-width: 900px) {
+      .market-head { flex-direction: column; align-items: stretch; }
+      .market-search-input { width: 100%; }
+      .market-chart-wrap { height: 220px; }
+    }
+
+    /* == Share section == */
     .share-section {
       margin-top: 16px; padding: 20px 24px;
       background: var(--surface);
@@ -2327,14 +2663,20 @@ ${THEME_TOKENS}
 
     <!-- ===== TOP NAV ===== -->
     <nav class="top-nav">
-      <a class="nav-logo" href="/">Swarm<span>X</span></a>
+      <a class="nav-logo" href="/"><img class="nav-logo-img" src="/logo.png" alt="" width="26" height="26">Swarm<span>X</span></a>
       <div class="nav-links">
+        <a href="#markets">Markets</a>
         <a href="#pricing">Pricing</a>
         <a href="/x402/catalog">Catalog</a>
         <a href="https://github.com/SolTwizzy/swarms-x402" target="_blank">GitHub</a>
         <a class="nav-cta" href="#playground">Try Free &rarr;</a>
       </div>
     </nav>
+
+    <!-- ===== TICKER TAPE ===== -->
+    <div class="tape" id="tape" role="marquee" aria-label="Live market prices">
+      <div class="tape-track" id="tape-track"></div>
+    </div>
 
     <!-- ===== HERO ===== -->
     <header class="hero">
@@ -2361,7 +2703,7 @@ ${THEME_TOKENS}
               <div class="term-line in" style="--d:0s">$ swarmx stock-dd --ticker AAPL</div>
               <div class="term-line dim" style="--d:.3s">&nbsp;</div>
               <div class="term-line muted" style="--d:.4s">POST /x402/rwa/stock-dd</div>
-              <div class="term-line dim" style="--d:.48s">402 &rarr; settle 0.29 USDC &rarr; <span style="color:var(--accent)">200 OK</span></div>
+              <div class="term-line dim" style="--d:.48s">402 &rarr; settle 0.29 USDC &rarr; <span style="color:var(--green)">200 OK</span></div>
               <div class="term-line dim" style="--d:.56s">&nbsp;</div>
               <div class="term-line agent" style="--d:.64s"><span class="who">market </span> AAPL  314.86 USD  <span style="color:var(--red)">-0.77%</span>  NasdaqGS</div>
               <div class="term-line dim" style="--d:.72s"><span class="who">       </span> 6mo 243.42 &mdash; 323.45 &middot; pos 89.3%</div>
@@ -2385,6 +2727,33 @@ ${THEME_TOKENS}
         </div>
       </div>
     </header>
+
+    <!-- ===== MARKETS ===== -->
+    <section class="markets" id="markets">
+      <div class="container">
+        <div class="landing-section-title">Markets</div>
+        <h2 class="market-title">Chart it, then run the diligence.</h2>
+        <p class="markets-sub">Live prices for tokenized equities and crypto majors. Pick an asset, read the tape, then send it straight to an analyst swarm.</p>
+        <div class="market-panel">
+          <div class="market-head">
+            <div class="market-chips" id="market-chips"></div>
+            <form class="market-search" id="market-search">
+              <input class="form-input market-search-input" id="market-symbol-input" type="text" placeholder="Any symbol&hellip; e.g. AMD, BTC-USD" maxlength="12" aria-label="Chart symbol">
+              <button class="market-search-btn" type="submit">Chart</button>
+            </form>
+          </div>
+          <div class="market-quote" id="market-quote"><span class="market-loading">Loading market data&hellip;</span></div>
+          <div class="market-chart-wrap">
+            <canvas id="market-chart" aria-label="Price chart"></canvas>
+          </div>
+          <div class="market-foot">
+            <div class="market-ranges" id="market-ranges"></div>
+            <div class="market-actions" id="market-actions"></div>
+          </div>
+          <p class="market-note">Prices via Yahoo Finance, cached ~1 min. Charts are indicative, not investment advice.</p>
+        </div>
+      </div>
+    </section>
 
     <div class="container">
 
@@ -3771,6 +4140,239 @@ console.log(<span class="kw">await</span> res.json());</div>
     try { body = JSON.parse(raw); } catch (e) { showError('batch', 'Invalid JSON: ' + e.message); return; }
     submitEndpoint('batch', '/x402/batch', body, 'Batch Results');
   }
+
+  /* ==========================================================
+     MARKETS - tape + chart (vanilla, no libs; no template
+     literals here: this script lives inside a TS template)
+     ========================================================== */
+  var MKT = {
+    symbol: 'AAPL',
+    range: '6mo',
+    ranges: ['1d', '5d', '1mo', '6mo', '1y'],
+    chips: [
+      { s: 'AAPL', k: 'equity' }, { s: 'NVDA', k: 'equity' }, { s: 'TSLA', k: 'equity' },
+      { s: 'HOOD', k: 'equity' }, { s: 'SPY', k: 'equity' },
+      { s: 'BTC-USD', k: 'crypto' }, { s: 'ETH-USD', k: 'crypto' }, { s: 'SOL-USD', k: 'crypto' }
+    ],
+    data: null
+  };
+
+  function mktFmt(n) {
+    if (n >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    if (n >= 1) return n.toFixed(2);
+    return n.toPrecision(4);
+  }
+
+  function mktLoadTape() {
+    var track = document.getElementById('tape-track');
+    if (!track) return;
+    fetch('/api/market/tape').then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.quotes || !d.quotes.length) return;
+      var html = '';
+      d.quotes.forEach(function (q) {
+        var up = q.pctChange >= 0;
+        html += '<button class="tape-item" type="button" data-mkt-symbol="' + q.symbol + '">' +
+          '<span class="t-sym">' + q.label + '</span>' +
+          '<span>' + mktFmt(q.price) + '</span>' +
+          '<span class="' + (up ? 't-up' : 't-down') + '">' + (up ? '+' : '') + q.pctChange.toFixed(2) + '%</span>' +
+          '</button>';
+      });
+      track.innerHTML = html + html; /* duplicated for the seamless loop */
+    }).catch(function () { /* tape is decorative - fail silent */ });
+  }
+
+  function mktOpen(symbol) {
+    MKT.symbol = symbol.toUpperCase();
+    mktRenderChips();
+    mktLoadChart();
+    var el = document.getElementById('markets');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function mktRenderChips() {
+    var wrap = document.getElementById('market-chips');
+    if (!wrap) return;
+    var html = '';
+    MKT.chips.forEach(function (c) {
+      html += '<button class="market-chip' + (c.s === MKT.symbol ? ' active' : '') +
+        '" type="button" data-mkt-chip="' + c.s + '">' + c.s.replace('-USD', '') + '</button>';
+    });
+    wrap.innerHTML = html;
+  }
+
+  function mktRenderRanges() {
+    var wrap = document.getElementById('market-ranges');
+    if (!wrap) return;
+    var html = '';
+    MKT.ranges.forEach(function (r) {
+      html += '<button class="market-range' + (r === MKT.range ? ' active' : '') +
+        '" type="button" data-mkt-range="' + r + '">' + r.toUpperCase() + '</button>';
+    });
+    wrap.innerHTML = html;
+  }
+
+  function mktLoadChart() {
+    var quote = document.getElementById('market-quote');
+    if (quote) quote.innerHTML = '<span class="market-loading">Loading ' + MKT.symbol + '&hellip;</span>';
+    fetch('/api/market/chart?symbol=' + encodeURIComponent(MKT.symbol) + '&range=' + MKT.range)
+      .then(function (r) {
+        if (!r.ok) throw new Error('not found');
+        return r.json();
+      })
+      .then(function (d) {
+        MKT.data = d;
+        mktRenderQuote(d);
+        mktRenderActions(d);
+        mktDrawChart(d);
+      })
+      .catch(function () {
+        if (quote) quote.innerHTML = '<span class="market-loading">No chart data for ' + MKT.symbol + '. Try another symbol.</span>';
+        MKT.data = null;
+        mktDrawChart(null);
+        mktRenderActions(null);
+      });
+  }
+
+  function mktRenderQuote(d) {
+    var quote = document.getElementById('market-quote');
+    if (!quote) return;
+    var up = d.pctChange >= 0;
+    quote.innerHTML =
+      '<span class="q-sym">' + d.symbol + '</span>' +
+      '<span class="q-price">' + mktFmt(d.price) + ' ' + d.currency + '</span>' +
+      '<span class="q-chg ' + (up ? 'up' : 'down') + '">' + (up ? '+' : '') + d.pctChange.toFixed(2) + '%</span>' +
+      '<span class="q-meta">' + MKT.range.toUpperCase() + ' range ' + mktFmt(d.low) + ' &mdash; ' + mktFmt(d.high) +
+      (d.exchange ? ' &middot; ' + d.exchange : '') + '</span>';
+  }
+
+  function mktRenderActions(d) {
+    var wrap = document.getElementById('market-actions');
+    if (!wrap) return;
+    if (!d) { wrap.innerHTML = ''; return; }
+    var html = '';
+    if (d.kind === 'equity') {
+      html += '<button class="market-action" type="button" data-mkt-dd="' + d.symbol + '">Run Stock DD &mdash; $0.29</button>';
+      html += '<a class="market-action secondary" href="#playground">More endpoints &rarr;</a>';
+    } else {
+      html += '<a class="market-action secondary" href="#playground">On-chain endpoints: token risk, memecoin score &rarr;</a>';
+    }
+    wrap.innerHTML = html;
+  }
+
+  function mktPrefillStockDd(ticker) {
+    var sel = document.getElementById('crypto-endpoint');
+    var input = document.getElementById('crypto-text');
+    if (sel) { sel.value = 'rwa/stock-dd'; if (typeof updateCryptoForm === 'function') updateCryptoForm(); }
+    if (input) input.value = ticker.replace('-USD', '');
+    var pg = document.getElementById('playground');
+    if (pg) pg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function mktDrawChart(d) {
+    var canvas = document.getElementById('market-chart');
+    if (!canvas) return;
+    var wrap = canvas.parentElement;
+    var dpr = window.devicePixelRatio || 1;
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    if (!d || !d.closes || d.closes.length < 2) return;
+
+    var css = getComputedStyle(document.documentElement);
+    var up = d.closes[d.closes.length - 1] >= d.closes[0];
+    var line = (up ? css.getPropertyValue('--green') : css.getPropertyValue('--red')).trim() || (up ? '#00C805' : '#F87171');
+    var gridCol = css.getPropertyValue('--border').trim() || '#251A1A';
+    var textCol = css.getPropertyValue('--text-dim').trim() || '#514747';
+
+    var padL = 8, padR = 64, padT = 12, padB = 22;
+    var cw = w - padL - padR, ch = h - padT - padB;
+    var min = d.low, max = d.high;
+    if (max - min < 1e-9) { max = min + 1; }
+
+    function x(i) { return padL + (i / (d.closes.length - 1)) * cw; }
+    function y(v) { return padT + (1 - (v - min) / (max - min)) * ch; }
+
+    /* grid + right-edge labels */
+    ctx.strokeStyle = gridCol; ctx.fillStyle = textCol;
+    ctx.font = '10px IBM Plex Mono, monospace'; ctx.textAlign = 'left';
+    ctx.lineWidth = 0.5;
+    for (var g = 0; g <= 4; g++) {
+      var gv = min + ((max - min) * g) / 4;
+      var gy = y(gv);
+      ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(padL + cw, gy); ctx.stroke();
+      ctx.fillText(mktFmt(gv), padL + cw + 8, gy + 3);
+    }
+
+    /* time labels: first + last */
+    var t0 = new Date(d.timestamps[0] * 1000);
+    var t1 = new Date(d.timestamps[d.timestamps.length - 1] * 1000);
+    function tl(t) {
+      return (MKT.range === '1d' || MKT.range === '5d')
+        ? t.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric' })
+        : t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+    }
+    ctx.textAlign = 'left'; ctx.fillText(tl(t0), padL, h - 6);
+    ctx.textAlign = 'right'; ctx.fillText(tl(t1), padL + cw, h - 6);
+
+    /* area fill */
+    var grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
+    grad.addColorStop(0, line + '33');
+    grad.addColorStop(1, line + '00');
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(d.closes[0]));
+    for (var i = 1; i < d.closes.length; i++) ctx.lineTo(x(i), y(d.closes[i]));
+    ctx.lineTo(x(d.closes.length - 1), padT + ch);
+    ctx.lineTo(x(0), padT + ch);
+    ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+
+    /* price line */
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(d.closes[0]));
+    for (var j = 1; j < d.closes.length; j++) ctx.lineTo(x(j), y(d.closes[j]));
+    ctx.strokeStyle = line; ctx.lineWidth = 1.6; ctx.stroke();
+
+    /* last-price marker */
+    var lastY = y(d.closes[d.closes.length - 1]);
+    ctx.beginPath(); ctx.arc(padL + cw, lastY, 3, 0, Math.PI * 2);
+    ctx.fillStyle = line; ctx.fill();
+  }
+
+  /* delegated events for markets */
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    var tape = t.closest('[data-mkt-symbol]');
+    if (tape) { mktOpen(tape.getAttribute('data-mkt-symbol')); return; }
+    var chip = t.closest('[data-mkt-chip]');
+    if (chip) { MKT.symbol = chip.getAttribute('data-mkt-chip'); mktRenderChips(); mktLoadChart(); return; }
+    var range = t.closest('[data-mkt-range]');
+    if (range) { MKT.range = range.getAttribute('data-mkt-range'); mktRenderRanges(); mktLoadChart(); return; }
+    var dd = t.closest('[data-mkt-dd]');
+    if (dd) { mktPrefillStockDd(dd.getAttribute('data-mkt-dd')); return; }
+  });
+
+  var mktSearch = document.getElementById('market-search');
+  if (mktSearch) {
+    mktSearch.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var v = document.getElementById('market-symbol-input').value.trim().toUpperCase();
+      if (/^[A-Z0-9.\-^=]{1,12}$/.test(v)) { MKT.symbol = v; mktRenderChips(); mktLoadChart(); }
+    });
+  }
+
+  var mktResizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(mktResizeTimer);
+    mktResizeTimer = setTimeout(function () { if (MKT.data) mktDrawChart(MKT.data); }, 150);
+  });
+
+  mktLoadTape();
+  mktRenderChips();
+  mktRenderRanges();
+  mktLoadChart();
+  setInterval(mktLoadTape, 90000);
   </script>
 </body>
 </html>`;
