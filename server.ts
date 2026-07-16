@@ -4619,11 +4619,20 @@ console.log(<span class="kw">await</span> res.json());</div>
   function agentExplorerUrl(network, tx) {
     if (!tx) return '';
     var n = String(network || '').toLowerCase();
-    if (n === 'base' || n === 'base-mainnet') return 'https://basescan.org/tx/' + tx;
-    if (n === 'arbitrum' || n === 'arbitrum-mainnet') return 'https://arbiscan.io/tx/' + tx;
+    if (n === 'base' || n === 'base-mainnet' || n === 'eip155:8453') return 'https://basescan.org/tx/' + tx;
+    if (n === 'arbitrum' || n === 'arbitrum-mainnet' || n === 'eip155:42161') return 'https://arbiscan.io/tx/' + tx;
     if (n.indexOf('solana') !== -1) return 'https://solscan.io/tx/' + tx;
     if (n.indexOf('4663') !== -1) return 'https://robinhoodchain.blockscout.com/tx/' + tx;
     return '';
+  }
+
+  function agentNetworkLabel(network) {
+    var n = String(network || '').toLowerCase();
+    if (n === 'eip155:8453' || n === 'base-mainnet') return 'Base';
+    if (n === 'eip155:42161' || n === 'arbitrum-mainnet') return 'Arbitrum';
+    if (n.indexOf('solana') !== -1) return 'Solana';
+    if (n.indexOf('4663') !== -1) return 'Robinhood Chain';
+    return String(network || '');
   }
 
   function agentShortTx(tx) {
@@ -4705,7 +4714,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     var pay = d.payment || {};
     if (pay.transaction) {
       var url = agentExplorerUrl(pay.network, pay.transaction);
-      html += '<div class="agent-pay-line"><span>&#10003; Paid ' + (pay.amount !== undefined ? '$' + escHtml(String(pay.amount)) : '') + ' on ' + escHtml(String(pay.network || '')) + ' by ' + escHtml(AGENT.name) + '</span>';
+      html += '<div class="agent-pay-line"><span>&#10003; Paid ' + (pay.amount !== undefined ? '$' + escHtml(String(pay.amount)) : '') + ' on ' + escHtml(agentNetworkLabel(pay.network)) + ' by ' + escHtml(AGENT.name) + '</span>';
       if (url) { html += '<a href="' + escAttr(url) + '" target="_blank" rel="noopener">tx ' + escHtml(agentShortTx(pay.transaction)) + ' &#8599;</a>'; }
       else { html += '<span>tx ' + escHtml(agentShortTx(pay.transaction)) + '</span>'; }
       html += '</div>';
