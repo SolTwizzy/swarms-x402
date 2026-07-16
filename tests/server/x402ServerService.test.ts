@@ -5,6 +5,7 @@ import { createMockRuntime } from "../setup.js";
 vi.mock("@dexterai/x402/server", () => {
   return {
     createX402Server: vi.fn(),
+    FacilitatorClient: class {},
   };
 });
 
@@ -121,6 +122,7 @@ describe("X402ServerService", () => {
         address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         decimals: 6,
       },
+      defaultTimeoutSeconds: 300,
     });
     expect(vi.mocked(createX402Server)).toHaveBeenNthCalledWith(2, {
       payTo: solanaPayTo,
@@ -135,6 +137,7 @@ describe("X402ServerService", () => {
         address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
         decimals: 6,
       },
+      defaultTimeoutSeconds: 300,
     });
 
     await expect(

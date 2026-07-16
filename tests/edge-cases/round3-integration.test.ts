@@ -39,6 +39,7 @@ vi.mock("@dexterai/x402/server", () => ({
       network: "eip155:84532",
     })),
   })),
+  FacilitatorClient: class {},
 }));
 
 import { delegateToSwarmWithPayment } from "../../src/actions/delegateToSwarmWithPayment.js";

@@ -1,6 +1,40 @@
 import { Service, type IAgentRuntime } from "@elizaos/core";
-import { createX402Server, type X402Server } from "@dexterai/x402/server";
+import {
+  createX402Server,
+  FacilitatorClient,
+  type X402Server,
+} from "@dexterai/x402/server";
 import { USDC_ADDRESSES } from "@dexterai/x402/adapters";
+
+// The SDK hardcodes a 10s facilitator HTTP timeout, but Dexter's EVM settle
+// can take tens of seconds under load (measured 2026-07-16 on Base). Give
+// /settle 60s while keeping the snappy 10s for /verify and /supported.
+let facilitatorTimeoutPatched = false;
+function patchFacilitatorSettleTimeout(): void {
+  if (facilitatorTimeoutPatched) return;
+  facilitatorTimeoutPatched = true;
+  const proto = (
+    FacilitatorClient as unknown as
+      | { prototype: Record<string, unknown> }
+      | undefined
+  )?.prototype;
+  if (!proto) return; // mocked SDK in tests
+  proto.fetchWithTimeout = async function (
+    this: { timeoutMs: number },
+    url: string,
+    init?: RequestInit
+  ): Promise<Response> {
+    const isSettle = typeof url === "string" && url.endsWith("/settle");
+    const ms = isSettle ? 60_000 : this.timeoutMs;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+}
 import type { X402RevenueRecord, X402ServiceEndpoint } from "../types.js";
 import {
   resolveEnabledNetworks,
@@ -53,6 +87,7 @@ export class X402ServerService extends Service {
 
     const facilitatorRaw = runtime.getSetting("X402_FACILITATOR_URL");
     const facilitatorUrl = facilitatorRaw ? String(facilitatorRaw) : undefined;
+    patchFacilitatorSettleTimeout();
 
     this.instances = configs.map((config) => {
       // The SDK's default asset is Solana USDC regardless of network — EVM
@@ -67,7 +102,13 @@ export class X402ServerService extends Service {
           network: config.caip2,
           facilitatorUrl,
           ...(config.kind === "evm" && usdcAddress
-            ? { asset: { address: usdcAddress, decimals: 6 } }
+            ? {
+                asset: { address: usdcAddress, decimals: 6 },
+                // EIP-3009 validBefore = now + this. Dexter's EVM settle
+                // queue can exceed 60s; a longer window keeps queued
+                // authorizations from expiring before broadcast.
+                defaultTimeoutSeconds: 300,
+              }
             : {}),
         }),
       };
