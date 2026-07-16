@@ -1,27 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockRuntime } from "../setup.js";
-import { DEFAULT_TEST_SETTINGS } from "../fixtures.js";
 
 // Mock the Dexter server SDK
 vi.mock("@dexterai/x402/server", () => {
-  const mockServer = {
-    buildRequirements: vi.fn(async () => ({})),
-    encodeRequirements: vi.fn(() => ""),
-    getPaymentAccept: vi.fn(async () => ({})),
-    verifyPayment: vi.fn(async () => ({ isValid: true })),
-    settlePayment: vi.fn(async () => ({ success: true, transaction: "0x123" })),
-  };
-
   return {
-    createX402Server: vi.fn(() => mockServer),
+    createX402Server: vi.fn(),
   };
 });
 
+import { createX402Server } from "@dexterai/x402/server";
 import { X402ServerService } from "../../src/server/x402ServerService.js";
 
 describe("X402ServerService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(createX402Server).mockImplementation(({ network }) => ({
+      buildRequirements: vi.fn(async () => ({
+        x402Version: 2,
+        resource: "r",
+        accepts: [{ network }],
+      })),
+      encodeRequirements: vi.fn(() => ""),
+      getPaymentAccept: vi.fn(async () => ({})),
+      verifyPayment: vi.fn(async () => ({ isValid: true })),
+      settlePayment: vi.fn(async () => ({
+        success: true,
+        transaction: "0x123",
+      })),
+      network: network ?? "",
+    }) as ReturnType<typeof createX402Server>);
   });
 
   it("initializes with X402_RECEIVE_ADDRESS set — isAvailable true", async () => {
@@ -37,6 +44,9 @@ describe("X402ServerService", () => {
     expect(service.isAvailable()).toBe(true);
     expect(service.getReceiveAddress()).toBe("0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
     expect(service.getNetwork()).toBe("eip155:84532");
+    expect(service.getServer()).toBe(
+      vi.mocked(createX402Server).mock.results[0].value
+    );
   });
 
   it("no receive address — isAvailable false", async () => {
@@ -46,6 +56,92 @@ describe("X402ServerService", () => {
 
     expect(service.isAvailable()).toBe(false);
     expect(service.getReceiveAddress()).toBe("");
+    expect(service.getNetwork()).toBe("");
+    expect(() => service.getPrimaryNetwork()).toThrow(
+      "X402 server not initialized — set X402_RECEIVE_ADDRESS"
+    );
+  });
+
+  it("initializes and merges requirements for multiple networks in priority order", async () => {
+    const evmPayTo = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+    const solanaPayTo = "7YttLkHDoNj9wyDur5hY5b9usVwPdWq7KZPUVXmN7Rrf";
+    const solanaCaip2 = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+    const facilitatorUrl = "https://facilitator.example.com";
+    const runtime = createMockRuntime({
+      settings: {
+        X402_NETWORKS: "base-mainnet,solana-mainnet,arbitrum-mainnet",
+        X402_RECEIVE_ADDRESS_EVM: evmPayTo,
+        X402_RECEIVE_ADDRESS_SOLANA: solanaPayTo,
+        X402_FACILITATOR_URL: facilitatorUrl,
+      },
+    });
+
+    const service = await X402ServerService.start(runtime);
+    const servers = vi.mocked(createX402Server).mock.results.map(
+      (result) => result.value
+    );
+
+    expect(service.getNetworks()).toEqual([
+      {
+        friendlyId: "base-mainnet",
+        caip2: "eip155:8453",
+        kind: "evm",
+        payTo: evmPayTo,
+      },
+      {
+        friendlyId: "solana-mainnet",
+        caip2: solanaCaip2,
+        kind: "solana",
+        payTo: solanaPayTo,
+      },
+      {
+        friendlyId: "arbitrum-mainnet",
+        caip2: "eip155:42161",
+        kind: "evm",
+        payTo: evmPayTo,
+      },
+    ]);
+    expect(service.getPrimaryNetwork()).toEqual(service.getNetworks()[0]);
+    expect(service.getServerFor(solanaCaip2)).toBe(servers[1]);
+    expect(service.getServerFor("eip155:999")).toBeUndefined();
+    expect(service.getPayToFor("eip155:8453")).toBe(evmPayTo);
+    expect(service.getPayToFor(solanaCaip2)).toBe(solanaPayTo);
+    expect(service.getPayToFor("eip155:999")).toBeUndefined();
+    expect(service.getServer()).toBe(servers[0]);
+    expect(service.getNetwork()).toBe("eip155:8453");
+    expect(service.getReceiveAddress()).toBe(evmPayTo);
+    expect(vi.mocked(createX402Server)).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(createX402Server)).toHaveBeenNthCalledWith(1, {
+      payTo: evmPayTo,
+      network: "eip155:8453",
+      facilitatorUrl,
+    });
+    expect(vi.mocked(createX402Server)).toHaveBeenNthCalledWith(2, {
+      payTo: solanaPayTo,
+      network: solanaCaip2,
+      facilitatorUrl,
+    });
+    expect(vi.mocked(createX402Server)).toHaveBeenNthCalledWith(3, {
+      payTo: evmPayTo,
+      network: "eip155:42161",
+      facilitatorUrl,
+    });
+
+    await expect(
+      service.buildAllRequirements({
+        amountAtomic: "50000",
+        resourceUrl: "https://swarmx.io/api/research",
+        description: "Research task",
+      })
+    ).resolves.toEqual({
+      x402Version: 2,
+      resource: "r",
+      accepts: [
+        { network: "eip155:8453" },
+        { network: solanaCaip2 },
+        { network: "eip155:42161" },
+      ],
+    });
   });
 
   it("recordRevenue tracks payments", async () => {

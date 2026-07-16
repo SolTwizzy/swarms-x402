@@ -430,6 +430,14 @@ describe("Budget manipulation", () => {
     const mockServerService = {
       isAvailable: () => true,
       getServer: () => mockServer,
+      buildAllRequirements: vi.fn(async (opts: any) => {
+        expect(opts.amountAtomic).toBe("0");
+        return {
+          x402Version: 2,
+          resource: { url: "/api/test" },
+          accepts: [{ type: "x402", amount: "0" }],
+        };
+      }),
       getNetwork: () => "eip155:84532",
       getReceiveAddress: () => "0xreceive",
       recordRevenue: vi.fn(),
@@ -448,7 +456,7 @@ describe("Budget manipulation", () => {
 
     // Pass negative amountUsd
     await x402Gate(runtime, req, res, { amountUsd: "-5.00" });
-    expect(mockServer.buildRequirements).toHaveBeenCalledWith(
+    expect(mockServerService.buildAllRequirements).toHaveBeenCalledWith(
       expect.objectContaining({ amountAtomic: "0" })
     );
   });
@@ -468,6 +476,14 @@ describe("Budget manipulation", () => {
     const mockServerService = {
       isAvailable: () => true,
       getServer: () => mockServer,
+      buildAllRequirements: vi.fn(async (opts: any) => {
+        expect(opts.amountAtomic).toBe("0");
+        return {
+          x402Version: 2,
+          resource: { url: "/api/test" },
+          accepts: [{ type: "x402", amount: "0" }],
+        };
+      }),
       getNetwork: () => "eip155:84532",
       getReceiveAddress: () => "0xreceive",
       recordRevenue: vi.fn(),
@@ -485,7 +501,7 @@ describe("Budget manipulation", () => {
     };
 
     await x402Gate(runtime, req, res, { amountUsd: "not-a-number" });
-    expect(mockServer.buildRequirements).toHaveBeenCalledWith(
+    expect(mockServerService.buildAllRequirements).toHaveBeenCalledWith(
       expect.objectContaining({ amountAtomic: "0" })
     );
   });

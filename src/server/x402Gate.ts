@@ -1,4 +1,5 @@
 import type { IAgentRuntime } from "@elizaos/core";
+import type { PaymentRequired } from "@dexterai/x402/server";
 import { X402ServerService } from "./x402ServerService.js";
 
 /**
@@ -238,13 +239,15 @@ export async function x402Gate(
         /^http:\/\//,
         "https://"
       );
-      const requirements = await server.buildRequirements({
+      const requirements = await serverService.buildAllRequirements({
         amountAtomic: usdToAtomic(options.amountUsd),
         resourceUrl,
         description: options.description,
       });
 
-      const encoded = server.encodeRequirements(requirements);
+      // Dexter's encoder is shape-agnostic base64 JSON at runtime, but its
+      // public signature requires the SDK's stricter PaymentRequired type.
+      const encoded = server.encodeRequirements(requirements as PaymentRequired);
 
       if (res.setHeader) {
         res.setHeader("PAYMENT-REQUIRED", encoded);
@@ -255,10 +258,7 @@ export async function x402Gate(
         // the encoded PAYMENT-REQUIRED header.
         // Backfill v1 fields (resource/description/mimeType) that strict
         // schema validators require — same shape as /discovery/resources.
-        const inner = Array.isArray((requirements as any).accepts)
-          ? (requirements as any).accepts
-          : [requirements];
-        const dexterAccepts = inner.map((entry: object) => ({
+        const dexterAccepts = requirements.accepts.map((entry) => ({
           resource: resourceUrl,
           description: options.description,
           mimeType: "application/json",
@@ -289,14 +289,28 @@ export async function x402Gate(
   }
 
   // Payment header present — verify and settle
+  let paymentNetwork: string | undefined;
   try {
-    const accept = await server.getPaymentAccept({
+    const decoded = JSON.parse(Buffer.from(paymentHeader, "base64").toString());
+    paymentNetwork =
+      typeof decoded?.accepted?.network === "string"
+        ? decoded.accepted.network
+        : undefined;
+  } catch {
+    // Unknown/legacy payment header shape — use the primary server.
+  }
+  const paymentServer = paymentNetwork
+    ? serverService.getServerFor(paymentNetwork) ?? server
+    : server;
+
+  try {
+    const accept = await paymentServer.getPaymentAccept({
       amountAtomic: usdToAtomic(options.amountUsd),
       resourceUrl: options.resourceUrl ?? req.url ?? "/unknown",
       description: options.description,
     });
 
-    const verifyResult = await server.verifyPayment(paymentHeader, accept);
+    const verifyResult = await paymentServer.verifyPayment(paymentHeader, accept);
     if (!(verifyResult as any).isValid && !(verifyResult as any).valid) {
       if (res.status && res.json) {
         res.status(402).json({
@@ -307,7 +321,7 @@ export async function x402Gate(
       return { paid: false, amountUsd: 0 };
     }
 
-    const settleResult = await server.settlePayment(paymentHeader, accept);
+    const settleResult = await paymentServer.settlePayment(paymentHeader, accept);
     if (!settleResult.success) {
       if (res.status && res.json) {
         res.status(402).json({
@@ -325,7 +339,7 @@ export async function x402Gate(
       endpoint: req.url ?? "/unknown",
       amountUsd,
       txHash: settleResult.transaction ?? "",
-      network: settleResult.network ?? serverService.getNetwork(),
+      network: settleResult.network ?? paymentNetwork ?? serverService.getNetwork(),
       payer: (settleResult as any).payer ?? "",
       timestamp: Date.now(),
     });

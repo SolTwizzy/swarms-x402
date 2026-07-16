@@ -134,6 +134,16 @@ function createMockServerService(overrides?: {
   return {
     isAvailable: vi.fn(() => available),
     getServer: vi.fn(() => mockServer),
+    getServerFor: vi.fn(() => undefined),
+    buildAllRequirements: overrides?.buildReqThrows
+      ? vi.fn(async () => {
+          throw new Error("buildAllRequirements exploded");
+        })
+      : vi.fn(async () => ({
+          x402Version: 2,
+          resource: { url: "/api/test" },
+          accepts: [{ type: "x402", amount: "50000" }],
+        })),
     getNetwork: vi.fn(() => "eip155:84532"),
     getReceiveAddress: vi.fn(
       () => "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
@@ -558,8 +568,8 @@ describe("3. x402Gate edge cases", () => {
     });
 
     expect(result.paid).toBe(false);
-    // buildRequirements was called with "0" as amountAtomic (safe fallback)
-    expect(serverService.mockServer.buildRequirements).toHaveBeenCalledWith(
+    // buildAllRequirements was called with "0" as amountAtomic (safe fallback)
+    expect(serverService.buildAllRequirements).toHaveBeenCalledWith(
       expect.objectContaining({ amountAtomic: "0" })
     );
   });
@@ -575,7 +585,7 @@ describe("3. x402Gate edge cases", () => {
     const result = await x402Gate(runtime, req, res, { amountUsd: "0" });
 
     expect(result.paid).toBe(false);
-    expect(serverService.mockServer.buildRequirements).toHaveBeenCalledWith(
+    expect(serverService.buildAllRequirements).toHaveBeenCalledWith(
       expect.objectContaining({ amountAtomic: "0" })
     );
   });
@@ -603,7 +613,7 @@ describe("3. x402Gate edge cases", () => {
     expect(result.transaction).toBe("0xupper");
   });
 
-  it("3g. x402Gate buildRequirements throws -- returns 500 not crash", async () => {
+  it("3g. x402Gate buildAllRequirements throws -- returns 500 not crash", async () => {
     const serverService = createMockServerService({ buildReqThrows: true });
     const runtime = createMockRuntime({
       services: { X402_SERVER: serverService },

@@ -1,6 +1,21 @@
 import { Service, type IAgentRuntime } from "@elizaos/core";
 import { createX402Server, type X402Server } from "@dexterai/x402/server";
 import type { X402RevenueRecord, X402ServiceEndpoint } from "../types.js";
+import {
+  resolveEnabledNetworks,
+  type NetworkConfig,
+} from "./networkRegistry.js";
+
+interface X402ServerInstance {
+  config: NetworkConfig;
+  server: X402Server;
+}
+
+interface BuildAllRequirementsOptions {
+  amountAtomic: string;
+  resourceUrl: string;
+  description?: string;
+}
 
 /**
  * Server-side x402 service for SELLING agent capabilities.
@@ -11,10 +26,9 @@ export class X402ServerService extends Service {
   capabilityDescription =
     "Accepts x402 payments for agent services — verifies and settles incoming USDC payments";
 
-  private x402Server: X402Server | null = null;
+  private instances: X402ServerInstance[] = [];
+  private instanceIndexByNetwork = new Map<string, number>();
   private revenueHistory: X402RevenueRecord[] = [];
-  private receiveAddress: string = "";
-  private network: string = "";
 
   static async start(runtime: IAgentRuntime): Promise<X402ServerService> {
     const instance = new X402ServerService(runtime);
@@ -23,63 +37,114 @@ export class X402ServerService extends Service {
   }
 
   async stop(): Promise<void> {
-    this.x402Server = null;
+    this.instances = [];
+    this.instanceIndexByNetwork.clear();
   }
 
   async initialize(runtime: IAgentRuntime): Promise<void> {
-    const receiveAddr = runtime.getSetting("X402_RECEIVE_ADDRESS");
-    if (!receiveAddr) {
+    const configs = resolveEnabledNetworks((key) => runtime.getSetting(key));
+    if (configs.length === 0) {
       runtime.logger.info(
         "[X402ServerService] X402_RECEIVE_ADDRESS not set. Sell-side features disabled."
       );
       return;
     }
 
-    this.receiveAddress = String(receiveAddr);
-
-    const networkRaw = runtime.getSetting("X402_NETWORK_ID");
     const facilitatorRaw = runtime.getSetting("X402_FACILITATOR_URL");
+    const facilitatorUrl = facilitatorRaw ? String(facilitatorRaw) : undefined;
 
-    // Map friendly network ID to CAIP-2
-    const networkMap: Record<string, string> = {
-      "base-mainnet": "eip155:8453",
-      "base-sepolia": "eip155:84532",
-      "ethereum-mainnet": "eip155:1",
-      "solana-mainnet": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-      "polygon-mainnet": "eip155:137",
-      "arbitrum-mainnet": "eip155:42161",
-    };
-    this.network = networkMap[String(networkRaw ?? "base-mainnet")] ?? "eip155:8453";
+    this.instances = configs.map((config) => ({
+      config,
+      server: createX402Server({
+        payTo: config.payTo,
+        network: config.caip2,
+        facilitatorUrl,
+      }),
+    }));
+    this.instanceIndexByNetwork = new Map(
+      this.instances.map(({ config }, index) => [config.caip2, index])
+    );
 
-    this.x402Server = createX402Server({
-      payTo: this.receiveAddress,
-      network: this.network,
-      facilitatorUrl: facilitatorRaw ? String(facilitatorRaw) : undefined,
-    });
-
+    const primary = this.instances[0];
     runtime.logger.info(
-      { receiveAddress: this.receiveAddress, network: this.network },
+      {
+        receiveAddress: primary.config.payTo,
+        network: primary.config.caip2,
+        networks: configs.map((config) => config.caip2),
+      },
       "[X402ServerService] Initialized — accepting x402 payments"
     );
   }
 
-  isAvailable(): boolean {
-    return this.x402Server !== null;
-  }
-
-  getServer(): X402Server {
-    if (!this.x402Server) {
+  private getPrimaryInstance(): X402ServerInstance {
+    const primary = this.instances[0];
+    if (!primary) {
       throw new Error("X402 server not initialized — set X402_RECEIVE_ADDRESS");
     }
-    return this.x402Server;
+    return primary;
   }
 
+  isAvailable(): boolean {
+    return this.instances.length > 0;
+  }
+
+  /** Get all enabled network configurations in priority order. */
+  getNetworks(): NetworkConfig[] {
+    return this.instances.map(({ config }) => ({ ...config }));
+  }
+
+  /** Get the primary network configuration. */
+  getPrimaryNetwork(): NetworkConfig {
+    return { ...this.getPrimaryInstance().config };
+  }
+
+  /** Get the x402 server configured for a CAIP-2 network. */
+  getServerFor(caip2: string): X402Server | undefined {
+    const index = this.instanceIndexByNetwork.get(caip2);
+    return index === undefined ? undefined : this.instances[index]?.server;
+  }
+
+  /** Get the payment receive address for a CAIP-2 network. */
+  getPayToFor(caip2: string): string | undefined {
+    const index = this.instanceIndexByNetwork.get(caip2);
+    return index === undefined ? undefined : this.instances[index]?.config.payTo;
+  }
+
+  /** Build and merge payment requirements for every enabled network. */
+  async buildAllRequirements(
+    opts: BuildAllRequirementsOptions
+  ): Promise<{
+    x402Version: number;
+    resource: unknown;
+    accepts: object[];
+  }> {
+    this.getPrimaryInstance();
+
+    const requirements = await Promise.all(
+      this.instances.map(({ server }) => server.buildRequirements(opts))
+    );
+    const primaryRequirements = requirements[0];
+
+    return {
+      x402Version: primaryRequirements.x402Version,
+      resource: primaryRequirements.resource,
+      accepts: requirements.flatMap((requirement) => requirement.accepts),
+    };
+  }
+
+  /** Get the primary x402 server. */
+  getServer(): X402Server {
+    return this.getPrimaryInstance().server;
+  }
+
+  /** Get the primary payment receive address. */
   getReceiveAddress(): string {
-    return this.receiveAddress;
+    return this.instances[0]?.config.payTo ?? "";
   }
 
+  /** Get the primary CAIP-2 network identifier. */
   getNetwork(): string {
-    return this.network;
+    return this.instances[0]?.config.caip2 ?? "";
   }
 
   /**
