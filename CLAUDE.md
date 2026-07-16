@@ -100,6 +100,22 @@ Endpoints are discoverable via the Dexter SDK (`searchAPIs()`) and the OpenDexte
 - **Onboarding page**: `https://dexter.cash/onboard` — no API keys or accounts needed for selling, just return proper 402 responses
 - **Settlement triggers indexing**: First successful x402 settlement on an endpoint auto-adds it to the SDK/MCP index (not the web UI)
 
+## x402scan Listing (Merit Systems)
+
+**REGISTERED 2026-07-15**: all 45 paid endpoints active on https://www.x402scan.com/server/5d018492-2643-47ea-946f-7137381a14cb (origin `swarmx.io`). Contact email `Management@swarmx.io` published in `/openapi.json` `info.contact` (unlocks merchant-page claiming on tryponcho.com).
+
+**Discovery surface (must stay intact — x402scan re-probes):**
+- `GET /.well-known/x402` — minimal discovery doc (version + paid resource URLs)
+- `GET /openapi.json` — primary source: `x-payment-info` + declared `402` response + a **requestBody property schema** on every paid op (bare `{type:"object"}` is rejected; `/swarm/*` schemas live in `EXTRA_INPUT_META` in x402Routes.ts)
+- Unauthenticated **empty-body POST must return the 402 challenge** (never a free-tier 200 or validation 400). x402Gate skips the free tier when there's no payment header and no body; rwaRoutes use `answeredDiscoveryProbe()` before ticker validation.
+- The 402 JSON body must carry non-empty `accepts[]` (v1 fields `resource`/`description`/`mimeType` backfilled) and https resource URLs.
+
+**Registration API** (SIWX wallet auth, free): request → 402 → sign the `extensions["sign-in-with-x"].info` challenge (EIP-191, eip155:8453) with the repo `EVM_PRIVATE_KEY` (0xD421… is the registrant) using `@x402/extensions/sign-in-with-x` → retry with `SIGN-IN-WITH-X` header.
+
+**⚠️ NEVER use the batch `register-origin` endpoint** — it deprecates every resource its rate-limited probe misses in that run (~12/45 pass per run; one run deprecated 47). Register endpoints individually via `POST /api/x402/registry/register {url}` with 8-15s spacing.
+
+**Transactions layer**: automatic — x402scan tracks the Dexter facilitator wallets on Solana + Base, so Dexter settlements appear with no action. Robinhood Chain (eip155:4663) is not tracked.
+
 ## Env Vars
 
 Required for payments: `SOLANA_PRIVATE_KEY` or `EVM_PRIVATE_KEY`
