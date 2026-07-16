@@ -203,6 +203,9 @@ const runtime = {
     if (val === undefined) return null;
     if (val === "true") return true;
     if (val === "false") return false;
+    // Hex strings (0x-prefixed wallet addresses/keys) must stay strings —
+    // Number("0xcadE…") silently produces 1.15e+48 and corrupts payTo.
+    if (/^0x/i.test(val.trim())) return val;
     const num = Number(val);
     if (!isNaN(num) && val.trim() !== "") return num;
     return val;

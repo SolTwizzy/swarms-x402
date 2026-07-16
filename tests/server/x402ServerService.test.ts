@@ -111,10 +111,16 @@ describe("X402ServerService", () => {
     expect(service.getNetwork()).toBe("eip155:8453");
     expect(service.getReceiveAddress()).toBe(evmPayTo);
     expect(vi.mocked(createX402Server)).toHaveBeenCalledTimes(3);
+    // EVM networks must carry their own USDC contract — the SDK default
+    // asset is Solana USDC regardless of network.
     expect(vi.mocked(createX402Server)).toHaveBeenNthCalledWith(1, {
       payTo: evmPayTo,
       network: "eip155:8453",
       facilitatorUrl,
+      asset: {
+        address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        decimals: 6,
+      },
     });
     expect(vi.mocked(createX402Server)).toHaveBeenNthCalledWith(2, {
       payTo: solanaPayTo,
@@ -125,6 +131,10 @@ describe("X402ServerService", () => {
       payTo: evmPayTo,
       network: "eip155:42161",
       facilitatorUrl,
+      asset: {
+        address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        decimals: 6,
+      },
     });
 
     await expect(

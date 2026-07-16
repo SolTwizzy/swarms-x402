@@ -1,5 +1,6 @@
 import { Service, type IAgentRuntime } from "@elizaos/core";
 import { createX402Server, type X402Server } from "@dexterai/x402/server";
+import { USDC_ADDRESSES } from "@dexterai/x402/adapters";
 import type { X402RevenueRecord, X402ServiceEndpoint } from "../types.js";
 import {
   resolveEnabledNetworks,
@@ -53,14 +54,24 @@ export class X402ServerService extends Service {
     const facilitatorRaw = runtime.getSetting("X402_FACILITATOR_URL");
     const facilitatorUrl = facilitatorRaw ? String(facilitatorRaw) : undefined;
 
-    this.instances = configs.map((config) => ({
-      config,
-      server: createX402Server({
-        payTo: config.payTo,
-        network: config.caip2,
-        facilitatorUrl,
-      }),
-    }));
+    this.instances = configs.map((config) => {
+      // The SDK's default asset is Solana USDC regardless of network — EVM
+      // networks must be given their own USDC contract explicitly.
+      const usdcAddress = (USDC_ADDRESSES as Record<string, string>)[
+        config.caip2
+      ];
+      return {
+        config,
+        server: createX402Server({
+          payTo: config.payTo,
+          network: config.caip2,
+          facilitatorUrl,
+          ...(config.kind === "evm" && usdcAddress
+            ? { asset: { address: usdcAddress, decimals: 6 } }
+            : {}),
+        }),
+      };
+    });
     this.instanceIndexByNetwork = new Map(
       this.instances.map(({ config }, index) => [config.caip2, index])
     );
