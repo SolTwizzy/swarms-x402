@@ -35,6 +35,17 @@ import { getReport, getRecentReports, getReportCount } from "./src/utils/reportS
 import type { AuditReport } from "./src/utils/reportStore.js";
 import { getMcpToolDefinitions } from "./src/mcp/index.js";
 import { handleMcpMessage, mcpDescriptor, type JsonRpcMessage } from "./src/mcp/mcpServer.js";
+import {
+  startLink,
+  claimLink,
+  createJob,
+  pollJobs,
+  completeJob,
+  getJob,
+  getSessionByBrowserToken,
+  sessionSummary,
+  type AllowedEndpoint,
+} from "./src/server/agentLink.js";
 
 // ── Env ─────────────────────────────────────────────────────────────────────
 // Bun loads .env automatically. For Node, uncomment:
@@ -109,6 +120,64 @@ function withCORS(response: Response): Response {
     statusText: response.statusText,
     headers: newHeaders,
   });
+}
+
+// ── Agent Link helpers ───────────────────────────────────────────────────────
+
+/** Public origin for links we hand out (env override, else derived; TLS is proxy-terminated). */
+function publicOrigin(url: URL): string {
+  const env = (process.env.SWARMX_BASE_URL ?? "").trim().replace(/\/$/, "");
+  if (env) return env;
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return url.origin;
+  return url.origin.replace(/^http:\/\//, "https://");
+}
+
+/** Read the browser's agent-link cookie token. */
+function readAgentCookie(request: Request): string | null {
+  const cookie = request.headers.get("cookie") ?? "";
+  const match = cookie.match(/(?:^|;\s*)swarmx_agent=([A-Za-z0-9_-]+)/);
+  return match ? match[1]! : null;
+}
+
+/** Paid endpoints the browser may queue as agent jobs (from the MCP catalog). */
+let agentJobEndpoints: AllowedEndpoint[] | null = null;
+function getAgentJobEndpoints(): AllowedEndpoint[] {
+  if (!agentJobEndpoints) {
+    agentJobEndpoints = getMcpToolDefinitions()
+      .tools.filter((t) => !t.metadata.free)
+      .map((t) => ({
+        endpoint: t.metadata.endpoint,
+        method: t.metadata.method,
+        priceUsd: t.metadata.priceUsd,
+        description: t.description.split(".")[0]!.slice(0, 120),
+      }));
+  }
+  return agentJobEndpoints;
+}
+
+async function readJsonBody(request: Request): Promise<Record<string, unknown>> {
+  try {
+    const parsed = (await request.json()) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Minimal page for expired/used magic links (no template placeholders needed). */
+function agentLinkErrorHtml(): string {
+  return [
+    "<!doctype html><html><head><meta charset='utf-8'><title>Link expired - SwarmX</title>",
+    "<meta name='viewport' content='width=device-width,initial-scale=1'>",
+    "<style>body{background:#0D0505;color:#EDE4E4;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}",
+    ".card{max-width:420px;padding:32px;border:1px solid #251A1A;border-radius:12px;text-align:center}",
+    "a{color:#FF4545}</style></head><body><div class='card'>",
+    "<h1 style='font-size:20px'>This agent link is expired or already used</h1>",
+    "<p style='color:#9c8f8f;font-size:14px'>Ask your agent to mint a fresh one (swarmx_link_start on the MCP server, or POST /api/agent-link/start), then open the new link.</p>",
+    "<p><a href='/'>Back to SwarmX</a></p></div></body></html>",
+  ].join("");
 }
 
 // ── Market data (Yahoo Finance proxy, in-memory cache) ──────────────────────
@@ -1830,6 +1899,143 @@ async function startServer(): Promise<void> {
         }
       }
 
+      // ── Agent Link: magic-link pairing + job relay ─────────────────
+      // The agent mints a claim link (MCP swarmx_link_start or the HTTP
+      // route below); the human opens it; the browser then queues paid
+      // jobs that the agent pays with its own wallet via x402.
+      if (pathname.startsWith("/link/") && method === "GET") {
+        const code = decodeURIComponent(pathname.slice("/link/".length));
+        const claimed = claimLink(code);
+        if (!claimed) {
+          return new Response(agentLinkErrorHtml(), {
+            status: 410,
+            headers: { "content-type": "text/html; charset=utf-8" },
+          });
+        }
+        const headers = new Headers();
+        headers.set(
+          "Set-Cookie",
+          `swarmx_agent=${claimed.browserToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
+        );
+        headers.set(
+          "Location",
+          `/?agent=${encodeURIComponent(claimed.agentName)}#markets`
+        );
+        return new Response(null, { status: 302, headers });
+      }
+
+      if (pathname === "/api/agent-link/start" && method === "POST") {
+        const body = await readJsonBody(request);
+        const started = startLink(
+          typeof body.agent_name === "string" ? body.agent_name : undefined
+        );
+        const origin = publicOrigin(url);
+        return withCORS(
+          Response.json({
+            claim_url: `${origin}/link/${started.claimCode}`,
+            agent_token: started.agentToken,
+            expires_in_seconds: started.expiresInSeconds,
+            next_steps:
+              "Send claim_url to your human. Keep agent_token. Poll POST /api/agent-link/poll {agent_token} for jobs; pay each job's endpoint via x402 with your wallet; report with POST /api/agent-link/complete.",
+          })
+        );
+      }
+
+      if (pathname === "/api/agent-link/session" && method === "GET") {
+        const session = getSessionByBrowserToken(readAgentCookie(request));
+        if (!session) return withCORS(Response.json({ linked: false }));
+        return withCORS(Response.json(sessionSummary(session)));
+      }
+
+      if (pathname === "/api/agent-link/request" && method === "POST") {
+        const body = await readJsonBody(request);
+        const created = createJob(
+          readAgentCookie(request),
+          {
+            endpoint: typeof body.endpoint === "string" ? body.endpoint : "",
+            body:
+              body.body && typeof body.body === "object" && !Array.isArray(body.body)
+                ? (body.body as Record<string, unknown>)
+                : {},
+          },
+          getAgentJobEndpoints()
+        );
+        if (!created.ok) {
+          return withCORS(Response.json({ error: created.error }, { status: 400 }));
+        }
+        return withCORS(
+          Response.json({
+            job_id: created.job.jobId,
+            status: created.job.status,
+            price_usd: created.job.priceUsd,
+            description: created.job.description,
+          })
+        );
+      }
+
+      if (pathname === "/api/agent-link/request" && method === "GET") {
+        const job = getJob(readAgentCookie(request), url.searchParams.get("id") ?? "");
+        if (!job) {
+          return withCORS(Response.json({ error: "Unknown job" }, { status: 404 }));
+        }
+        return withCORS(
+          Response.json({
+            job_id: job.jobId,
+            status: job.status,
+            endpoint: job.endpoint,
+            price_usd: job.priceUsd,
+            result: job.result,
+            error: job.error,
+            payment: job.payment,
+          })
+        );
+      }
+
+      if (pathname === "/api/agent-link/poll" && method === "POST") {
+        const body = await readJsonBody(request);
+        const polled = pollJobs(
+          typeof body.agent_token === "string" ? body.agent_token : null
+        );
+        if (!polled) {
+          return withCORS(
+            Response.json({ error: "Invalid or expired agent_token" }, { status: 401 })
+          );
+        }
+        const origin = publicOrigin(url);
+        return withCORS(
+          Response.json({
+            claimed: polled.claimed,
+            jobs: polled.jobs.map((j) => ({
+              job_id: j.jobId,
+              endpoint: `${origin}${j.endpoint}`,
+              method: j.method,
+              body: j.body,
+              price_usd: j.priceUsd,
+              description: j.description,
+            })),
+          })
+        );
+      }
+
+      if (pathname === "/api/agent-link/complete" && method === "POST") {
+        const body = await readJsonBody(request);
+        const errorText =
+          typeof body.error === "string" && body.error.trim() ? body.error : undefined;
+        const done = completeJob(
+          typeof body.agent_token === "string" ? body.agent_token : null,
+          {
+            jobId: typeof body.job_id === "string" ? body.job_id : "",
+            ok: !errorText,
+            result: body.result,
+            error: errorText,
+          }
+        );
+        if (!done.ok) {
+          return withCORS(Response.json({ error: done.error }, { status: 400 }));
+        }
+        return withCORS(Response.json({ recorded: true }));
+      }
+
       // ── HTML Playground ────────────────────────────────────────────
       if (pathname === "/" && method === "GET") {
         const configuredNetworkIds = (process.env.X402_NETWORKS ?? "")
@@ -2206,6 +2412,7 @@ ${THEME_TOKENS}
     .finding.medium { border-left-color: var(--yellow); }
     .finding.low { border-left-color: var(--blue); }
     .finding.info { border-left-color: var(--border-hover); }
+    .finding.up { border-left-color: var(--green); }
     .finding-sev {
       font-family: var(--mono); font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px;
@@ -2617,6 +2824,89 @@ ${THEME_TOKENS}
       .market-chart-wrap { height: 220px; }
     }
 
+    /* == Agent Link (browser paired with a wallet-holding agent) == */
+    .agent-chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      padding: 6px 12px; border-radius: 999px;
+      background: var(--surface-2); color: var(--text-muted);
+      border: 0.67px solid var(--border);
+    }
+    .agent-chip .agent-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text-dim); flex: none;
+    }
+    .agent-chip.linked { color: var(--green); border-color: rgba(0, 200, 5, 0.35); background: var(--green-bg); }
+    .agent-chip.linked .agent-dot { background: var(--green); box-shadow: 0 0 6px rgba(0,200,5,0.6); }
+    .agent-chip.offline { color: var(--yellow); border-color: rgba(212,169,60,0.35); background: var(--yellow-bg); }
+    .agent-chip.offline .agent-dot { background: var(--yellow); }
+    .agent-result { margin-top: 14px; }
+    .agent-wait {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 18px; border: 0.67px dashed var(--border-hover); border-radius: 10px;
+      font-family: var(--mono); font-size: 12.5px; color: var(--text);
+    }
+    .agent-wait .spinner {
+      width: 14px; height: 14px; flex: none; border-radius: 50%;
+      border: 2px solid var(--border-hover); border-top-color: var(--accent);
+      animation: agentspin 0.8s linear infinite;
+    }
+    @keyframes agentspin { to { transform: rotate(360deg); } }
+    .agent-pay-line {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-top: 10px; padding: 10px 14px; border-radius: 8px;
+      background: var(--green-bg); border: 0.67px solid rgba(0,200,5,0.3);
+      font-family: var(--mono); font-size: 11.5px; color: var(--green);
+    }
+    .agent-pay-line a { color: var(--green); text-decoration: underline; }
+    .agent-modal-backdrop {
+      position: fixed; inset: 0; z-index: 90;
+      background: rgba(5, 2, 2, 0.7); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .agent-modal-backdrop.hidden { display: none; }
+    .agent-modal {
+      width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto;
+      background: var(--surface); border: 0.67px solid var(--border-hover);
+      border-radius: 14px; padding: 26px 28px;
+    }
+    .agent-modal h3 { font-family: var(--display); font-size: 18px; color: var(--heading); margin: 0 0 6px; }
+    .agent-modal .agent-modal-sub { font-size: 13px; color: var(--text-muted); margin: 0 0 18px; line-height: 1.55; }
+    .agent-step { display: flex; gap: 12px; margin-bottom: 16px; }
+    .agent-step-num {
+      flex: none; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--brand-bg); color: var(--accent);
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    }
+    .agent-step-body { flex: 1; min-width: 0; }
+    .agent-step-title { font-size: 13px; font-weight: 600; color: var(--heading); margin-bottom: 6px; }
+    .agent-step-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+    .agent-snippet {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface-2); border: 0.67px solid var(--border); border-radius: 8px;
+      padding: 9px 12px; margin-bottom: 6px;
+    }
+    .agent-snippet code {
+      flex: 1; font-family: var(--mono); font-size: 11px; color: var(--text);
+      white-space: nowrap; overflow-x: auto; scrollbar-width: none;
+    }
+    .agent-modal-status {
+      display: flex; align-items: center; gap: 10px; margin-top: 14px;
+      font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+    }
+    .agent-modal-close {
+      margin-top: 16px; font-family: var(--mono); font-size: 12px;
+      background: var(--surface-2); color: var(--text); cursor: pointer;
+      border: 0.67px solid var(--border); border-radius: 8px; padding: 8px 16px;
+    }
+    .agent-banner {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+      padding: 11px 16px; border-radius: 10px;
+      background: var(--green-bg); border: 0.67px solid rgba(0,200,5,0.3);
+      font-family: var(--mono); font-size: 12.5px; color: var(--green);
+    }
+
     /* == Share section == */
     .share-section {
       margin-top: 16px; padding: 20px 24px;
@@ -2734,6 +3024,7 @@ ${THEME_TOKENS}
         <div class="landing-section-title">Markets</div>
         <h2 class="market-title">Chart it, then run the diligence.</h2>
         <p class="markets-sub">Live prices for tokenized equities and crypto majors. Pick an asset, read the tape, then send it straight to an analyst swarm.</p>
+        <div id="agent-banner"></div>
         <div class="market-panel">
           <div class="market-head">
             <div class="market-chips" id="market-chips"></div>
@@ -2750,7 +3041,34 @@ ${THEME_TOKENS}
             <div class="market-ranges" id="market-ranges"></div>
             <div class="market-actions" id="market-actions"></div>
           </div>
-          <p class="market-note">Prices via Yahoo Finance, cached ~1 min. Charts are indicative, not investment advice.</p>
+          <div class="agent-result" id="market-agent-result"></div>
+          <p class="market-note">Prices via Yahoo Finance, cached ~1 min. Charts are indicative, not investment advice. Paid runs are executed and paid by your linked agent&rsquo;s wallet via x402.</p>
+        </div>
+        <!-- Agent Link modal (hidden until opened) -->
+        <div class="agent-modal-backdrop hidden" id="agent-modal">
+          <div class="agent-modal">
+            <h3>Link your agent</h3>
+            <p class="agent-modal-sub">SwarmX paid runs are made by agents, not browser wallets. Pair this page with your running agent (Claude Code, OpenClaw, Hermes &mdash; anything that speaks MCP or HTTP) and it pays per call with its own wallet via x402.</p>
+            <div class="agent-step">
+              <div class="agent-step-num">1</div>
+              <div class="agent-step-body">
+                <div class="agent-step-title">Tell your agent to start a link</div>
+                <div class="agent-step-desc">MCP (recommended) &mdash; point your agent at our MCP server and have it call <b>swarmx_link_start</b>:</div>
+                <div class="agent-snippet"><code id="agent-mcp-snippet"></code><button class="share-btn" type="button" id="agent-copy-mcp">Copy</button></div>
+                <div class="agent-step-desc" style="margin-top:8px">Or plain HTTP from any terminal agent:</div>
+                <div class="agent-snippet"><code id="agent-curl-snippet"></code><button class="share-btn" type="button" id="agent-copy-curl">Copy</button></div>
+              </div>
+            </div>
+            <div class="agent-step">
+              <div class="agent-step-num">2</div>
+              <div class="agent-step-body">
+                <div class="agent-step-title">Open the claim link it gives you</div>
+                <div class="agent-step-desc">Your agent replies with a one-time <b>claim_url</b> (swarmx.io/link/&hellip;). Open it in this browser &mdash; this page flips to Linked and every paid button routes through your agent.</div>
+              </div>
+            </div>
+            <div class="agent-modal-status"><div class="spinner" style="width:12px;height:12px;border:2px solid var(--border-hover);border-top-color:var(--accent);border-radius:50%;animation:agentspin 0.8s linear infinite"></div><span id="agent-modal-status-text">Waiting for a link to be claimed&hellip;</span></div>
+            <button class="agent-modal-close" type="button" id="agent-modal-close">Close</button>
+          </div>
         </div>
       </div>
     </section>
@@ -4251,12 +4569,186 @@ console.log(<span class="kw">await</span> res.json());</div>
     if (!d) { wrap.innerHTML = ''; return; }
     var html = '';
     if (d.kind === 'equity') {
-      html += '<button class="market-action" type="button" data-mkt-dd="' + d.symbol + '">Run Stock DD &mdash; $0.29</button>';
-      html += '<a class="market-action secondary" href="#playground">More endpoints &rarr;</a>';
+      if (AGENT.linked) {
+        html += '<button class="market-action" type="button" data-agent-pay="/x402/rwa/stock-dd" data-agent-ticker="' + d.symbol + '">Run Stock DD &mdash; $0.29 &middot; agent pays</button>';
+        html += '<button class="market-action secondary" type="button" data-agent-pay="/x402/rwa/catalyst" data-agent-ticker="' + d.symbol + '">Catalyst Brief &mdash; $0.29</button>';
+      } else {
+        html += '<button class="market-action" type="button" data-mkt-dd="' + d.symbol + '">Run Stock DD &mdash; $0.29</button>';
+        html += '<a class="market-action secondary" href="#playground">More endpoints &rarr;</a>';
+      }
     } else {
       html += '<a class="market-action secondary" href="#playground">On-chain endpoints: token risk, memecoin score &rarr;</a>';
     }
+    html += renderAgentChip();
     wrap.innerHTML = html;
+  }
+
+  /* ==========================================================
+     AGENT LINK - pair this page with a wallet-holding agent
+     (Moltbook-style magic link; the agent pays via x402)
+     ========================================================== */
+  var AGENT = { linked: false, name: '', online: false, modalTimer: null };
+
+  function renderAgentChip() {
+    if (!AGENT.linked) {
+      return '<button class="agent-chip" type="button" data-agent-link-open><span class="agent-dot"></span>Link agent</button>';
+    }
+    var cls = AGENT.online ? 'agent-chip linked' : 'agent-chip offline';
+    var label = AGENT.online ? 'online' : 'idle';
+    return '<span class="' + cls + '" title="Paid runs are paid by this agent’s wallet via x402"><span class="agent-dot"></span>' + escHtml(AGENT.name) + ' &middot; ' + label + '</span>';
+  }
+
+  function renderAgentBanner() {
+    var el = document.getElementById('agent-banner');
+    if (!el) return;
+    if (!AGENT.linked) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div class="agent-banner"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex:none"></span>Linked to agent &ldquo;' + escHtml(AGENT.name) + '&rdquo;' + (AGENT.online ? ' &middot; online' : ' &middot; waiting for it to poll') + ' &mdash; paid runs settle from its wallet via x402.</div>';
+  }
+
+  function agentRefreshSession(cb) {
+    fetch('/api/agent-link/session').then(function (r) { return r.json(); }).then(function (d) {
+      AGENT.linked = !!d.linked;
+      AGENT.name = d.agentName || 'agent';
+      AGENT.online = !!d.agentOnline;
+      if (MKT.data) mktRenderActions(MKT.data);
+      renderAgentBanner();
+      if (cb) cb();
+    }).catch(function () { if (cb) cb(); });
+  }
+
+  function agentExplorerUrl(network, tx) {
+    if (!tx) return '';
+    var n = String(network || '').toLowerCase();
+    if (n === 'base' || n === 'base-mainnet') return 'https://basescan.org/tx/' + tx;
+    if (n === 'arbitrum' || n === 'arbitrum-mainnet') return 'https://arbiscan.io/tx/' + tx;
+    if (n.indexOf('solana') !== -1) return 'https://solscan.io/tx/' + tx;
+    if (n.indexOf('4663') !== -1) return 'https://robinhoodchain.blockscout.com/tx/' + tx;
+    return '';
+  }
+
+  function agentShortTx(tx) {
+    var s = String(tx || '');
+    return s.length > 18 ? s.slice(0, 10) + '…' + s.slice(-6) : s;
+  }
+
+  function agentPay(endpoint, ticker) {
+    var area = document.getElementById('market-agent-result');
+    if (!area) return;
+    area.innerHTML = '<div class="agent-wait"><div class="spinner"></div><span>Sending the job to your agent&hellip;</span></div>';
+    fetch('/api/agent-link/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: endpoint, body: { ticker: String(ticker || '').replace('-USD', '') } })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.job_id) { area.innerHTML = '<div class="agent-wait">' + escHtml(d.error || 'Failed to queue the job') + '</div>'; return; }
+      agentWatchJob(d.job_id, Date.now());
+    }).catch(function () {
+      area.innerHTML = '<div class="agent-wait">Network error while queueing the job.</div>';
+    });
+  }
+
+  function agentWatchJob(jobId, t0) {
+    var area = document.getElementById('market-agent-result');
+    if (!area) return;
+    var elapsed = Math.floor((Date.now() - t0) / 1000);
+    fetch('/api/agent-link/request?id=' + encodeURIComponent(jobId)).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.status === 'pending') {
+        if (elapsed >= 300) {
+          area.innerHTML = '<div class="agent-wait">Still queued after 5 minutes &mdash; the job stays available to your agent. Check its session or try again later.</div>';
+          return;
+        }
+        area.innerHTML = '<div class="agent-wait"><div class="spinner"></div><span>Waiting for ' + escHtml(AGENT.name) + ' to pay $' + escHtml(String(d.price_usd || '')) + ' and run it&hellip; ' + elapsed + 's</span></div>';
+        setTimeout(function () { agentWatchJob(jobId, t0); }, 2500);
+        return;
+      }
+      if (d.status === 'failed') {
+        area.innerHTML = '<div class="agent-wait">Agent reported a failure: ' + escHtml(d.error || 'unknown error') + '</div>';
+        return;
+      }
+      renderAgentResult(d, Math.max(1, elapsed));
+    }).catch(function () {
+      setTimeout(function () { agentWatchJob(jobId, t0); }, 4000);
+    });
+  }
+
+  function agentPointGroup(title, cls, arr) {
+    if (!Array.isArray(arr) || arr.length === 0) return '';
+    var html = '<div class="finding-group"><div class="finding-group-title">' + title + '</div>';
+    for (var i = 0; i < arr.length; i++) {
+      html += '<div class="finding ' + cls + '">' + escHtml(String(arr[i])) + '</div>';
+    }
+    return html + '</div>';
+  }
+
+  function renderAgentResult(d, seconds) {
+    var area = document.getElementById('market-agent-result');
+    if (!area) return;
+    var data = d.result || {};
+    var verdict = data.verdict || {};
+    var riskLevel = verdict.rating || data.rating || data.riskLevel || data.risk_level || data.risk;
+    var score = data.score !== undefined ? data.score : (data.riskScore || data.risk_score);
+    var text = verdict.summary || data.brief || data.summary || extractText(data);
+    var html = '<div class="result-box"><div class="result-header"><div class="result-header-left"><span class="result-label">' + escHtml(d.endpoint || 'Result') + ' &middot; paid by ' + escHtml(AGENT.name) + '</span></div><span class="result-time">' + seconds + 's</span></div><div class="result-body">';
+    if (riskLevel) { html += riskBadge(riskLevel); }
+    if (score !== undefined && score !== null) {
+      var sc = scoreClass(score);
+      html += '<div class="score-badge ' + sc + '">' + escHtml(String(score)) + '/100 <span class="score-badge-label">' + scoreLabel(score) + '</span></div>';
+    }
+    html += '<div class="finding-group"><div class="finding-group-title">Summary</div><div class="result-summary">' + escHtml(text) + '</div></div>';
+    html += agentPointGroup('Bull Case', 'up', verdict.bull_points);
+    html += agentPointGroup('Bear Case', 'high', verdict.bear_points);
+    html += agentPointGroup('Risks', 'medium', verdict.risks);
+    if (Array.isArray(data.findings) && data.findings.length > 0) {
+      html += renderFindings(data.findings);
+    }
+    html += '</div></div>';
+    var pay = d.payment || {};
+    if (pay.transaction) {
+      var url = agentExplorerUrl(pay.network, pay.transaction);
+      html += '<div class="agent-pay-line"><span>&#10003; Paid ' + (pay.amount !== undefined ? '$' + escHtml(String(pay.amount)) : '') + ' on ' + escHtml(String(pay.network || '')) + ' by ' + escHtml(AGENT.name) + '</span>';
+      if (url) { html += '<a href="' + escAttr(url) + '" target="_blank" rel="noopener">tx ' + escHtml(agentShortTx(pay.transaction)) + ' &#8599;</a>'; }
+      else { html += '<span>tx ' + escHtml(agentShortTx(pay.transaction)) + '</span>'; }
+      html += '</div>';
+    }
+    area.innerHTML = html;
+  }
+
+  function agentOpenModal() {
+    var m = document.getElementById('agent-modal');
+    if (!m) return;
+    var origin = window.location.origin;
+    var prompt = 'Connect to the SwarmX MCP server at ' + origin + '/mcp and call swarmx_link_start. Send me the claim_url and keep the agent_token. Then poll swarmx_poll_requests for jobs I queue, pay each endpoint via x402 with your wallet, and report results with swarmx_complete_request.';
+    var curl = 'curl -sX POST ' + origin + '/api/agent-link/start';
+    var mcpEl = document.getElementById('agent-mcp-snippet');
+    var curlEl = document.getElementById('agent-curl-snippet');
+    if (mcpEl) mcpEl.textContent = prompt;
+    if (curlEl) curlEl.textContent = curl;
+    var copyMcp = document.getElementById('agent-copy-mcp');
+    if (copyMcp) copyMcp.setAttribute('data-copy', prompt);
+    var copyCurl = document.getElementById('agent-copy-curl');
+    if (copyCurl) copyCurl.setAttribute('data-copy', curl);
+    m.classList.remove('hidden');
+    agentModalPoll();
+  }
+
+  function agentModalPoll() {
+    var m = document.getElementById('agent-modal');
+    if (!m || m.classList.contains('hidden')) return;
+    agentRefreshSession(function () {
+      var status = document.getElementById('agent-modal-status-text');
+      if (AGENT.linked) {
+        if (status) status.textContent = 'Linked to ' + AGENT.name + ' ✓';
+        setTimeout(agentCloseModal, 900);
+        return;
+      }
+      AGENT.modalTimer = setTimeout(agentModalPoll, 3000);
+    });
+  }
+
+  function agentCloseModal() {
+    var m = document.getElementById('agent-modal');
+    if (m) m.classList.add('hidden');
+    if (AGENT.modalTimer) { clearTimeout(AGENT.modalTimer); AGENT.modalTimer = null; }
   }
 
   function mktPrefillStockDd(ticker) {
@@ -4351,6 +4843,10 @@ console.log(<span class="kw">await</span> res.json());</div>
     if (range) { MKT.range = range.getAttribute('data-mkt-range'); mktRenderRanges(); mktLoadChart(); return; }
     var dd = t.closest('[data-mkt-dd]');
     if (dd) { mktPrefillStockDd(dd.getAttribute('data-mkt-dd')); return; }
+    var ap = t.closest('[data-agent-pay]');
+    if (ap) { agentPay(ap.getAttribute('data-agent-pay'), ap.getAttribute('data-agent-ticker') || MKT.symbol); return; }
+    if (t.closest('[data-agent-link-open]')) { agentOpenModal(); return; }
+    if (t.id === 'agent-modal-close' || t.id === 'agent-modal') { agentCloseModal(); return; }
   });
 
   var mktSearch = document.getElementById('market-search');
@@ -4373,6 +4869,18 @@ console.log(<span class="kw">await</span> res.json());</div>
   mktRenderRanges();
   mktLoadChart();
   setInterval(mktLoadTape, 90000);
+
+  /* agent-link init: clean the post-claim ?agent= param and start session polling */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('agent') !== null) {
+        history.replaceState(null, '', window.location.pathname + window.location.hash);
+      }
+    } catch (e) { /* older browsers: harmless */ }
+    agentRefreshSession();
+    setInterval(agentRefreshSession, 30000);
+  })();
   </script>
 </body>
 </html>`;

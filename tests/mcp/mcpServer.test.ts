@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   handleMcpMessage,
   mcpDescriptor,
@@ -7,6 +7,12 @@ import {
   type ToolExecutor,
 } from "../../src/mcp/mcpServer.js";
 import { getMcpToolDefinitions } from "../../src/mcp/index.js";
+import {
+  claimLink,
+  createJob,
+  getJob,
+  resetAgentLinkStore,
+} from "../../src/server/agentLink.js";
 
 const OPTS = { baseUrl: "http://127.0.0.1:3000", publicBaseUrl: "https://swarmx.io" };
 const MANIFEST = getMcpToolDefinitions();
@@ -52,8 +58,9 @@ describe("MCP server — tools/list", () => {
   it("lists every tool with name/description/inputSchema", async () => {
     const res = await handleMcpMessage({ jsonrpc: "2.0", id: 3, method: "tools/list" }, OPTS);
     const tools = (res!.result as any).tools as any[];
-    expect(tools.length).toBe(MANIFEST.tools.length);
-    expect(tools.length).toBe(44);
+    // Catalog tools + the 4 agent-link session tools.
+    expect(tools.length).toBe(MANIFEST.tools.length + 4);
+    expect(tools.length).toBe(48);
     for (const t of tools) {
       expect(typeof t.name).toBe("string");
       expect(typeof t.description).toBe("string");
@@ -157,6 +164,104 @@ describe("MCP server — descriptor", () => {
     expect(d.name).toBe("swarmx");
     expect(d.transport).toBe("streamable-http");
     expect(d.endpoint).toBe("https://swarmx.io/mcp");
-    expect(d.tools).toBe(MANIFEST.tools.length);
+    expect(d.tools).toBe(MANIFEST.tools.length + 4);
+  });
+});
+
+describe("MCP server — agent link tools", () => {
+  beforeEach(() => resetAgentLinkStore());
+
+  async function call(name: string, args: Record<string, unknown>) {
+    const res = await handleMcpMessage(
+      { jsonrpc: "2.0", id: 99, method: "tools/call", params: { name, arguments: args } },
+      OPTS
+    );
+    const result = res!.result as any;
+    return { isError: result.isError as boolean, payload: JSON.parse(result.content[0].text) };
+  }
+
+  it("swarmx_link_start returns a claim_url on the public origin and an agent_token", async () => {
+    const { isError, payload } = await call("swarmx_link_start", { agent_name: "hermes" });
+    expect(isError).toBe(false);
+    expect(payload.claim_url).toMatch(/^https:\/\/swarmx\.io\/link\/[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    expect(typeof payload.agent_token).toBe("string");
+  });
+
+  it("full round-trip: start → claim → queue job → poll → complete", async () => {
+    const start = await call("swarmx_link_start", { agent_name: "hermes" });
+    const token = start.payload.agent_token as string;
+    const code = (start.payload.claim_url as string).split("/link/")[1]!;
+
+    // Before the human claims, the session reports unclaimed.
+    let status = await call("swarmx_link_status", { agent_token: token });
+    expect(status.payload.linked).toBe(false);
+
+    const claimed = claimLink(code)!;
+    expect(claimed.agentName).toBe("hermes");
+
+    // Human queues a job (store-level, as the HTTP route does).
+    const created = createJob(
+      claimed.browserToken,
+      { endpoint: "/x402/rwa/stock-dd", body: { ticker: "AAPL" } },
+      [{ endpoint: "/x402/rwa/stock-dd", method: "POST", priceUsd: "0.29", description: "Stock DD" }]
+    );
+    expect(created.ok).toBe(true);
+
+    // Agent polls and sees the job with an absolute endpoint URL.
+    const polled = await call("swarmx_poll_requests", { agent_token: token });
+    expect(polled.payload.claimed).toBe(true);
+    expect(polled.payload.jobs).toHaveLength(1);
+    const job = polled.payload.jobs[0];
+    expect(job.endpoint).toBe("https://swarmx.io/x402/rwa/stock-dd");
+    expect(job.body.ticker).toBe("AAPL");
+    expect(job.price_usd).toBe("0.29");
+
+    // Agent completes with the paid result (accepts a JSON string too).
+    const done = await call("swarmx_complete_request", {
+      agent_token: token,
+      job_id: job.job_id,
+      result: JSON.stringify({ verdict: "bullish", payment: { transaction: "0xabc", network: "base" } }),
+    });
+    expect(done.isError).toBe(false);
+    expect(done.payload.recorded).toBe(true);
+
+    // Browser sees the completed job with the payment receipt extracted.
+    const stored = getJob(claimed.browserToken, job.job_id)!;
+    expect(stored.status).toBe("done");
+    expect(stored.payment).toEqual({ transaction: "0xabc", network: "base" });
+
+    // Completed jobs no longer appear in the poll.
+    const repoll = await call("swarmx_poll_requests", { agent_token: token });
+    expect(repoll.payload.jobs).toHaveLength(0);
+  });
+
+  it("rejects an invalid agent_token", async () => {
+    const polled = await call("swarmx_poll_requests", { agent_token: "bogus" });
+    expect(polled.isError).toBe(true);
+    expect(polled.payload.error).toContain("Invalid");
+  });
+
+  it("records agent-reported failures", async () => {
+    const start = await call("swarmx_link_start", {});
+    const token = start.payload.agent_token as string;
+    const code = (start.payload.claim_url as string).split("/link/")[1]!;
+    const claimed = claimLink(code)!;
+    const created = createJob(
+      claimed.browserToken,
+      { endpoint: "/x402/rwa/stock-dd", body: { ticker: "NVDA" } },
+      [{ endpoint: "/x402/rwa/stock-dd", method: "POST", priceUsd: "0.29", description: "Stock DD" }]
+    );
+    expect(created.ok).toBe(true);
+    const jobId = created.ok ? created.job.jobId : "";
+
+    const done = await call("swarmx_complete_request", {
+      agent_token: token,
+      job_id: jobId,
+      error: "insufficient USDC",
+    });
+    expect(done.payload.recorded).toBe(true);
+    const stored = getJob(claimed.browserToken, jobId)!;
+    expect(stored.status).toBe("failed");
+    expect(stored.error).toBe("insufficient USDC");
   });
 });

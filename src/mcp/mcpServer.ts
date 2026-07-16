@@ -23,6 +23,13 @@ import {
   type McpExecuteOptions,
   type McpToolResult,
 } from "./index.js";
+import {
+  startLink,
+  pollJobs,
+  completeJob,
+  getSessionByAgentToken,
+  sessionSummary,
+} from "../server/agentLink.js";
 
 /** MCP protocol version we implement (echoes the client's if provided). */
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
@@ -80,6 +87,149 @@ function textContent(obj: unknown): { type: "text"; text: string } {
   return { type: "text", text: JSON.stringify(obj, null, 2) };
 }
 
+// ── Agent Link tools (session plumbing, always free) ─────────────────────────
+//
+// These pair a running agent with a human's browser on the SwarmX Markets UI
+// (Moltbook-style magic link). They are handled in-process — they never touch
+// the paid-route executor.
+
+const AGENT_LINK_TOOLS = [
+  {
+    name: "swarmx_link_start",
+    description:
+      "Start a SwarmX Agent Link session. Returns a one-time claim_url — give it to your human " +
+      "to open in their browser — plus an agent_token you MUST keep to poll and complete jobs. " +
+      "After the human clicks pay on swarmx.io, fetch jobs with swarmx_poll_requests, pay the " +
+      "endpoint with your own wallet via x402, then report back with swarmx_complete_request.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_name: {
+          type: "string",
+          description: "Display name shown to the human in the UI (e.g. 'hermes').",
+        },
+      },
+    },
+  },
+  {
+    name: "swarmx_link_status",
+    description:
+      "Check a SwarmX Agent Link session: whether the human has claimed the link and how many jobs are pending.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_token: { type: "string", description: "Token from swarmx_link_start." },
+      },
+      required: ["agent_token"],
+    },
+  },
+  {
+    name: "swarmx_poll_requests",
+    description:
+      "List pending paid jobs the linked human queued from the SwarmX UI. For each job: call the " +
+      "endpoint unauthenticated to get the x402 402 challenge, pay it with your wallet (X-PAYMENT " +
+      "header), then submit the full JSON result via swarmx_complete_request.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_token: { type: "string", description: "Token from swarmx_link_start." },
+      },
+      required: ["agent_token"],
+    },
+  },
+  {
+    name: "swarmx_complete_request",
+    description:
+      "Report a finished SwarmX Agent Link job. Pass the full JSON body returned by the paid " +
+      "endpoint as `result` (it includes the payment receipt), or `error` if payment/execution failed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent_token: { type: "string", description: "Token from swarmx_link_start." },
+        job_id: { type: "string", description: "Job id from swarmx_poll_requests." },
+        result: { description: "Full JSON result from the paid endpoint (object or JSON string)." },
+        error: { type: "string", description: "Failure reason, when the job could not be completed." },
+      },
+      required: ["agent_token", "job_id"],
+    },
+  },
+] as const;
+
+/** Parse a `result` argument that may arrive as an object or a JSON string. */
+function parseResultArg(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+/** Handle agent-link tool calls. Returns null when `name` is not one of them. */
+function handleAgentLinkTool(
+  name: string,
+  args: Record<string, unknown>,
+  publicBase: string
+): Record<string, unknown> | null {
+  const agentToken = typeof args.agent_token === "string" ? args.agent_token : undefined;
+
+  switch (name) {
+    case "swarmx_link_start": {
+      const started = startLink(
+        typeof args.agent_name === "string" ? args.agent_name : undefined
+      );
+      return {
+        claim_url: `${publicBase}/link/${started.claimCode}`,
+        agent_token: started.agentToken,
+        expires_in_seconds: started.expiresInSeconds,
+        next_steps:
+          "1) Send claim_url to your human — opening it links their browser to you. " +
+          "2) Keep agent_token. 3) Poll swarmx_poll_requests for jobs they queue.",
+      };
+    }
+    case "swarmx_link_status": {
+      const session = getSessionByAgentToken(agentToken);
+      if (!session) return { error: "Invalid or expired agent_token" };
+      const pending = [...session.jobs.values()].filter((j) => j.status === "pending").length;
+      return { ...sessionSummary(session), pending_jobs: pending };
+    }
+    case "swarmx_poll_requests": {
+      const polled = pollJobs(agentToken);
+      if (!polled) return { error: "Invalid or expired agent_token" };
+      return {
+        claimed: polled.claimed,
+        jobs: polled.jobs.map((j) => ({
+          job_id: j.jobId,
+          endpoint: `${publicBase}${j.endpoint}`,
+          method: j.method,
+          body: j.body,
+          price_usd: j.priceUsd,
+          description: j.description,
+        })),
+        how_to_pay:
+          "POST the endpoint with no body to receive the 402 challenge (accepts[] lists rails: " +
+          "USDC on Base/Arbitrum via EIP-3009, USDC on Solana). Sign and retry with the base64 " +
+          "X-PAYMENT header and the job body, then call swarmx_complete_request with the JSON result.",
+      };
+    }
+    case "swarmx_complete_request": {
+      const jobId = typeof args.job_id === "string" ? args.job_id : "";
+      const errorText = typeof args.error === "string" ? args.error : undefined;
+      const completed = completeJob(agentToken, {
+        jobId,
+        ok: !errorText,
+        result: parseResultArg(args.result),
+        error: errorText,
+      });
+      return completed.ok
+        ? { recorded: true, job_id: jobId }
+        : { error: completed.error };
+    }
+    default:
+      return null;
+  }
+}
+
 /**
  * Handle a single parsed JSON-RPC message.
  * Returns the response object, or `null` when the message is a notification
@@ -105,7 +255,7 @@ export async function handleMcpMessage(
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER_INFO,
         instructions:
-          "SwarmX MCP server. Free tools execute directly. Paid tools require x402 payment: call the endpoint with an X-PAYMENT header (gasless USDG on Robinhood Chain eip155:4663, or USDC on Solana), or pass the base64 X-PAYMENT as arguments._payment.",
+          "SwarmX MCP server. Free tools execute directly. Paid tools require x402 payment: call the endpoint with an X-PAYMENT header (USDC on Base/Arbitrum via EIP-3009, USDC on Solana, or gasless USDG on Robinhood Chain eip155:4663), or pass the base64 X-PAYMENT as arguments._payment. To pair with a human browsing swarmx.io, call swarmx_link_start and give them the claim_url — they can then queue paid jobs for you from the Markets UI (swarmx_poll_requests / swarmx_complete_request).",
       });
     }
 
@@ -120,7 +270,12 @@ export async function handleMcpMessage(
           : `${t.description} [PAID: $${t.metadata.priceUsd}/call via x402]`,
         inputSchema: t.inputSchema,
       }));
-      return ok(id, { tools });
+      const linkTools = AGENT_LINK_TOOLS.map((t) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+      }));
+      return ok(id, { tools: [...tools, ...linkTools] });
     }
 
     case "tools/call": {
@@ -134,6 +289,17 @@ export async function handleMcpMessage(
           ? { ...(rawArgs as Record<string, unknown>) }
           : {};
 
+      const publicBase = (opts.publicBaseUrl ?? opts.baseUrl).replace(/\/$/, "");
+
+      // Agent Link session tools are handled in-process, never via the executor.
+      const linkResult = handleAgentLinkTool(name, args, publicBase);
+      if (linkResult !== null) {
+        return ok(id, {
+          isError: "error" in linkResult,
+          content: [textContent(linkResult)],
+        });
+      }
+
       const tool = getMcpTool(name);
       if (!tool) {
         return ok(id, {
@@ -141,8 +307,6 @@ export async function handleMcpMessage(
           content: [textContent({ error: `Unknown tool: ${name}` })],
         });
       }
-
-      const publicBase = (opts.publicBaseUrl ?? opts.baseUrl).replace(/\/$/, "");
       const paymentHeader = typeof args._payment === "string" ? (args._payment as string) : undefined;
 
       // Paid tool with no payment → honest payment-required descriptor (never fabricate).
@@ -201,6 +365,6 @@ export function mcpDescriptor(publicBaseUrl: string): Record<string, unknown> {
     transport: "streamable-http",
     endpoint: `${publicBaseUrl.replace(/\/$/, "")}/mcp`,
     methods: ["initialize", "tools/list", "tools/call", "ping"],
-    tools: MANIFEST.tools.length,
+    tools: MANIFEST.tools.length + AGENT_LINK_TOOLS.length,
   };
 }
