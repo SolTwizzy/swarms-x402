@@ -43,7 +43,15 @@ interface LinkJob {
   description: string;
 }
 
-const CHAIN_IDS: Record<string, number> = { base: 8453, arbitrum: 42161 };
+// Rails this worker can pay: USDC EIP-3009 on Base/Arbitrum (Meridian), by
+// either the CAIP-2 id (advertised since 8729f9a) or the friendly name.
+// Deliberately excludes eip155:4663 (RH-Chain USDG — different asset).
+const CHAIN_IDS: Record<string, number> = {
+  base: 8453,
+  "eip155:8453": 8453,
+  arbitrum: 42161,
+  "eip155:42161": 42161,
+};
 
 function loadDotEnv(): void {
   const path = resolve(process.cwd(), ".env");
