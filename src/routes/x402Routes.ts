@@ -704,6 +704,7 @@ export const x402Routes: Route[] = [
         info: {
           title: "SwarmX — AI Agent Teams, One Payment",
           version: "1.0.0",
+          contact: { email: "Management@swarmx.io" },
           description:
             "x402-monetized AI endpoints: multi-agent swarms, RWA/stock due diligence, crypto analysis, and Solana data. Pay per call in USDC (Solana or Base) via the x402 protocol — no API keys.",
         },
