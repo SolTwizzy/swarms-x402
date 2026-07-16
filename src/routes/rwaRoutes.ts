@@ -6,6 +6,7 @@ import {
   settleRhChainPayment,
   usdToUsdgAtomic,
 } from "../server/rhChainGate.js";
+import { buildPublicAccepts } from "../server/meridianGate.js";
 import { x402Gate } from "../server/x402Gate.js";
 import type { X402ServiceEndpoint } from "../types.js";
 import { callLLM, runLocalPanel, type PanelAgent } from "../utils/llm.js";
@@ -1003,7 +1004,7 @@ export const rwaRoutes: Route[] = [
       // Robinhood Chain (USDG) is the PRIMARY rail — advertised first and in the
       // PAYMENT-REQUIRED header so x402 crawlers (402 Index, x402scan, CDP Bazaar)
       // index USDG/RH-Chain as the default payment option.
-      const accepts: unknown[] = [rhReq];
+      const accepts: object[] = [rhReq];
       if (res.setHeader) {
         res.setHeader(
           "PAYMENT-REQUIRED",
@@ -1035,36 +1036,29 @@ export const rwaRoutes: Route[] = [
           })
         );
       }
-      // Dexter USDC rails as secondary options, in configured priority order.
+      // Secondary rails: Dexter Solana plus Meridian EVM when configured.
       try {
         const serverService = runtime.getService("X402_SERVER" as any) as any;
         if (serverService?.isAvailable?.()) {
-          const dexterReq = await serverService.buildAllRequirements({
-            amountAtomic: String(Math.round(parseFloat(STOCK_DD_PRICE_USD) * 1_000_000)),
-            resourceUrl,
-            description: STOCK_DD_DESCRIPTION,
-          });
-          // Dexter returns a full v2 PaymentRequired envelope; accepts[] must
-          // hold flat requirement objects, so unwrap its inner entries and
-          // backfill the v1 fields strict schema validators require.
-          const inner = Array.isArray((dexterReq as any)?.accepts)
-            ? (dexterReq as any).accepts
-            : dexterReq
-              ? [dexterReq]
-              : [];
-          for (const entry of inner) {
-            accepts.push({
-              resource: resourceUrl,
-              description: STOCK_DD_DESCRIPTION,
-              mimeType: "application/json",
-              ...entry,
-            });
-          }
+          accepts.splice(
+            0,
+            accepts.length,
+            ...(
+              await buildPublicAccepts(runtime, {
+                amountAtomic: String(
+                  Math.round(parseFloat(STOCK_DD_PRICE_USD) * 1_000_000)
+                ),
+                resourceUrl,
+                description: STOCK_DD_DESCRIPTION,
+                extraAccepts: accepts,
+              })
+            ).accepts
+          );
         }
       } catch (err) {
         runtime.logger?.warn?.(
           { error: err instanceof Error ? err.message : String(err) },
-          "[x402/rwa/stock-dd GET] Dexter requirements unavailable"
+          "[x402/rwa/stock-dd GET] Payment requirements unavailable"
         );
       }
       res.status(402).json({

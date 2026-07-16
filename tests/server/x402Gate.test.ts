@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockRuntime } from "../setup.js";
 import { x402Gate } from "../../src/server/x402Gate.js";
 
 const SOLANA_CAIP2 = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
+const originalFetch = globalThis.fetch;
 
 function createMockPaymentServer(overrides?: {
   verifyValid?: boolean;
@@ -62,6 +63,27 @@ function encodePaymentHeader(network: string): string {
   return Buffer.from(JSON.stringify({ accepted: { network } })).toString("base64");
 }
 
+function encodeMeridianPaymentHeader(network = "base"): string {
+  return Buffer.from(
+    JSON.stringify({
+      x402Version: 1,
+      scheme: "exact",
+      network,
+      payload: {
+        signature: "0x1234",
+        authorization: {
+          from: "0x2222222222222222222222222222222222222222",
+          to: "0x8E7769D440b3460b92159Dd9C6D17302b036e2d6",
+          value: "50000",
+          validAfter: "0",
+          validBefore: "9999999999",
+          nonce: `0x${"01".repeat(32)}`,
+        },
+      },
+    })
+  ).toString("base64");
+}
+
 function createMockRes() {
   const res = {
     status: vi.fn(() => res),
@@ -74,6 +96,10 @@ function createMockRes() {
 describe("x402Gate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it("returns paid:false and sends 402 when no payment header", async () => {
@@ -155,6 +181,68 @@ describe("x402Gate", () => {
           expect.objectContaining({ network: SOLANA_CAIP2 }),
           expect.objectContaining({ network: "eip155:42161" }),
         ],
+      })
+    );
+  });
+
+  it("replaces Dexter EVM accepts with Meridian Base and Arbitrum", async () => {
+    const mergedAccepts = [
+      { scheme: "exact", network: "eip155:8453", asset: "0xDexterBase" },
+      { scheme: "exact", network: SOLANA_CAIP2, asset: "SolanaUSDC" },
+      {
+        scheme: "exact",
+        network: "eip155:42161",
+        asset: "0xDexterArbitrum",
+      },
+    ];
+    const serverService = createMockServerService({
+      requirementsAccepts: mergedAccepts,
+    });
+    const runtime = createMockRuntime({
+      settings: {
+        MERIDIAN_API_KEY: "pk_live",
+        X402_RECEIVE_ADDRESS_EVM:
+          "0x1111111111111111111111111111111111111111",
+      },
+      services: { X402_SERVER: serverService },
+    });
+    const res = createMockRes();
+
+    await x402Gate(
+      runtime,
+      { headers: {}, url: "/api/test", method: "GET" },
+      res,
+      { amountUsd: "0.05", description: "Test endpoint" }
+    );
+
+    const body = vi.mocked(res.json).mock.calls[0]?.[0];
+    expect(body.accepts.map((entry: any) => entry.network)).toEqual([
+      SOLANA_CAIP2,
+      "base",
+      "arbitrum",
+    ]);
+    expect(body.accepts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          network: "base",
+          payTo: "0x8E7769D440b3460b92159Dd9C6D17302b036e2d6",
+          extra: expect.objectContaining({
+            creditedRecipient:
+              "0x1111111111111111111111111111111111111111",
+          }),
+        }),
+        expect.objectContaining({ network: "arbitrum" }),
+      ])
+    );
+    expect(body.accepts).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ network: "eip155:8453" }),
+        expect.objectContaining({ network: "eip155:42161" }),
+      ])
+    );
+    expect(serverService.mockServer.encodeRequirements).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accepts: [expect.objectContaining({ network: SOLANA_CAIP2 })],
       })
     );
   });
@@ -254,6 +342,71 @@ describe("x402Gate", () => {
         endpoint: "/api/test",
         amountUsd: 0.05,
         txHash: "0xdef456",
+      })
+    );
+  });
+
+  it("settles Meridian payments and records the returned revenue metadata", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          success: true,
+          transaction: "0xmeridian",
+          network: "base",
+          payer: "0x2222222222222222222222222222222222222222",
+        }),
+        { status: 200 }
+      )
+    ) as unknown as typeof fetch;
+    const serverService = createMockServerService();
+    const runtime = createMockRuntime({
+      settings: {
+        MERIDIAN_API_KEY: "pk_live",
+        X402_RECEIVE_ADDRESS:
+          "0x1111111111111111111111111111111111111111",
+      },
+      services: { X402_SERVER: serverService },
+    });
+    const paymentHeader = encodeMeridianPaymentHeader();
+    const res = createMockRes();
+
+    const result = await x402Gate(
+      runtime,
+      {
+        headers: { "payment-signature": paymentHeader },
+        url: "/api/test",
+        method: "POST",
+      },
+      res,
+      { amountUsd: "0.05", description: "Test endpoint" }
+    );
+
+    expect(result).toEqual({
+      paid: true,
+      transaction: "0xmeridian",
+      network: "base",
+      payer: "0x2222222222222222222222222222222222222222",
+      amountUsd: 0.05,
+    });
+    expect(serverService.mockServer.verifyPayment).not.toHaveBeenCalled();
+    expect(serverService.recordRevenue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "/api/test",
+        amountUsd: 0.05,
+        txHash: "0xmeridian",
+        network: "base",
+      })
+    );
+    const [, init] = vi.mocked(globalThis.fetch).mock.calls[0];
+    const requestBody = JSON.parse(String(init?.body));
+    expect(requestBody.paymentRequirements).toEqual(
+      expect.objectContaining({
+        network: "base",
+        maxAmountRequired: "50000",
+        extra: expect.objectContaining({
+          creditedRecipient:
+            "0x1111111111111111111111111111111111111111",
+        }),
       })
     );
   });

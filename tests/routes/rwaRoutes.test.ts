@@ -416,6 +416,53 @@ describe("GET /x402/rwa/stock-dd", () => {
       expect.any(String),
     );
   });
+
+  it("keeps RH-Chain and replaces Dexter EVM discovery with Meridian", async () => {
+    const buildAllRequirements = vi.fn(async () => ({
+      x402Version: 2,
+      resource: { url: "https://swarmx.io/x402/rwa/stock-dd" },
+      accepts: [
+        { scheme: "exact", network: "eip155:8453", payTo: "0xBase" },
+        {
+          scheme: "exact",
+          network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+          payTo: "SolanaPayTo",
+        },
+        { scheme: "exact", network: "eip155:42161", payTo: "0xArbitrum" },
+      ],
+    }));
+    const runtime = createMockRuntime({
+      settings: {
+        MERIDIAN_API_KEY: "pk_live",
+        X402_RECEIVE_ADDRESS_EVM:
+          "0x1111111111111111111111111111111111111111",
+      },
+      services: {
+        X402_SERVER: {
+          isAvailable: vi.fn(() => true),
+          buildAllRequirements,
+        },
+      },
+    });
+    const res = createMockRes();
+
+    await discoveryRoute!.handler(
+      { url: "http://swarmx.io/x402/rwa/stock-dd" } as any,
+      res,
+      runtime,
+    );
+
+    const accepts = vi.mocked(res.json).mock.calls[0][0].accepts;
+    expect(accepts.map((entry: any) => entry.network)).toEqual([
+      "eip155:4663",
+      "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+      "base",
+      "arbitrum",
+    ]);
+    expect(accepts[2].extra.creditedRecipient).toBe(
+      "0x1111111111111111111111111111111111111111",
+    );
+  });
 });
 
 describe("POST /x402/rwa/screen", () => {

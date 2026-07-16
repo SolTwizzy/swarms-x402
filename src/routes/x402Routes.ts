@@ -20,6 +20,7 @@ import { SWARM_ROUTE_CATALOG } from "./swarmRoutes.js";
 import { SWARM_PREMIUM_CATALOG } from "./swarmPremiumRoutes.js";
 import { RWA_CATALOG } from "./rwaRoutes.js";
 import { buildRhChainRequirements, usdToUsdgAtomic } from "../server/rhChainGate.js";
+import { buildPublicAccepts } from "../server/meridianGate.js";
 import { getMcpToolDefinitions } from "../mcp/index.js";
 import { callOpenAI } from "../utils/llm.js";
 import { taskQueue } from "../utils/taskQueue.js";
@@ -610,7 +611,7 @@ export const x402Routes: Route[] = [
       const items = await Promise.all(
         page.map(async (e) => {
           const resource = `${base}${e.path}`;
-          const accepts: unknown[] = [];
+          let accepts: object[] = [];
           try {
             accepts.push(
               buildRhChainRequirements({
@@ -624,28 +625,18 @@ export const x402Routes: Route[] = [
           }
           if (serverService?.isAvailable?.()) {
             try {
-              const dexterReq = await serverService.buildAllRequirements({
-                amountAtomic: String(Math.round(parseFloat(e.priceUsd) * 1_000_000)),
-                resourceUrl: resource,
-                description: e.description,
-              });
-              // Dexter returns a full v2 envelope; accepts[] holds flat entries
-              // backfilled with the v1 fields strict schema validators require.
-              const inner = Array.isArray(dexterReq?.accepts)
-                ? dexterReq.accepts
-                : dexterReq
-                  ? [dexterReq]
-                  : [];
-              for (const entry of inner) {
-                accepts.push({
-                  resource,
+              accepts = (
+                await buildPublicAccepts(runtime, {
+                  amountAtomic: String(
+                    Math.round(parseFloat(e.priceUsd) * 1_000_000)
+                  ),
+                  resourceUrl: resource,
                   description: e.description,
-                  mimeType: "application/json",
-                  ...entry,
-                });
-              }
+                  extraAccepts: accepts,
+                })
+              ).accepts;
             } catch {
-              /* Dexter rails optional */
+              /* Payment rails optional */
             }
           }
           return {

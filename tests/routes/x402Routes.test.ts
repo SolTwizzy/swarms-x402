@@ -211,6 +211,56 @@ describe("x402Routes", () => {
       expect(buildAllRequirements).toHaveBeenCalledTimes(1);
     });
 
+    it("substitutes Meridian EVM entries in discovery when configured", async () => {
+      const route = x402Routes.find(
+        (r) => r.path === "/discovery/resources" && r.type === "GET"
+      );
+      const buildAllRequirements = vi.fn(async () => ({
+        x402Version: 2,
+        resource: { url: "https://localhost/x402/research" },
+        accepts: MOCK_NETWORKS.map(({ caip2, payTo }) => ({
+          scheme: "exact",
+          network: caip2,
+          payTo,
+          maxAmountRequired: "50000",
+        })),
+      }));
+      const runtime = createMockRuntime({
+        settings: {
+          MERIDIAN_API_KEY: "pk_live",
+          X402_RECEIVE_ADDRESS_EVM:
+            "0x1111111111111111111111111111111111111111",
+        },
+        services: {
+          X402_SERVER: {
+            isAvailable: vi.fn(() => true),
+            buildAllRequirements,
+          },
+        },
+      });
+      const res = createMockRes();
+
+      await route!.handler(
+        {
+          url: "http://localhost/discovery/resources",
+          query: { url: "https://localhost/x402/research" },
+        } as any,
+        res,
+        runtime
+      );
+
+      const accepts = res.json.mock.calls[0][0].items[0].accepts;
+      expect(accepts.map((entry: any) => entry.network)).toEqual([
+        "eip155:4663",
+        "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+        "base",
+        "arbitrum",
+      ]);
+      expect(accepts[2].extra.creditedRecipient).toBe(
+        "0x1111111111111111111111111111111111111111"
+      );
+    });
+
     it("mentions every active chain in well-known instructions", async () => {
       const route = x402Routes.find(
         (r) => r.path === "/.well-known/x402" && r.type === "GET"

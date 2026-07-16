@@ -1,6 +1,16 @@
 import type { IAgentRuntime } from "@elizaos/core";
 import type { PaymentRequired } from "@dexterai/x402/server";
 import { X402ServerService } from "./x402ServerService.js";
+import {
+  buildMeridianRequirements,
+  buildPublicAccepts,
+  decodeMeridianPaymentHeader,
+  getMeridianApiKey,
+  getMeridianCreditedRecipient,
+  getMeridianNetwork,
+  isMeridianPayment,
+  settleMeridianPayment,
+} from "./meridianGate.js";
 
 /**
  * Result of the x402 payment gate check.
@@ -239,11 +249,16 @@ export async function x402Gate(
         /^http:\/\//,
         "https://"
       );
-      const requirements = await serverService.buildAllRequirements({
+      const publicRequirements = await buildPublicAccepts(runtime, {
         amountAtomic: usdToAtomic(options.amountUsd),
         resourceUrl,
         description: options.description,
+        extraAccepts: options.extraAccepts,
       });
+      const requirements = publicRequirements.dexterRequirements;
+      if (!requirements) {
+        throw new Error("Dexter payment requirements unavailable");
+      }
 
       // Dexter's encoder is shape-agnostic base64 JSON at runtime, but its
       // public signature requires the SDK's stricter PaymentRequired type.
@@ -258,12 +273,6 @@ export async function x402Gate(
         // the encoded PAYMENT-REQUIRED header.
         // Backfill v1 fields (resource/description/mimeType) that strict
         // schema validators require — same shape as /discovery/resources.
-        const dexterAccepts = requirements.accepts.map((entry) => ({
-          resource: resourceUrl,
-          description: options.description,
-          mimeType: "application/json",
-          ...entry,
-        }));
         const body: Record<string, unknown> = {
           x402Version: 1,
           error: "Payment required",
@@ -271,7 +280,7 @@ export async function x402Gate(
           amount: options.amountUsd,
           network: serverService.getNetwork(),
           payTo: serverService.getReceiveAddress(),
-          accepts: [...(options.extraAccepts ?? []), ...dexterAccepts],
+          accepts: publicRequirements.accepts,
         };
         res.status(402).json(body);
       }
@@ -286,6 +295,83 @@ export async function x402Gate(
     }
 
     return { paid: false, amountUsd: 0 };
+  }
+
+  // Meridian uses the standard x402 v1 payload dialect and friendly network
+  // names. It replaces Dexter only for EVM; all other headers fall through.
+  if (isMeridianPayment(paymentHeader)) {
+    const paymentPayload = decodeMeridianPaymentHeader(paymentHeader);
+    const apiKey = getMeridianApiKey(runtime);
+    const creditedRecipient = getMeridianCreditedRecipient(runtime);
+    const meridianNetwork =
+      typeof paymentPayload?.network === "string"
+        ? getMeridianNetwork(paymentPayload.network)
+        : undefined;
+
+    if (
+      !apiKey ||
+      !creditedRecipient ||
+      !meridianNetwork ||
+      meridianNetwork.paymentType !== "eip3009"
+    ) {
+      const reason = !apiKey
+        ? "meridian_disabled"
+        : !creditedRecipient
+          ? "missing_credited_recipient"
+          : "unsupported_meridian_network";
+      if (res.status && res.json) {
+        res.status(402).json({
+          error: "Meridian payment settlement failed",
+          reason,
+        });
+      }
+      return { paid: false, amountUsd: 0 };
+    }
+
+    const resourceUrl = (options.resourceUrl ?? req.url ?? "/unknown").replace(
+      /^http:\/\//,
+      "https://"
+    );
+    const requirements = buildMeridianRequirements({
+      caip2: meridianNetwork.caip2,
+      amountAtomic: usdToAtomic(options.amountUsd),
+      resourceUrl,
+      description: options.description ?? "Paid endpoint",
+      creditedRecipient,
+    });
+    const settlement = await settleMeridianPayment(
+      paymentHeader,
+      requirements,
+      apiKey
+    );
+
+    if (!settlement.success) {
+      if (res.status && res.json) {
+        res.status(402).json({
+          error: "Meridian payment settlement failed",
+          reason: settlement.errorReason ?? "Unknown",
+        });
+      }
+      return { paid: false, amountUsd: 0 };
+    }
+
+    const amountUsd = parseFloat(options.amountUsd);
+    serverService.recordRevenue({
+      endpoint: req.url ?? "/unknown",
+      amountUsd,
+      txHash: settlement.transaction ?? "",
+      network: settlement.network,
+      payer: settlement.payer ?? "",
+      timestamp: Date.now(),
+    });
+
+    return {
+      paid: true,
+      transaction: settlement.transaction,
+      network: settlement.network,
+      payer: settlement.payer,
+      amountUsd,
+    };
   }
 
   // Payment header present — verify and settle
