@@ -70,7 +70,9 @@ const challenge = (await challengeResponse.json()) as {
   accepts?: MeridianAccept[];
 };
 const requirement = challenge.accepts?.find(
-  (entry) => entry.network === "base" && entry.scheme === "exact"
+  (entry) =>
+    (entry.network === "eip155:8453" || entry.network === "base") &&
+    entry.scheme === "exact"
 );
 if (!requirement) {
   throw new Error("The 402 challenge does not advertise Meridian Base");
@@ -110,7 +112,7 @@ const signature = await account.signTypedData({
 const paymentPayload = {
   x402Version: 1,
   scheme: "exact",
-  network: "base",
+  network: requirement.network,
   payload: {
     signature,
     authorization: {

@@ -218,25 +218,19 @@ describe("x402Gate", () => {
     const body = vi.mocked(res.json).mock.calls[0]?.[0];
     expect(body.accepts.map((entry: any) => entry.network)).toEqual([
       SOLANA_CAIP2,
-      "base",
-      "arbitrum",
+      "eip155:8453",
+      "eip155:42161",
     ]);
     expect(body.accepts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          network: "base",
+          network: "eip155:8453",
           payTo: "0x8E7769D440b3460b92159Dd9C6D17302b036e2d6",
           extra: expect.objectContaining({
             creditedRecipient:
               "0x1111111111111111111111111111111111111111",
           }),
         }),
-        expect.objectContaining({ network: "arbitrum" }),
-      ])
-    );
-    expect(body.accepts).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ network: "eip155:8453" }),
         expect.objectContaining({ network: "eip155:42161" }),
       ])
     );
@@ -367,7 +361,7 @@ describe("x402Gate", () => {
       },
       services: { X402_SERVER: serverService },
     });
-    const paymentHeader = encodeMeridianPaymentHeader();
+    const paymentHeader = encodeMeridianPaymentHeader("eip155:8453");
     const res = createMockRes();
 
     const result = await x402Gate(
@@ -384,7 +378,7 @@ describe("x402Gate", () => {
     expect(result).toEqual({
       paid: true,
       transaction: "0xmeridian",
-      network: "base",
+      network: "eip155:8453",
       payer: "0x2222222222222222222222222222222222222222",
       amountUsd: 0.05,
     });
@@ -394,11 +388,12 @@ describe("x402Gate", () => {
         endpoint: "/api/test",
         amountUsd: 0.05,
         txHash: "0xmeridian",
-        network: "base",
+        network: "eip155:8453",
       })
     );
     const [, init] = vi.mocked(globalThis.fetch).mock.calls[0];
     const requestBody = JSON.parse(String(init?.body));
+    expect(requestBody.paymentPayload.network).toBe("base");
     expect(requestBody.paymentRequirements).toEqual(
       expect.objectContaining({
         network: "base",

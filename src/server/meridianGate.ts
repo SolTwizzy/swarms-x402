@@ -59,7 +59,7 @@ export const DEFAULT_MERIDIAN_NETWORKS = ["base", "arbitrum"] as const;
 
 export interface MeridianRequirements {
   scheme: "exact";
-  network: MeridianNetworkConfig["meridianName"];
+  network: string;
   asset: string;
   payTo: string;
   maxAmountRequired: string;
@@ -145,6 +145,13 @@ export function getMeridianNetwork(
   );
 }
 
+/** Find a Meridian network by either its CAIP-2 id or friendly name. */
+export function getMeridianNetworkByAny(
+  networkName: string
+): MeridianNetworkConfig | undefined {
+  return getMeridianNetwork(networkName) ?? networkByCaip2(networkName);
+}
+
 /** Build one standard x402 v1 Meridian `accepts` entry. */
 export function buildMeridianRequirements({
   caip2,
@@ -166,7 +173,7 @@ export function buildMeridianRequirements({
 
   return {
     scheme: "exact",
-    network: network.meridianName,
+    network: network.caip2,
     asset: network.token,
     payTo: network.facilitator,
     maxAmountRequired: amountAtomic,
@@ -203,7 +210,7 @@ export function isMeridianPayment(header: string): boolean {
 
   if (
     typeof payment.network === "string" &&
-    getMeridianNetwork(payment.network)
+    getMeridianNetworkByAny(payment.network)
   ) {
     return true;
   }
@@ -233,6 +240,24 @@ export async function settleMeridianPayment(
     };
   }
 
+  const network = getMeridianNetworkByAny(requirements.network);
+  if (!network) {
+    return {
+      success: false,
+      network: requirements.network,
+      errorReason: "unsupported_meridian_network",
+    };
+  }
+
+  const outboundPaymentPayload = JSON.parse(
+    JSON.stringify(paymentPayload)
+  ) as Record<string, any>;
+  const outboundRequirements = JSON.parse(
+    JSON.stringify(requirements)
+  ) as MeridianRequirements;
+  outboundPaymentPayload.network = network.meridianName;
+  outboundRequirements.network = network.meridianName;
+
   try {
     const response = await fetch(`${MERIDIAN_API_BASE}/settle`, {
       method: "POST",
@@ -240,17 +265,19 @@ export async function settleMeridianPayment(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ paymentPayload, paymentRequirements: requirements }),
+      body: JSON.stringify({
+        paymentPayload: outboundPaymentPayload,
+        paymentRequirements: outboundRequirements,
+      }),
       signal: AbortSignal.timeout(60_000),
     });
     const result = (await response.json()) as Partial<MeridianSettlementResult>;
-    const network = result.network ?? requirements.network;
 
     if (!response.ok || result.success !== true) {
       return {
         success: false,
         transaction: result.transaction || undefined,
-        network,
+        network: requirements.network,
         payer: result.payer,
         errorReason:
           result.errorReason ?? `meridian_http_${response.status}`,
@@ -260,7 +287,7 @@ export async function settleMeridianPayment(
     return {
       success: true,
       transaction: result.transaction || undefined,
-      network,
+      network: requirements.network,
       payer: result.payer,
     };
   } catch (error) {

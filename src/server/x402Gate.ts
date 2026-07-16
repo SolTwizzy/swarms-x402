@@ -7,7 +7,7 @@ import {
   decodeMeridianPaymentHeader,
   getMeridianApiKey,
   getMeridianCreditedRecipient,
-  getMeridianNetwork,
+  getMeridianNetworkByAny,
   isMeridianPayment,
   settleMeridianPayment,
 } from "./meridianGate.js";
@@ -297,15 +297,15 @@ export async function x402Gate(
     return { paid: false, amountUsd: 0 };
   }
 
-  // Meridian uses the standard x402 v1 payload dialect and friendly network
-  // names. It replaces Dexter only for EVM; all other headers fall through.
+  // Meridian uses the standard x402 v1 payload dialect. It replaces Dexter
+  // only for EVM; all other headers fall through.
   if (isMeridianPayment(paymentHeader)) {
     const paymentPayload = decodeMeridianPaymentHeader(paymentHeader);
     const apiKey = getMeridianApiKey(runtime);
     const creditedRecipient = getMeridianCreditedRecipient(runtime);
     const meridianNetwork =
       typeof paymentPayload?.network === "string"
-        ? getMeridianNetwork(paymentPayload.network)
+        ? getMeridianNetworkByAny(paymentPayload.network)
         : undefined;
 
     if (

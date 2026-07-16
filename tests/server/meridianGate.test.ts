@@ -66,7 +66,7 @@ describe("buildMeridianRequirements", () => {
 
     expect(requirement).toEqual({
       scheme: "exact",
-      network: name,
+      network: caip2,
       asset: config.token,
       payTo: MERIDIAN_FACILITATOR,
       maxAmountRequired: "290000",
@@ -89,6 +89,10 @@ describe("isMeridianPayment", () => {
     expect(isMeridianPayment(paymentHeader("base"))).toBe(true);
   });
 
+  it("detects a CAIP-2 Meridian network", () => {
+    expect(isMeridianPayment(paymentHeader("eip155:8453"))).toBe(true);
+  });
+
   it("detects a known facilitator even when the friendly name is unknown", () => {
     expect(isMeridianPayment(paymentHeader("future-network"))).toBe(true);
   });
@@ -106,6 +110,20 @@ describe("isMeridianPayment", () => {
 });
 
 describe("settleMeridianPayment", () => {
+  it("rejects an unsupported network before calling Meridian", async () => {
+    globalThis.fetch = vi.fn() as unknown as typeof fetch;
+    const requirements = { ...baseRequirements(), network: "eip155:999999" };
+
+    await expect(
+      settleMeridianPayment(paymentHeader(), requirements, "pk_live")
+    ).resolves.toEqual({
+      success: false,
+      network: "eip155:999999",
+      errorReason: "unsupported_meridian_network",
+    });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
   it("posts the decoded payload and server requirements with Bearer auth", async () => {
     globalThis.fetch = vi.fn(async () =>
       new Response(
@@ -119,14 +137,15 @@ describe("settleMeridianPayment", () => {
       )
     ) as unknown as typeof fetch;
     const requirements = baseRequirements();
-    const header = paymentHeader();
+    const header = paymentHeader("eip155:8453");
+    const requirementsBeforeSettlement = structuredClone(requirements);
 
     const result = await settleMeridianPayment(header, requirements, "pk_live");
 
     expect(result).toEqual({
       success: true,
       transaction: "0xsettled",
-      network: "base",
+      network: "eip155:8453",
       payer: "0x2222222222222222222222222222222222222222",
     });
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
@@ -142,9 +161,16 @@ describe("settleMeridianPayment", () => {
       })
     );
     expect(JSON.parse(String(init?.body))).toEqual({
-      paymentPayload: JSON.parse(Buffer.from(header, "base64").toString("utf8")),
-      paymentRequirements: requirements,
+      paymentPayload: {
+        ...JSON.parse(Buffer.from(header, "base64").toString("utf8")),
+        network: "base",
+      },
+      paymentRequirements: {
+        ...requirements,
+        network: "base",
+      },
     });
+    expect(requirements).toEqual(requirementsBeforeSettlement);
   });
 
   it("returns Meridian's failure reason for a rejected settlement", async () => {
@@ -165,7 +191,7 @@ describe("settleMeridianPayment", () => {
     ).resolves.toEqual({
       success: false,
       transaction: undefined,
-      network: "base",
+      network: "eip155:8453",
       payer: undefined,
       errorReason: "insufficient_funds",
     });

@@ -456,8 +456,8 @@ describe("GET /x402/rwa/stock-dd", () => {
     expect(accepts.map((entry: any) => entry.network)).toEqual([
       "eip155:4663",
       "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
-      "base",
-      "arbitrum",
+      "eip155:8453",
+      "eip155:42161",
     ]);
     expect(accepts[2].extra.creditedRecipient).toBe(
       "0x1111111111111111111111111111111111111111",
