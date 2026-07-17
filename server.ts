@@ -4202,7 +4202,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     if (!banner) return;
     banner.innerHTML = '<div class="payment-banner-title">Your free calls are used up for today</div>' +
       '<div class="payment-banner-msg" style="text-align:left;margin-top:12px;">' +
-      '<p>To continue, use the <strong>x402 payment protocol</strong> with any Solana or EVM wallet (Base, Arbitrum + more):</p>' +
+      '<p>To continue, use the <strong>x402 payment protocol</strong> with any Solana or EVM wallet. Settle on Base, Arbitrum, Solana, or <strong>Robinhood Chain</strong> &mdash; the chain the tokenized stocks trade on:</p>' +
       '<pre style="background:rgba(255,255,255,0.02);border:0.67px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px 18px;margin:12px 0;font-family:var(--mono);font-size:11px;line-height:1.6;color:rgba(255,255,255,0.75);overflow-x:auto;white-space:pre-wrap;">' +
       'import { wrapFetch } from "@dexterai/x402/client";\\n\\n' +
       '// Server accepts: ${networkId}\\n' +
