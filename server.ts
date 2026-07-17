@@ -1406,7 +1406,7 @@ ${THEME_TOKENS}
         <a href="/x402/benchmark">Benchmark</a> &middot;
         <a href="https://github.com/SolTwizzy/swarms-x402">GitHub</a>
         <br><br>
-        Powered by <a href="https://www.opendexter.xyz">Dexter SDK</a> | <a href="https://swarms.world">Swarms</a>
+        Powered by <a href="https://www.opendexter.xyz">Dexter</a> | <a href="https://mrdn.finance">Meridian</a> | <a href="https://swarms.world">Swarms</a>
       </div>
     </footer>
 
@@ -1781,7 +1781,7 @@ ${THEME_TOKENS}
         <a href="/x402/benchmark">Benchmark</a> &middot;
         <a href="https://github.com/SolTwizzy/swarms-x402">GitHub</a>
         <br><br>
-        Powered by <a href="https://www.opendexter.xyz">Dexter SDK</a> | <a href="https://swarms.world">Swarms</a>
+        Powered by <a href="https://www.opendexter.xyz">Dexter</a> | <a href="https://mrdn.finance">Meridian</a> | <a href="https://swarms.world">Swarms</a>
       </div>
     </footer>
 
@@ -3953,7 +3953,7 @@ console.log(<span class="kw">await</span> res.json());</div>
         </div>
         <div class="footer-bottom">
           <div class="footer-powered">
-            Powered by <a href="https://www.opendexter.xyz">Dexter SDK</a> &middot; <a href="https://swarms.world">Swarms</a> &middot; <a href="https://elizaos.ai">ElizaOS</a> &middot; <a href="https://x.com/swarmx_402" target="_blank">@swarmx_402</a>
+            Powered by <a href="https://www.opendexter.xyz">Dexter</a> &middot; <a href="https://mrdn.finance">Meridian</a> &middot; <a href="https://swarms.world">Swarms</a> &middot; <a href="https://elizaos.ai">ElizaOS</a> &middot; <a href="https://x.com/swarmx_402" target="_blank">@swarmx_402</a>
           </div>
         </div>
       </div>
