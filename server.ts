@@ -2373,9 +2373,9 @@ ${THEME_TOKENS}
     .agent-step.done {
       color: var(--text-muted); opacity: 0.7;
     }
-    .agent-step.done .step-icon::after { content: '\2713'; }
-    .agent-step.active .step-icon::after { content: '\25B6'; }
-    .agent-step.pending .step-icon::after { content: '\2022'; }
+    .agent-step.done .step-icon::after { content: '✓'; }
+    .agent-step.active .step-icon::after { content: '▶'; }
+    .agent-step.pending .step-icon::after { content: '•'; }
     .step-icon {
       width: 16px; text-align: center; font-size: 11px; flex-shrink: 0;
     }
@@ -2412,6 +2412,50 @@ ${THEME_TOKENS}
     .score-badge.caution { background: rgba(251,191,36,0.1); color: var(--yellow); border: 0.67px solid rgba(251,191,36,0.2); }
     .score-badge.danger { background: rgba(248,113,113,0.1); color: var(--red); border: 0.67px solid rgba(248,113,113,0.2); }
     .score-badge-label { font-size: 12px; font-weight: 600; }
+
+    /* ── Swarm verdict card (stock-dd) ── */
+    .swarm-card { background: var(--surface); border: 0.67px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .swarm-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 20px; border-bottom: 0.67px solid var(--border); background: var(--surface-2); }
+    .swarm-card-brand { font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: 2.5px; color: var(--accent); text-transform: uppercase; }
+    .swarm-card-sym { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+    .swarm-verdict-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; padding: 22px 20px; border-bottom: 0.67px solid var(--border); }
+    .swarm-verdict-kicker { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+    .swarm-verdict-value { font-family: var(--display); font-size: 42px; font-weight: 700; letter-spacing: 1px; line-height: 1; text-transform: uppercase; }
+    .swarm-verdict-value.up { color: var(--green); text-shadow: 0 0 28px rgba(0,200,5,0.35); }
+    .swarm-verdict-value.down { color: var(--red); text-shadow: 0 0 28px rgba(248,113,113,0.35); }
+    .swarm-verdict-value.flat { color: var(--yellow); text-shadow: 0 0 28px rgba(212,169,60,0.3); }
+    .swarm-conf { margin-top: 12px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.8px; color: var(--text-muted); text-transform: uppercase; }
+    .swarm-conf b { color: var(--heading); font-size: 18px; margin-left: 6px; }
+    .swarm-market { font-family: var(--mono); font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 7px; justify-content: center; }
+    .swarm-market .px { font-size: 24px; font-weight: 700; color: var(--heading); }
+    .swarm-market .chg.up { color: var(--green); }
+    .swarm-market .chg.down { color: var(--red); }
+    .swarm-summary { padding: 16px 20px; font-size: 13px; line-height: 1.65; color: var(--text); border-bottom: 0.67px solid var(--border); }
+    .swarm-analysts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 18px 20px; }
+    .swarm-analyst { border: 0.67px solid var(--border); border-top-width: 2px; border-radius: 12px; padding: 14px 16px; background: var(--surface-2); }
+    .swarm-analyst-name { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: 2px; }
+    .swarm-analyst-role { font-family: var(--font); font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); margin: 3px 0 10px; }
+    .swarm-analyst ul { list-style: none; margin: 0; padding: 0; }
+    .swarm-analyst li { font-size: 12px; line-height: 1.55; color: var(--text); margin-bottom: 8px; padding-left: 14px; position: relative; }
+    .swarm-analyst li:before { content: '\\203A'; position: absolute; left: 0; }
+    .swarm-analyst.bull { border-top-color: var(--green); }
+    .swarm-analyst.bull .swarm-analyst-name { color: var(--green); }
+    .swarm-analyst.bull li:before { color: var(--green); }
+    .swarm-analyst.bear { border-top-color: var(--red); }
+    .swarm-analyst.bear .swarm-analyst-name { color: var(--red); }
+    .swarm-analyst.bear li:before { color: var(--red); }
+    .swarm-analyst.risk { border-top-color: var(--yellow); }
+    .swarm-analyst.risk .swarm-analyst-name { color: var(--yellow); }
+    .swarm-analyst.risk li:before { color: var(--yellow); }
+    .swarm-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 20px; font-family: var(--mono); font-size: 10.5px; color: var(--text-muted); border-top: 0.67px solid var(--border); background: var(--surface-2); }
+    .swarm-raw { padding: 4px 20px 16px; background: var(--surface-2); }
+    .swarm-raw summary { cursor: pointer; font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+    .swarm-raw pre { margin-top: 10px; max-height: 320px; overflow: auto; background: rgba(255,255,255,0.02); border: 0.67px solid var(--border); border-radius: 10px; padding: 12px 14px; font-family: var(--mono); font-size: 10.5px; line-height: 1.5; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+    @media (max-width: 720px) {
+      .swarm-verdict-row { grid-template-columns: 1fr; }
+      .swarm-analysts { grid-template-columns: 1fr; }
+      .swarm-verdict-value { font-size: 34px; }
+    }
 
     /* ── Findings ── */
     .finding-group { margin-bottom: 16px; }
@@ -3938,7 +3982,19 @@ console.log(<span class="kw">await</span> res.json());</div>
       'GapAnalyzer comparing requirements...',
       'ComplianceWriter generating report...'
     ],
-    'batch': ['Processing batch tasks in parallel...']
+    'batch': ['Processing batch tasks in parallel...'],
+    'rwa/stock-dd': [
+      'Fetching real market data (Yahoo Finance)...',
+      'WASP arguing the bull case...',
+      'HORNET arguing the bear case...',
+      'LOCUST mapping the downside...',
+      'JUDGE aggregating swarm analysis...'
+    ],
+    'rwa/catalyst': [
+      'Fetching dividends, splits, and price history...',
+      'AI composing the catalyst brief...'
+    ],
+    'rwa/eligibility': ['Running deterministic jurisdiction rules...']
   };
 
   var activeIntervals = {};
@@ -4176,8 +4232,66 @@ console.log(<span class="kw">await</span> res.json());</div>
     return JSON.stringify(data, null, 2);
   }
 
+  /* ── Swarm verdict card (stock-dd) — THE SWARM: WASP / HORNET / LOCUST ── */
+  function swarmAnalystCol(name, role, cls, points) {
+    if (!Array.isArray(points) || points.length === 0) return '';
+    var html = '<div class="swarm-analyst ' + cls + '"><div class="swarm-analyst-name">' + name + '</div><div class="swarm-analyst-role">' + role + '</div><ul>';
+    for (var i = 0; i < points.length; i++) {
+      html += '<li>' + escHtml(String(points[i])) + '</li>';
+    }
+    return html + '</ul></div>';
+  }
+
+  function renderSwarmCard(data, timeLabel) {
+    var v = data.verdict || {};
+    var m = data.market || {};
+    var rating = String(v.rating || 'neutral').toLowerCase();
+    var vCls = rating === 'bullish' ? 'up' : (rating === 'bearish' ? 'down' : 'flat');
+    var conf = (typeof v.confidence === 'number') ? Math.round(v.confidence * 100) + '%' : null;
+    var chgUp = (m.pctChange || 0) >= 0;
+    var pos = null;
+    if (typeof m.price === 'number' && typeof m.low6mo === 'number' && typeof m.high6mo === 'number' && m.high6mo > m.low6mo) {
+      pos = Math.round(((m.price - m.low6mo) / (m.high6mo - m.low6mo)) * 100);
+    }
+    var html = '<div class="swarm-card">';
+    html += '<div class="swarm-card-head"><span class="swarm-card-brand">The Swarm</span><span class="swarm-card-sym">' + escHtml(String(data.ticker || '')) + (m.exchange ? ' &middot; ' + escHtml(String(m.exchange)) : '') + (timeLabel ? ' &middot; ' + escHtml(String(timeLabel)) : '') + '</span></div>';
+    html += '<div class="swarm-verdict-row"><div>';
+    html += '<div class="swarm-verdict-kicker">Overall analysis</div>';
+    html += '<div class="swarm-verdict-value ' + vCls + '">' + escHtml(rating) + '</div>';
+    if (conf) html += '<div class="swarm-conf">Confidence<b>' + conf + '</b></div>';
+    html += '</div><div class="swarm-market">';
+    if (typeof m.price === 'number') {
+      html += '<span class="px">' + escHtml(String(m.price)) + ' ' + escHtml(String(m.currency || 'USD')) + '</span>';
+      html += '<span class="chg ' + (chgUp ? 'up' : 'down') + '">' + (chgUp ? '+' : '') + escHtml(String(m.pctChange)) + '% today</span>';
+    }
+    if (typeof m.low6mo === 'number' && typeof m.high6mo === 'number') {
+      html += '<span>6mo range ' + escHtml(String(m.low6mo)) + ' &mdash; ' + escHtml(String(m.high6mo)) + (pos !== null ? ' &middot; pos ' + pos + '%' : '') + '</span>';
+    }
+    if (m.avgVolume) html += '<span>avg volume ' + escHtml(String(m.avgVolume)) + '</span>';
+    html += '</div></div>';
+    if (v.summary) html += '<div class="swarm-summary">' + escHtml(String(v.summary)) + '</div>';
+    var analysts = swarmAnalystCol('WASP', 'Bull case', 'bull', v.bull_points)
+      + swarmAnalystCol('HORNET', 'Bear case', 'bear', v.bear_points)
+      + swarmAnalystCol('LOCUST', 'Downside risk', 'risk', v.risks);
+    if (analysts) html += '<div class="swarm-analysts">' + analysts + '</div>';
+    var via = data.verdictVia === 'llm' ? '3-analyst AI panel' : 'deterministic fallback (LLM offline)';
+    var payNote;
+    var pay = data.payment || {};
+    if (pay.transaction) {
+      payNote = 'Paid $' + escHtml(String(pay.amount)) + ' via x402';
+    } else if (typeof data.freeRemaining === 'number') {
+      payNote = 'Free tier &middot; ' + data.freeRemaining + ' call' + (data.freeRemaining === 1 ? '' : 's') + ' left today &middot; $0.10/call after';
+    } else {
+      payNote = '$0.10 per call via x402';
+    }
+    html += '<div class="swarm-foot"><span>Real market data &middot; ' + via + (data.asOf ? ' &middot; as of ' + escHtml(String(data.asOf).slice(0, 10)) : '') + '</span><span>' + payNote + ' &middot; Not investment advice</span></div>';
+    html += '<details class="swarm-raw"><summary>Raw JSON</summary><pre>' + escHtml(JSON.stringify(data, null, 2)) + '</pre></details>';
+    html += '</div>';
+    return html;
+  }
+
   /* ── Generic submit handler ── */
-  async function submitEndpoint(prefix, path, body, label) {
+  async function submitEndpoint(prefix, path, body, label, renderer) {
     resetPanel(prefix, path.replace('/x402/', ''));
     var t0 = Date.now();
     try {
@@ -4193,6 +4307,11 @@ console.log(<span class="kw">await</span> res.json());</div>
       donePanel(prefix);
       if (!res.ok) { showError(prefix, data.error || 'Request failed (' + res.status + ')'); return; }
       var elapsed = ((Date.now() - t0) / 1000).toFixed(1) + 's';
+      if (renderer) {
+        var cardArea = document.getElementById(prefix + '-results');
+        if (cardArea) { cardArea.innerHTML = renderer(data, elapsed) + renderShareSection(data); cardArea.classList.remove('hidden'); }
+        return;
+      }
       var text = extractText(data);
       var score = data.riskScore || data.risk_score || data.score;
       var riskLevel = data.riskLevel || data.risk_level || data.risk || data.rating;
@@ -4302,7 +4421,9 @@ console.log(<span class="kw">await</span> res.json());</div>
       if (!ticker) { showError('crypto', 'Please enter a stock ticker.'); return; }
       body = { ticker: ticker };
     }
-    submitEndpoint('crypto', path, body, ep.replace(/-/g, ' ').replace(/\\/.*/, ''));
+    var st = document.querySelector('#crypto-spinner .spinner-title');
+    if (st) st.textContent = (ep === 'rwa/stock-dd') ? 'Aggregating swarm analysis' : 'Processing';
+    submitEndpoint('crypto', path, body, ep.replace(/-/g, ' ').replace(/\\/.*/, ''), ep === 'rwa/stock-dd' ? renderSwarmCard : null);
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -4745,6 +4866,19 @@ console.log(<span class="kw">await</span> res.json());</div>
     var area = document.getElementById('market-agent-result');
     if (!area) return;
     var data = d.result || {};
+    if (d.endpoint === '/x402/rwa/stock-dd' && data.verdict && data.market) {
+      var cardHtml = renderSwarmCard(data, seconds + 's');
+      var jobPay = d.payment || data.payment || {};
+      if (jobPay.transaction) {
+        var payUrl = agentExplorerUrl(jobPay.network, jobPay.transaction);
+        cardHtml += '<div class="agent-pay-line"><span>&#10003; Paid ' + (jobPay.amount !== undefined ? '$' + escHtml(String(jobPay.amount)) : '') + ' on ' + escHtml(agentNetworkLabel(jobPay.network)) + ' by ' + escHtml(AGENT.name) + '</span>';
+        if (payUrl) { cardHtml += '<a href="' + escAttr(payUrl) + '" target="_blank" rel="noopener">tx ' + escHtml(agentShortTx(jobPay.transaction)) + ' &#8599;</a>'; }
+        else { cardHtml += '<span>tx ' + escHtml(agentShortTx(jobPay.transaction)) + '</span>'; }
+        cardHtml += '</div>';
+      }
+      area.innerHTML = cardHtml;
+      return;
+    }
     var verdict = data.verdict || {};
     var riskLevel = verdict.rating || data.rating || data.riskLevel || data.risk_level || data.risk;
     var score = data.score !== undefined ? data.score : (data.riskScore || data.risk_score);
