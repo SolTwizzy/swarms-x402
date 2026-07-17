@@ -2217,6 +2217,34 @@ ${THEME_TOKENS}
       font-family: var(--mono); font-size: 12px; color: var(--text-dim);
       margin-top: 0; letter-spacing: 0.2px;
     }
+    /* ── Token contract address — click/tap to copy (desktop + mobile) ── */
+    .ca-bar {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      width: 100%; max-width: 100%; box-sizing: border-box;
+      margin: 18px 0 20px; padding: 12px 15px; text-align: left;
+      background: var(--surface-2); border: 0.67px solid var(--border-hover);
+      border-radius: 10px; cursor: pointer; font-family: var(--mono);
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .ca-bar:hover, .ca-bar:focus-visible { border-color: var(--accent); background: rgba(255, 46, 46, 0.06); outline: none; }
+    .ca-bar:active { transform: translateY(1px); }
+    .ca-label { color: var(--accent); font-weight: 600; font-size: 14px; letter-spacing: 0.06em; flex: none; }
+    .ca-addr {
+      color: var(--heading); font-size: clamp(10.5px, 2.7vw, 15px);
+      overflow-wrap: anywhere; word-break: break-all; min-width: 0; flex: 1 1 auto;
+    }
+    .ca-copy {
+      margin-left: auto; flex: none; color: var(--text-muted); font-size: 12px;
+      border: 0.67px solid var(--border-hover); border-radius: 6px; padding: 4px 11px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .ca-bar:hover .ca-copy, .ca-bar:focus-visible .ca-copy { color: var(--accent); border-color: var(--accent); }
+    .ca-copy.copied { color: var(--green); border-color: var(--green); }
+    @media (max-width: 560px) {
+      .ca-copy { margin-left: 0; }
+      .ca-addr { flex-basis: 100%; }
+    }
 
     /* ── Hero terminal — the signature element.
        Replays a real captured stock-dd run; the CTA runs a live one. ── */
@@ -5238,7 +5266,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     var FACES = ['GeistPixelSquare', 'GeistPixelCircle', 'GeistPixelTriangle', 'GeistPixelGrid'];
     var text = el.textContent;
     var canvas = null, ctx = null, W = 0, H = 0;
-    var particles = [], targetSets = [], setIdx = 0, kick = 7, sampleGap = 3;
+    var particles = [], targetSets = [], setIdx = 0, kick = 7;
     var running = false, raf = 0, t = 0, migrating = 0;
 
     /* Ask the browser where it actually laid out each word (any wrap, any
@@ -5276,17 +5304,16 @@ console.log(<span class="kw">await</span> res.json());</div>
       }
       var img = octx.getImageData(0, 0, w, h).data;
       /* Sampling must be finer than the font's block size (~px/10), or small
-         mobile text degrades into sparse dust that never reads as letters.
-         The chosen gap also drives particle size so squares tile the grid. */
+         mobile text degrades into sparse dust that never reads as letters. */
       var baseGap = px < 44 ? 2 : 3;
       for (var gap = baseGap; gap <= baseGap + 2; gap++) {
         var pts = [];
         for (var y = 1; y < h; y += gap) {
           for (var x = 0; x < w; x += gap) {
-            if (img[(y * w + x) * 4 + 3] > 128) pts.push([Math.round(x), Math.round(y)]);
+            if (img[(y * w + x) * 4 + 3] > 128) pts.push([x, y]);
           }
         }
-        if (pts.length <= 2600 || gap === baseGap + 2) { sampleGap = gap; return pts; }
+        if (pts.length <= 2600 || gap === baseGap + 2) return pts;
       }
       return [];
     }
@@ -5322,9 +5349,8 @@ console.log(<span class="kw">await</span> res.json());</div>
           vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
           ph: Math.random() * 6.283,
           fr: 0.5 + Math.random() * 1.3,
-          /* size ~= grid step so squares tile crisply; a few run 1px larger */
-          sz: sampleGap + (Math.random() < 0.25 ? 1 : 0),
-          al: 0.78 + Math.random() * 0.22,
+          sz: 1.7 + Math.random() * 1.2,
+          al: 0.5 + Math.random() * 0.5,
           tx: 0, ty: 0
         });
       }
@@ -5346,16 +5372,13 @@ console.log(<span class="kw">await</span> res.json());</div>
 
     function frame() {
       t += 0.016;
-      /* Settled: stiff spring + minimal wobble so letters lock in crisp.
-         Migrating: loose + wobbly for the in-flight swarm look. */
-      var k = migrating > 0 ? 0.016 : 0.16;
-      var damp = migrating > 0 ? 0.93 : 0.74;
-      var wob = migrating > 0 ? 0.55 : 0.025;
+      var k = migrating > 0 ? 0.016 : 0.09;
+      var damp = migrating > 0 ? 0.93 : 0.8;
+      var wob = migrating > 0 ? 0.55 : 0.07;
       if (migrating > 0) migrating--;
       else {
-        /* a couple bugs buzz off at random and snap back — keeps it alive
-           without smearing the text (the stiff spring pulls them home fast) */
-        for (var d = 0; d < 2; d++) {
+        /* a few bugs buzz off at random and get pulled back — keeps it alive */
+        for (var d = 0; d < 3; d++) {
           var j = (Math.random() * particles.length) | 0;
           particles[j].vx += (Math.random() - 0.5) * kick;
           particles[j].vy += (Math.random() - 0.5) * kick;
@@ -5369,8 +5392,7 @@ console.log(<span class="kw">await</span> res.json());</div>
         p.vy = (p.vy + (p.ty - p.y) * k + Math.sin(t * p.fr * 2.3 + p.ph) * wob) * damp;
         p.x += p.vx; p.y += p.vy;
         ctx.globalAlpha = p.al;
-        /* integer coords → crisp pixel edges (fractional = anti-aliased blur) */
-        ctx.fillRect(Math.round(p.x), Math.round(p.y), p.sz, p.sz);
+        ctx.fillRect(p.x, p.y, p.sz, p.sz);
       }
       ctx.globalAlpha = 1;
       if (running) raf = requestAnimationFrame(frame);
