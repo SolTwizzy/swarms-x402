@@ -211,11 +211,15 @@ function parseContractAuditText(text: string): ContractAuditResult {
   else if (riskScore <= 50) verdict = "CAUTION";
   else verdict = "DANGER";
 
-  // Build summary from first meaningful paragraph
+  // Build summary from first meaningful paragraph. When the raw text is JSON,
+  // the match starts at the "summary" KEY — strip the leading/trailing JSON
+  // punctuation so the value reads clean.
   const summaryMatch = text.match(
     /(?:summary|conclusion|overall|executive)[:\s]*([^\n]{20,500})/i
   );
-  const summary = summaryMatch?.[1]?.trim() ?? text.slice(0, 500);
+  const summary = (summaryMatch?.[1]?.trim() ?? text.slice(0, 500))
+    .replace(/^["':\s]+/, "")
+    .replace(/["',}\s]+$/, "");
 
   return {
     riskScore,
@@ -300,7 +304,9 @@ function parseTokenRiskText(text: string): TokenRiskResult {
   const summaryMatch = text.match(
     /(?:summary|conclusion|verdict|assessment|overall)[:\s]*([^\n]{20,500})/i
   );
-  const summary = summaryMatch?.[1]?.trim() ?? text.slice(0, 500);
+  const summary = (summaryMatch?.[1]?.trim() ?? text.slice(0, 500))
+    .replace(/^["':\s]+/, "")
+    .replace(/["',}\s]+$/, "");
 
   return {
     riskScore,
