@@ -2148,6 +2148,7 @@ ${THEME_TOKENS}
       .nav-links { gap: 2px; }
       .nav-links a { padding: 6px 8px; font-size: 12px; }
       .nav-cta { display: none !important; }
+      .nav-sm-hide { display: none !important; }
     }
 
     /* ── Hero ──
@@ -2186,6 +2187,11 @@ ${THEME_TOKENS}
       font-size: 0.86em; font-weight: 500; letter-spacing: 0; line-height: 1.1;
       text-shadow: 0 0 34px var(--accent-glow);
     }
+    /* Particle-swarm mode: canvas draws the "bugs"; the real text underneath
+       goes transparent but keeps its box (layout + a11y + no-JS fallback). */
+    #hero-px { position: relative; display: inline-block; }
+    #hero-px canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+    #hero-px.hero-px-active { color: transparent; text-shadow: none; }
     .hero-sub {
       font-size: 16px; color: var(--text-muted); max-width: 44ch; margin: 0 0 28px; line-height: 1.65;
       font-weight: 400;
@@ -2202,7 +2208,11 @@ ${THEME_TOKENS}
     .hero-cta-primary {
       background: var(--accent); color: #140404; border: 0.67px solid var(--accent);
     }
-    .hero-cta-primary:hover { background: #00E006; border-color: #00E006; }
+    .hero-cta-primary:hover { background: #FF4D4D; border-color: #FF4D4D; }
+    .hero-cta-secondary {
+      background: transparent; color: var(--text); border: 0.67px solid var(--border-hover);
+    }
+    .hero-cta-secondary:hover { border-color: var(--accent); color: var(--heading); }
     .hero-badges { display: none; }
     .hero-stats {
       font-family: var(--mono); font-size: 12px; color: var(--text-dim);
@@ -2634,7 +2644,7 @@ ${THEME_TOKENS}
     .code-block {
       background: var(--surface); border: 0.67px solid var(--border); border-radius: 12px;
       padding: 20px; font-family: var(--mono); font-size: 12px; line-height: 1.7;
-      color: var(--text); overflow-x: auto; margin-bottom: 16px;
+      color: var(--text); overflow-x: auto; margin-bottom: 16px; white-space: pre;
     }
     .code-block .kw { color: #c792ea; }
     .code-block .fn { color: #82aaff; }
@@ -2658,8 +2668,24 @@ ${THEME_TOKENS}
     /* ── Footer ── */
     .footer { border-top: 0.67px solid var(--border); padding: 48px 0 32px; }
     .footer-grid {
-      display: grid; grid-template-columns: 2fr repeat(4, 1fr); gap: 40px;
+      display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 40px;
       margin-bottom: 32px;
+    }
+    .integration-sub {
+      font-size: 14px; color: var(--text-muted); margin: -6px 0 16px; line-height: 1.6;
+    }
+    .mcp-connect {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: var(--surface-2); border: 0.67px solid var(--border-hover);
+      border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;
+    }
+    .mcp-connect-label {
+      font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+      color: var(--accent); text-transform: uppercase;
+    }
+    .mcp-connect code {
+      font-family: var(--mono); font-size: 14px; color: var(--heading); flex: 1 1 auto;
+      overflow-wrap: anywhere;
     }
     .footer-brand { }
     .footer-brand-name {
@@ -3049,12 +3075,14 @@ ${THEME_TOKENS}
 
     <!-- ===== TOP NAV ===== -->
     <nav class="top-nav">
-      <a class="nav-logo" href="/"><img class="nav-logo-img" src="/logo.png" alt="" width="26" height="26">Swarm<span>X</span></a>
+      <a class="nav-logo" href="/">Swarm<img class="nav-logo-img" src="/logo.png" alt="X" width="26" height="26"></a>
       <div class="nav-links">
-        <a href="#markets">Markets</a>
+        <a class="nav-sm-hide" href="#markets">Markets</a>
+        <a href="#endpoints">Endpoints</a>
         <a href="#pricing">Pricing</a>
-        <a href="/x402/catalog">Catalog</a>
-        <a href="https://github.com/SolTwizzy/swarms-x402" target="_blank">GitHub</a>
+        <a href="#mcp">MCP</a>
+        <a class="nav-sm-hide" href="https://github.com/SolTwizzy/swarms-x402" target="_blank">GitHub</a>
+        <a class="nav-sm-hide" href="https://x.com/swarmx_402" target="_blank">Twitter</a>
         <a class="nav-cta" href="#playground">Try Free &rarr;</a>
       </div>
     </nav>
@@ -3075,6 +3103,7 @@ ${THEME_TOKENS}
             <p class="hero-sub">Adversarial analyst panels &mdash; bull, bear, risk &mdash; read the real market data on any tokenized stock, crypto token, or wallet and return a structured verdict you can act on. Flagship Stock DD $0.10 a report, paid in USDC. No account.</p>
             <div class="hero-ctas">
               <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
+              <a class="hero-cta-btn hero-cta-secondary" href="#mcp">Connect via MCP</a>
             </div>
             <p class="hero-stats">Equities &amp; RWA &bull; Crypto &amp; On-chain &bull; General Agents &bull; 45 endpoints &bull; 5 free calls/day</p>
           </div>
@@ -3624,7 +3653,7 @@ ${THEME_TOKENS}
       </div><!-- .playground -->
 
       <!-- ===== ALL ENDPOINTS BY CATEGORY ===== -->
-      <div class="section">
+      <div class="section" id="endpoints">
         <div class="section-title">All Endpoints</div>
         <div class="section-subtitle">Browse all 45 endpoints across 10 categories, from $0.01 data feeds to $0.19 enterprise analyses.</div>
 
@@ -3789,15 +3818,22 @@ ${THEME_TOKENS}
         </div>
       </div>
 
-      <!-- ===== SDK ===== -->
-      <div class="integration">
-        <h3>Integrate with SwarmX</h3>
+      <!-- ===== CONNECT: MCP & API ===== -->
+      <div class="integration" id="mcp">
+        <h3>Connect your agent &mdash; MCP &amp; API</h3>
+        <p class="integration-sub">48 tools &middot; no API key, no account &middot; your agent pays per call in USDC via x402.</p>
+        <div class="mcp-connect">
+          <span class="mcp-connect-label">MCP</span>
+          <code>${baseUrl}/mcp</code>
+          <button class="share-btn" type="button" data-copy="${baseUrl}/mcp">Copy</button>
+        </div>
         <div class="code-label">Connect</div>
-        <div class="code-block"><span class="cmt"># Point any MCP agent at the SwarmX server (48 tools, no key needed)</span>
+        <div class="code-block"><span class="cmt"># Point any MCP agent (Claude Code, OpenClaw, Hermes...) at the server</span>
 ${baseUrl}/mcp
 
-<span class="cmt"># Or call the HTTP API directly</span>
+<span class="cmt"># Or call the HTTP API directly — machine-readable catalog + OpenAPI</span>
 curl ${baseUrl}/x402/catalog
+curl ${baseUrl}/openapi.json
 
 <span class="cmt"># Or self-host the whole platform</span>
 git clone https://github.com/SolTwizzy/swarms-x402</div>
@@ -3821,14 +3857,12 @@ console.log(<span class="kw">await</span> res.json());</div>
 
       <!-- ===== QUICK LINKS ===== -->
       <div class="quick-links">
-        <a class="qlink" href="/x402/catalog">Catalog JSON</a>
-        <a class="qlink" href="/x402/health">Health</a>
-        <a class="qlink" href="/x402/revenue">Revenue Dashboard</a>
-        <a class="qlink" href="/mcp-manifest.json">MCP Manifest</a>
-        <a class="qlink" href="/api/status">API Status</a>
-        <a class="qlink" href="/x402/gallery">Gallery</a>
+        <a class="qlink" href="#mcp">MCP Server</a>
+        <a class="qlink" href="#endpoints">All Endpoints</a>
         <a class="qlink" href="/x402/benchmark">Benchmark</a>
+        <a class="qlink" href="/x402/gallery">Gallery</a>
         <a class="qlink" href="https://github.com/SolTwizzy/swarms-x402" target="_blank">GitHub</a>
+        <a class="qlink" href="https://x.com/swarmx_402" target="_blank">Twitter</a>
       </div>
 
     </div><!-- .container -->
@@ -3842,34 +3876,33 @@ console.log(<span class="kw">await</span> res.json());</div>
             <div class="footer-brand-desc">AI agent teams powered by x402 micropayments and Swarms multi-agent orchestration.</div>
           </div>
           <div class="footer-col">
-            <div class="footer-col-title">Products</div>
-            <a href="/x402/catalog">API Catalog</a>
-            <a href="/mcp-manifest.json">MCP Manifest</a>
+            <div class="footer-col-title">Product</div>
+            <a href="#endpoints">All Endpoints</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#playground">Playground</a>
+            <a href="#markets">Markets</a>
             <a href="/x402/benchmark">Benchmark</a>
+            <a href="/x402/gallery">Gallery</a>
           </div>
           <div class="footer-col">
-            <div class="footer-col-title">Resources</div>
-            <a href="/x402/gallery">Gallery</a>
-            <a href="/x402/health">Health Check</a>
-            <a href="/x402/revenue">Revenue</a>
-            <a href="/api/status">API Status</a>
+            <div class="footer-col-title">Developers</div>
+            <a href="#mcp">MCP Server</a>
+            <a href="/openapi.json">OpenAPI spec (JSON)</a>
+            <a href="/x402/catalog">Catalog (JSON, for agents)</a>
+            <a href="/x402/health">Service health</a>
+            <a href="https://github.com/SolTwizzy/swarms-x402/issues" target="_blank">Report an issue</a>
           </div>
           <div class="footer-col">
             <div class="footer-col-title">Community</div>
+            <a href="https://x.com/swarmx_402" target="_blank">X / Twitter</a>
             <a href="https://github.com/SolTwizzy/swarms-x402" target="_blank">GitHub</a>
             <a href="https://swarms.world" target="_blank">Swarms</a>
             <a href="https://elizaos.ai" target="_blank">ElizaOS</a>
-            <a href="https://www.opendexter.xyz" target="_blank">OpenDexter</a>
-          </div>
-          <div class="footer-col">
-            <div class="footer-col-title">Support</div>
-            <a href="/x402/catalog">API Reference</a>
-            <a href="https://github.com/SolTwizzy/swarms-x402/issues" target="_blank">Report Issue</a>
           </div>
         </div>
         <div class="footer-bottom">
           <div class="footer-powered">
-            Powered by <a href="https://www.opendexter.xyz">Dexter SDK</a> &middot; <a href="https://swarms.world">Swarms</a> &middot; <a href="https://elizaos.ai">ElizaOS</a>
+            Powered by <a href="https://www.opendexter.xyz">Dexter SDK</a> &middot; <a href="https://swarms.world">Swarms</a> &middot; <a href="https://elizaos.ai">ElizaOS</a> &middot; <a href="https://x.com/swarmx_402" target="_blank">@swarmx_402</a>
           </div>
         </div>
       </div>
@@ -5111,53 +5144,190 @@ console.log(<span class="kw">await</span> res.json());</div>
     setInterval(agentRefreshSession, 30000);
   })();
 
-  /* Geist Pixel swarm type: glyphs scramble into place on load, then the
-     letterform construction cycles variants — the swarm reorganizing itself. */
+  /* Geist Pixel particle swarm: ~2k pixel "bugs" fly in as one organism and
+     assemble the headline, then periodically lift off and migrate to the next
+     pixel construction (Square/Circle/Triangle/Grid — Line reads as
+     strikethrough, excluded). Canvas overlay; real text stays underneath. */
   (function () {
     var el = document.getElementById('hero-px');
-    if (!el) return;
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    /* Line variant excluded: its horizontal strokes read as strikethrough on
-       a headline (crossed-out "tradeable" says the opposite of the pitch). */
-    var variants = ['px-square', 'px-circle', 'px-triangle', 'px-grid'];
-    var vi = 0;
-    function setVariant(cls) {
-      for (var i = 0; i < variants.length; i++) el.classList.remove(variants[i]);
-      el.classList.add(cls);
+    window.SWARMX_PX = { stage: 'boot' };
+    if (!el || !window.requestAnimationFrame || !document.fonts) { window.SWARMX_PX.stage = 'unsupported'; return; }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { window.SWARMX_PX.stage = 'reduced-motion'; return; }
+    var FACES = ['GeistPixelSquare', 'GeistPixelCircle', 'GeistPixelTriangle', 'GeistPixelGrid'];
+    var text = el.textContent;
+    var canvas = null, ctx = null, W = 0, H = 0;
+    var particles = [], targetSets = [], setIdx = 0;
+    var running = false, raf = 0, t = 0, migrating = 0;
+
+    /* Ask the browser where it actually laid out each word (any wrap, any
+       width) so the swarm assembles exactly where the real text sits. */
+    function domWordBoxes() {
+      var node = null;
+      for (var i = 0; i < el.childNodes.length; i++) {
+        if (el.childNodes[i].nodeType === 3 && el.childNodes[i].textContent.trim()) { node = el.childNodes[i]; break; }
+      }
+      if (!node || !document.createRange) return null;
+      var base = el.getBoundingClientRect();
+      var s = node.textContent;
+      var boxes = [];
+      /* no backslash escapes here — the outer template literal eats them */
+      var re = /[^ ]+/g, m;
+      while ((m = re.exec(s)) !== null) {
+        var r = document.createRange();
+        r.setStart(node, m.index);
+        r.setEnd(node, m.index + m[0].length);
+        var rr = r.getBoundingClientRect();
+        boxes.push({ word: m[0], x: rr.left - base.left, y: rr.top - base.top, h: rr.height });
+      }
+      return boxes.length ? boxes : null;
     }
-    var finalText = el.textContent;
-    var glyphs = '0123456789xX*#+%';
-    var steps = 14, step = 0;
-    var scramble = setInterval(function () {
-      step++;
-      if (step >= steps) {
-        clearInterval(scramble);
-        el.textContent = finalText;
-        startCycle();
-        return;
+
+    function samplePoints(face, w, h, px, boxes) {
+      var off = document.createElement('canvas');
+      off.width = w; off.height = h;
+      var octx = off.getContext('2d');
+      octx.font = '500 ' + px + 'px ' + face;
+      octx.textBaseline = 'middle';
+      octx.fillStyle = '#fff';
+      for (var b = 0; b < boxes.length; b++) {
+        octx.fillText(boxes[b].word, boxes[b].x, boxes[b].y + boxes[b].h / 2);
       }
-      var reveal = (step / steps) * finalText.length;
-      var out = '';
-      for (var i = 0; i < finalText.length; i++) {
-        var ch = finalText.charAt(i);
-        if (ch === ' ' || ch === '.' || i < reveal) { out += ch; continue; }
-        out += glyphs.charAt(Math.floor(Math.random() * glyphs.length));
+      var img = octx.getImageData(0, 0, w, h).data;
+      var baseGap = w < 460 ? 4 : 3;
+      for (var gap = baseGap; gap <= baseGap + 2; gap++) {
+        var pts = [];
+        for (var y = 1; y < h; y += gap) {
+          for (var x = 0; x < w; x += gap) {
+            if (img[(y * w + x) * 4 + 3] > 128) pts.push([x, y]);
+          }
+        }
+        if (pts.length <= 2600 || gap === baseGap + 2) return pts;
       }
-      el.textContent = out;
-    }, 65);
-    function startCycle() {
+      return [];
+    }
+
+    function build() {
+      var rect = el.getBoundingClientRect();
+      var px = parseFloat(window.getComputedStyle(el).fontSize) || 48;
+      if (rect.width < 40 || rect.height > px * 5) { window.SWARMX_PX.stage = 'static: layout'; return false; }
+      var boxes = domWordBoxes();
+      if (!boxes) { window.SWARMX_PX.stage = 'static: no boxes'; return false; }
+      W = Math.ceil(rect.width); H = Math.ceil(rect.height);
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.setAttribute('aria-hidden', 'true');
+        el.appendChild(canvas);
+      }
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      canvas.style.display = '';
+      ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      targetSets = [];
+      for (var f = 0; f < FACES.length; f++) targetSets.push(samplePoints(FACES[f], W, H, px, boxes));
+      if (targetSets[0].length < 60) { window.SWARMX_PX.stage = 'static: sparse sample ' + targetSets[0].length; return false; }
+      var n = Math.min(2600, targetSets[0].length);
+      particles = [];
+      for (var i = 0; i < n; i++) {
+        particles.push({
+          x: W / 2 + (Math.random() - 0.5) * W * 1.7,
+          y: H / 2 + (Math.random() - 0.5) * H * 7,
+          vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+          ph: Math.random() * 6.283,
+          fr: 0.5 + Math.random() * 1.3,
+          sz: 1.7 + Math.random() * 1.2,
+          al: 0.5 + Math.random() * 0.5,
+          tx: 0, ty: 0
+        });
+      }
+      assign(setIdx);
+      el.classList.add('hero-px-active');
+      return true;
+    }
+
+    function assign(idx) {
+      var pts = targetSets[idx];
+      if (!pts || !pts.length) return;
+      for (var i = 0; i < particles.length; i++) {
+        var p = pts[(i * 7919 + idx * 131) % pts.length];
+        particles[i].tx = p[0];
+        particles[i].ty = p[1];
+      }
+      migrating = 95; /* ~1.6s of loose steering — the in-flight swarm look */
+    }
+
+    function frame() {
+      t += 0.016;
+      var k = migrating > 0 ? 0.016 : 0.09;
+      var damp = migrating > 0 ? 0.93 : 0.8;
+      var wob = migrating > 0 ? 0.55 : 0.07;
+      if (migrating > 0) migrating--;
+      else {
+        /* a few bugs buzz off at random and get pulled back — keeps it alive */
+        for (var d = 0; d < 3; d++) {
+          var j = (Math.random() * particles.length) | 0;
+          particles[j].vx += (Math.random() - 0.5) * 7;
+          particles[j].vy += (Math.random() - 0.5) * 7;
+        }
+      }
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#FF2E2E';
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.vx = (p.vx + (p.tx - p.x) * k + Math.cos(t * p.fr * 3.1 + p.ph) * wob) * damp;
+        p.vy = (p.vy + (p.ty - p.y) * k + Math.sin(t * p.fr * 2.3 + p.ph) * wob) * damp;
+        p.x += p.vx; p.y += p.vy;
+        ctx.globalAlpha = p.al;
+        ctx.fillRect(p.x, p.y, p.sz, p.sz);
+      }
+      ctx.globalAlpha = 1;
+      if (running) raf = requestAnimationFrame(frame);
+    }
+
+    function startLoop() { if (!running && ctx) { running = true; raf = requestAnimationFrame(frame); } }
+    function stopLoop() { running = false; cancelAnimationFrame(raf); }
+
+    /* fonts.load() during initial parse can return a forever-pending promise
+       (engine quirk) — wait for fonts.ready, then request the unused faces. */
+    document.fonts.ready.then(function () {
+      var faceLoads = [];
+      for (var f = 0; f < FACES.length; f++) faceLoads.push(document.fonts.load('500 64px ' + FACES[f], text));
+      return Promise.all(faceLoads);
+    }).then(function () {
+      var okFaces = [];
+      for (var f2 = 0; f2 < FACES.length; f2++) {
+        if (document.fonts.check('500 64px ' + FACES[f2])) okFaces.push(FACES[f2]);
+      }
+      window.SWARMX_PX.stage = 'fonts: ' + okFaces.length + '/' + FACES.length;
+      if (!okFaces.length) return;
+      FACES = okFaces;
+      if (!build()) return;
+      window.SWARMX_PX.stage = 'running';
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          if (entries[0].isIntersecting) startLoop(); else stopLoop();
+        }, { threshold: 0 }).observe(el);
+      } else {
+        startLoop();
+      }
       setInterval(function () {
-        var n = variants.length;
-        var next = (vi + 1) % n;
-        var flicks = [variants[(vi + 2) % n], variants[(vi + 3) % n], variants[next]];
-        var k = 0;
-        var flick = setInterval(function () {
-          setVariant(flicks[k]);
-          k++;
-          if (k >= flicks.length) { clearInterval(flick); vi = next; }
-        }, 85);
-      }, 3400);
-    }
+        if (!running) return;
+        setIdx = (setIdx + 1) % targetSets.length;
+        assign(setIdx);
+      }, 7000);
+      var rt = null;
+      window.addEventListener('resize', function () {
+        clearTimeout(rt);
+        rt = setTimeout(function () {
+          el.classList.remove('hero-px-active');
+          if (!build()) {
+            stopLoop();
+            if (canvas) canvas.style.display = 'none';
+          }
+        }, 250);
+      });
+    }).catch(function (e) { window.SWARMX_PX.stage = 'error: ' + (e && e.message ? e.message : e); });
   })();
   </script>
 </body>
