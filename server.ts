@@ -20,7 +20,7 @@ import { swarmRoutes } from "./src/routes/swarmRoutes.js";
 import { swarmPremiumRoutes } from "./src/routes/swarmPremiumRoutes.js";
 import { rwaRoutes } from "./src/routes/rwaRoutes.js";
 import { THEME_FONTS, THEME_TOKENS, THEME_FAVICON } from "./src/ui/theme.js";
-import { LOGO_FAVICON_B64, LOGO_NAV_B64, logoBytes } from "./src/ui/logo.js";
+import { LOGO_FAVICON_B64, LOGO_NAV_B64, OG_CARD_B64, logoBytes } from "./src/ui/logo.js";
 import { X402WalletService } from "./src/services/x402WalletService.js";
 import { SwarmsService } from "./src/services/swarmsService.js";
 import { PaymentMemoryService } from "./src/services/paymentMemoryService.js";
@@ -985,7 +985,7 @@ ${THEME_TOKENS}
         <div class="bench-vs">vs</div>
 
         <div class="bench-col gpt">
-          <div class="bench-label gpt-label">Single GPT-4o</div>
+          <div class="bench-label gpt-label">Single GPT call</div>
           <div class="bench-row">
             <span class="bench-metric">Perspectives</span>
             <span class="bench-value loser">1 generalist</span>
@@ -1872,6 +1872,12 @@ async function startServer(): Promise<void> {
           headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" },
         });
       }
+      if (pathname === "/og-card.jpg" && method === "GET") {
+        return new Response(logoBytes(OG_CARD_B64), {
+          status: 200,
+          headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=86400" },
+        });
+      }
 
       // ── Market data (free, cached) — powers the tape + charts ─────
       if (pathname === "/api/market/tape" && method === "GET") {
@@ -2045,8 +2051,7 @@ async function startServer(): Promise<void> {
         const networkId = configuredNetworkIds.length > 0
           ? configuredNetworkIds.join(", ")
           : (process.env.X402_NETWORK_ID ?? "base-mainnet");
-        const baseUrl = process.env.SWARMX_BASE_URL
-          ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${PORT}`);
+        const baseUrl = publicOrigin(url);
 
         const html = `<!DOCTYPE html>
 <html lang="en">
@@ -2055,6 +2060,19 @@ async function startServer(): Promise<void> {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SwarmX — AI due diligence on everything tradeable.</title>
   <meta name="description" content="Adversarial analyst panels research any tokenized stock, crypto token, or wallet — momentum, valuation, downside — and return a rated verdict. Flagship Stock DD $0.10 in USDC, or 5 free calls a day. No account.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SwarmX">
+  <meta property="og:url" content="${baseUrl}/">
+  <meta property="og:title" content="SwarmX — AI due diligence on everything tradeable.">
+  <meta property="og:description" content="Adversarial analyst panels — bull, bear, risk — return a rated verdict on any tokenized stock, crypto token, or wallet. Stock DD $0.10 in USDC, 5 free calls a day. No account, agents pay via x402.">
+  <meta property="og:image" content="${baseUrl}/og-card.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SwarmX — AI due diligence on everything tradeable.">
+  <meta name="twitter:description" content="Adversarial analyst panels — bull, bear, risk — return a rated verdict on any tokenized stock, crypto token, or wallet. Stock DD $0.10 in USDC, 5 free calls a day.">
+  <meta name="twitter:image" content="${baseUrl}/og-card.jpg">
+  <link rel="canonical" href="${baseUrl}/">
 ${THEME_FONTS}
 ${THEME_FAVICON}
   <style>
@@ -3079,7 +3097,7 @@ ${THEME_TOKENS}
       <div class="what-is">
         <div class="landing-section-title">What is SwarmX</div>
         <p>Stocks are moving on-chain. SwarmX is the research layer that moved with them. Point it at a tokenized equity and a panel of specialist agents &mdash; each arguing a different side &mdash; returns a rated verdict with the bull case, the bear case, and the downside spelled out. Crypto and DeFi endpoints are here too, but tokenized real-world assets are what we build for.</p>
-        <p class="stat-line">5 RWA endpoints &bull; 44 total &bull; No accounts &bull; No API keys &bull; Pay per call or try free</p>
+        <p class="stat-line">5 RWA endpoints &bull; 45 total &bull; No accounts &bull; No API keys &bull; Pay per call or try free</p>
       </div>
 
       <!-- ===== HOW IT WORKS ===== -->
@@ -3123,7 +3141,7 @@ ${THEME_TOKENS}
           </div>
           <div class="prop-card">
             <h3>Callable by <span class="accent">agents</span></h3>
-            <p>Any agent with a USDC wallet can pull research on its own. MCP server included, 44 tools, no human in the loop.</p>
+            <p>Any agent with a USDC wallet can pull research on its own. MCP server included, 48 tools, no human in the loop.</p>
           </div>
         </div>
       </div>
@@ -3142,7 +3160,7 @@ ${THEME_TOKENS}
           </div>
           <div class="persona-card">
             <div class="persona-label dev">Developers</div>
-            <p>Research, audits, extraction &mdash; 44 endpoints behind one API, priced per call.</p>
+            <p>Research, audits, extraction &mdash; 45 endpoints behind one API, priced per call.</p>
           </div>
           <div class="persona-card">
             <div class="persona-label agent">AI agents</div>
@@ -3176,6 +3194,8 @@ ${THEME_TOKENS}
             <label class="form-label" for="crypto-endpoint">Endpoint</label>
             <select class="form-select" id="crypto-endpoint" onchange="updateCryptoForm()">
               <option value="rwa/stock-dd" data-price="$0.10" selected>Stock DD &mdash; RWA ($0.10) &mdash; 3 agents</option>
+              <option value="rwa/catalyst" data-price="$0.05">Catalyst Brief &mdash; RWA ($0.05) &mdash; AI</option>
+              <option value="rwa/eligibility" data-price="$0.02">Eligibility Check &mdash; RWA ($0.02) &mdash; rules</option>
               <option value="contract-audit" data-price="$0.10">Contract Audit ($0.10) &mdash; 4 agents</option>
               <option value="contract-audit/quick" data-price="$0.03">Quick Audit ($0.03) &mdash; 1 agent</option>
               <option value="contract-audit/deep" data-price="$0.15">Deep Audit ($0.15) &mdash; 6 agents</option>
@@ -3320,7 +3340,7 @@ ${THEME_TOKENS}
               <option value="research-report" data-price="$0.15">Research Report ($0.15) &mdash; 4 agents</option>
               <option value="research" data-price="$0.05">Research ($0.05) &mdash; 3 agents</option>
               <option value="analyze" data-price="$0.03">Analyze ($0.03) &mdash; 4 agents</option>
-              <option value="debate" data-price="$0.05">Debate ($0.05) &mdash; 3 agents</option>
+              <option value="debate" data-price="$0.03">Debate ($0.03) &mdash; 3 agents</option>
               <option value="agent" data-price="$0.02">Single Agent ($0.02) &mdash; 1 agent</option>
             </select>
           </div>
@@ -3528,7 +3548,16 @@ ${THEME_TOKENS}
       <!-- ===== ALL ENDPOINTS BY CATEGORY ===== -->
       <div class="section">
         <div class="section-title">All Endpoints</div>
-        <div class="section-subtitle">Browse all 44 endpoints across 9 categories, from $0.01 data feeds to $0.19 enterprise analyses.</div>
+        <div class="section-subtitle">Browse all 45 endpoints across 10 categories, from $0.01 data feeds to $0.19 enterprise analyses.</div>
+
+        <div class="cat-heading">Equities &amp; RWA (5 endpoints)</div>
+        <div class="endpoints-grid">
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Stock DD</span><span class="ep-price">$0.10</span></div><p class="ep-desc">Real market data + 3-agent bull/bear/risk debate verdict for a stock ticker</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/stock-dd</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Stock Screener</span><span class="ep-price">$0.15</span></div><p class="ep-desc">Rank a watchlist of 2&ndash;8 tokenized stocks with real data + analyst panel</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/screen</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Stock Compare</span><span class="ep-price">$0.10</span></div><p class="ep-desc">Head-to-head due diligence on two tokenized equities with a winner verdict</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/compare</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Catalyst Brief</span><span class="ep-price">$0.05</span></div><p class="ep-desc">Real dividend history, splits, and notable moves &mdash; the catalysts on the calendar</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/catalyst</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Eligibility Check</span><span class="ep-price">$0.02</span></div><p class="ep-desc">Deterministic tokenization-eligibility screen: jurisdiction rules, no LLM</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/eligibility</span></div></div>
+        </div>
 
         <div class="cat-heading">Crypto Analysis (8 endpoints)</div>
         <div class="endpoints-grid">
@@ -3537,7 +3566,6 @@ ${THEME_TOKENS}
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Deep Audit</span><span class="ep-price">$0.15</span></div><p class="ep-desc">6-agent comprehensive audit with cross-checks</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/contract-audit/deep</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Risk</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent rug pull detection and risk verdict</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-risk</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Memecoin Score</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent memecoin risk: authorities, holders, verdict</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/memecoin-score</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Stock DD (RWA)</span><span class="ep-price">$0.10</span></div><p class="ep-desc">Real market data + 3-agent bull/bear/risk debate verdict for a stock ticker</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/stock-dd</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Wallet Risk Score</span><span class="ep-price">$0.05</span></div><p class="ep-desc">2-agent wallet risk: tx patterns and risk level</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/wallet-risk-score</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">TX Explainer</span><span class="ep-price">$0.03</span></div><p class="ep-desc">Plain English Solana transaction explanation</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/tx-explainer</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">DAO Analysis</span><span class="ep-price">$0.10</span></div><p class="ep-desc">4-agent governance: economic, technical, risk + recommendation</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/dao-analyze</span></div></div>
@@ -3565,8 +3593,17 @@ ${THEME_TOKENS}
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Research Report</span><span class="ep-price">$0.15</span></div><p class="ep-desc">4-agent fact-checked research with verification</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/research-report</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Research</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent pipeline: research, verify, write</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/research</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Analyze</span><span class="ep-price">$0.03</span></div><p class="ep-desc">4-expert panel: technical, economic, risk + synthesis</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/analyze</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Debate</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent adversarial debate: pro, con, judge</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/debate</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Debate</span><span class="ep-price">$0.03</span></div><p class="ep-desc">3-agent adversarial debate: pro, con, judge</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/debate</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Single Agent</span><span class="ep-price">$0.02</span></div><p class="ep-desc">Custom AI agent for any task</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/agent</span></div></div>
+        </div>
+
+        <div class="cat-heading">Premium Swarms (5 endpoints)</div>
+        <div class="endpoints-grid">
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Deep Research</span><span class="ep-price">$0.15</span></div><p class="ep-desc">Multi-agent research pipeline with source assessment and reliability score</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/swarm/deep-research</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Diligence</span><span class="ep-price">$0.15</span></div><p class="ep-desc">5-agent token launch DD: contract, tokenomics, team, market, liquidity</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/swarm/token-diligence</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">DeFi Risk Score</span><span class="ep-price">$0.15</span></div><p class="ep-desc">5-agent protocol risk: security, tokenomics, activity, governance, history</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/swarm/defi-risk-score</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Fact Check</span><span class="ep-price">$0.10</span></div><p class="ep-desc">4-agent adversarial fact-check: claims, evidence, devil's advocate, judge</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/swarm/fact-check</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Monitor</span><span class="ep-price">$0.10</span></div><p class="ep-desc">3-agent parallel monitoring: prices, balances, activity, alert analysis</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/swarm/monitor</span></div></div>
         </div>
 
         <div class="cat-heading">DeFi (6 endpoints)</div>
@@ -3610,15 +3647,27 @@ ${THEME_TOKENS}
               <tr><th>Category</th><th>Endpoint</th><th>Price (USDC)</th><th>Agents</th></tr>
             </thead>
             <tbody>
+              <tr class="cat-row"><td colspan="4">Equities &amp; RWA</td></tr>
+              <tr><td><span class="tier-label tier-multi">RWA</span></td><td>Stock Screener</td><td class="price-val">$0.15</td><td>3 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">RWA</span></td><td>Stock DD</td><td class="price-val">$0.10</td><td>3 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">RWA</span></td><td>Stock Compare</td><td class="price-val">$0.10</td><td>3 agents</td></tr>
+              <tr><td><span class="tier-label tier-single">RWA</span></td><td>Catalyst Brief</td><td class="price-val">$0.05</td><td>AI</td></tr>
+              <tr><td><span class="tier-label tier-data">RWA</span></td><td>Eligibility Check</td><td class="price-val">$0.02</td><td>rules</td></tr>
               <tr class="cat-row"><td colspan="4">Enterprise</td></tr>
               <tr><td><span class="tier-label tier-enterprise">Enterprise</span></td><td>Investment DD</td><td class="price-val">$0.19</td><td>5+1 agents</td></tr>
               <tr><td><span class="tier-label tier-enterprise">Enterprise</span></td><td>Compliance Check</td><td class="price-val">$0.15</td><td>3 agents</td></tr>
               <tr class="cat-row"><td colspan="4">Research &amp; Analysis</td></tr>
               <tr><td><span class="tier-label tier-multi">Research</span></td><td>Research Report</td><td class="price-val">$0.15</td><td>4 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Research</span></td><td>Research</td><td class="price-val">$0.05</td><td>3 agents</td></tr>
-              <tr><td><span class="tier-label tier-multi">Research</span></td><td>Debate</td><td class="price-val">$0.05</td><td>3 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Research</span></td><td>Debate</td><td class="price-val">$0.03</td><td>3 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Research</span></td><td>Analyze</td><td class="price-val">$0.03</td><td>4 agents</td></tr>
               <tr><td><span class="tier-label tier-single">Research</span></td><td>Single Agent</td><td class="price-val">$0.02</td><td>1 agent</td></tr>
+              <tr class="cat-row"><td colspan="4">Premium Swarms</td></tr>
+              <tr><td><span class="tier-label tier-multi">Swarm</span></td><td>Deep Research</td><td class="price-val">$0.15</td><td>3 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Swarm</span></td><td>Token Diligence</td><td class="price-val">$0.15</td><td>5 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Swarm</span></td><td>DeFi Risk Score</td><td class="price-val">$0.15</td><td>5 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Swarm</span></td><td>Fact Check</td><td class="price-val">$0.10</td><td>4 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Swarm</span></td><td>Monitor</td><td class="price-val">$0.10</td><td>3 agents</td></tr>
               <tr class="cat-row"><td colspan="4">Crypto Analysis</td></tr>
               <tr><td><span class="tier-label tier-multi">Crypto</span></td><td>Deep Audit</td><td class="price-val">$0.15</td><td>6 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Crypto</span></td><td>Contract Audit</td><td class="price-val">$0.10</td><td>4 agents</td></tr>
@@ -3665,12 +3714,15 @@ ${THEME_TOKENS}
       <!-- ===== SDK ===== -->
       <div class="integration">
         <h3>Integrate with SwarmX</h3>
-        <div class="code-label">Install</div>
-        <div class="code-block"><span class="cmt"># As an ElizaOS plugin</span>
-bun add swarms-x402
+        <div class="code-label">Connect</div>
+        <div class="code-block"><span class="cmt"># Point any MCP agent at the SwarmX server (48 tools, no key needed)</span>
+${baseUrl}/mcp
 
 <span class="cmt"># Or call the HTTP API directly</span>
-curl ${baseUrl}/x402/catalog</div>
+curl ${baseUrl}/x402/catalog
+
+<span class="cmt"># Or self-host the whole platform</span>
+git clone https://github.com/SolTwizzy/swarms-x402</div>
 
         <div class="code-label">Client SDK (auto-pays via x402)</div>
         <div class="code-block"><span class="kw">import</span> { <span class="fn">wrapFetch</span> } <span class="kw">from</span> <span class="str">"@dexterai/x402/client"</span>;
@@ -4191,7 +4243,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     var isAddress = ep === 'token-risk' || ep === 'memecoin-score' || ep === 'wallet-risk-score';
     var isTx = ep === 'tx-explainer';
     var isDao = ep === 'dao-analyze';
-    var isTicker = ep === 'rwa/stock-dd';
+    var isTicker = ep === 'rwa/stock-dd' || ep === 'rwa/catalyst' || ep === 'rwa/eligibility';
     /* textarea for code or DAO proposals */
     document.getElementById('crypto-textarea-group').style.display = (isCode || isDao) ? '' : 'none';
     document.getElementById('crypto-text-group').style.display = (isAddress || isTx || isTicker) ? '' : 'none';
@@ -4245,7 +4297,7 @@ console.log(<span class="kw">await</span> res.json());</div>
       var proposal = document.getElementById('crypto-textarea').value.trim();
       if (!proposal) { showError('crypto', 'Please enter a proposal.'); return; }
       body = { proposal: proposal };
-    } else if (ep === 'rwa/stock-dd') {
+    } else if (ep === 'rwa/stock-dd' || ep === 'rwa/catalyst' || ep === 'rwa/eligibility') {
       var ticker = document.getElementById('crypto-text').value.trim().toUpperCase();
       if (!ticker) { showError('crypto', 'Please enter a stock ticker.'); return; }
       body = { ticker: ticker };

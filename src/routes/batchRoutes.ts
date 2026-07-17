@@ -13,13 +13,13 @@ import { callOpenAI } from "../utils/llm.js";
 // ── Price map: endpoint slug -> USD price ────────────────────────────────
 
 const PRICE_MAP: Record<string, number> = {
-  summarize: 0.02,
+  summarize: 0.01,
   translate: 0.02,
   extract: 0.01,
   sentiment: 0.01,
-  "code-review": 0.05,
+  "code-review": 0.03,
   write: 0.03,
-  debate: 0.05,
+  debate: 0.03,
   "contract-audit": 0.10,
   "token-risk": 0.05,
   "dao-analyze": 0.10,

@@ -195,15 +195,15 @@ describe("batchRoutes", () => {
   describe("calculateBatchPrice", () => {
     it("calculates correct discount for two summarize tasks", () => {
       const result = calculateBatchPrice(["summarize", "summarize"]);
-      // 0.02 + 0.02 = 0.04, 20% off = 0.032
-      expect(result.originalTotal).toBe("0.04");
-      expect(result.discountedTotal).toBe("0.03");
+      // 0.01 + 0.01 = 0.02, 20% off = 0.016 → "0.02"
+      expect(result.originalTotal).toBe("0.02");
+      expect(result.discountedTotal).toBe("0.02");
     });
 
     it("calculates correct discount for mixed tasks", () => {
       const result = calculateBatchPrice(["summarize", "contract-audit", "sentiment"]);
-      // 0.02 + 0.10 + 0.01 = 0.13, 20% off = 0.104
-      expect(result.originalTotal).toBe("0.13");
+      // 0.01 + 0.10 + 0.01 = 0.12, 20% off = 0.096 → "0.10"
+      expect(result.originalTotal).toBe("0.12");
       expect(result.discountedTotal).toBe("0.10");
     });
 
@@ -255,7 +255,7 @@ describe("batchRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
-      // 0.02 + 0.01 = 0.03, 20% off = 0.024 → "0.02"
+      // 0.01 + 0.01 = 0.02, 20% off = 0.016 → "0.02"
       expect(x402Gate).toHaveBeenCalledWith(
         runtime,
         req,
@@ -363,9 +363,9 @@ describe("batchRoutes", () => {
       await route!.handler(req, res, runtime);
 
       const response = res.json.mock.calls[0][0];
-      // 0.02 + 0.02 + 0.01 = 0.05, 20% off = 0.04
-      expect(response.payment.amount).toBe("0.04");
-      expect(response.payment.originalAmount).toBe("0.05");
+      // 0.01 + 0.02 + 0.01 = 0.04, 20% off = 0.032 → "0.03"
+      expect(response.payment.amount).toBe("0.03");
+      expect(response.payment.originalAmount).toBe("0.04");
       expect(response.payment.discount).toBe("20%");
     });
   });
