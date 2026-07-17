@@ -2072,18 +2072,18 @@ async function startServer(): Promise<void> {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SwarmX — AI due diligence on everything tradeable.</title>
-  <meta name="description" content="Adversarial analyst panels research any tokenized stock, crypto token, or wallet — momentum, valuation, downside — and return a rated verdict. Flagship Stock DD $0.10 in USDC, or 5 free calls a day. No account.">
+  <meta name="description" content="Adversarial analyst panels research any tokenized stock, crypto token, or wallet — momentum, valuation, downside — and return a rated verdict. Flagship Stock DD $0.10 in USDC, or 3 free calls a day. No account.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SwarmX">
   <meta property="og:url" content="${baseUrl}/">
   <meta property="og:title" content="SwarmX — AI due diligence on everything tradeable.">
-  <meta property="og:description" content="Adversarial analyst panels — bull, bear, risk — return a rated verdict on any tokenized stock, crypto token, or wallet. Stock DD $0.10 in USDC, 5 free calls a day. No account, agents pay via x402.">
+  <meta property="og:description" content="Adversarial analyst panels — bull, bear, risk — return a rated verdict on any tokenized stock, crypto token, or wallet. Stock DD $0.10 in USDC, 3 free calls a day. No account, agents pay via x402.">
   <meta property="og:image" content="${baseUrl}/og-card.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="SwarmX — AI due diligence on everything tradeable.">
-  <meta name="twitter:description" content="Adversarial analyst panels — bull, bear, risk — return a rated verdict on any tokenized stock, crypto token, or wallet. Stock DD $0.10 in USDC, 5 free calls a day.">
+  <meta name="twitter:description" content="Adversarial analyst panels — bull, bear, risk — return a rated verdict on any tokenized stock, crypto token, or wallet. Stock DD $0.10 in USDC, 3 free calls a day.">
   <meta name="twitter:image" content="${baseUrl}/og-card.jpg">
   <link rel="canonical" href="${baseUrl}/">
   <link rel="preload" href="/fonts/GeistPixel-Square.woff2" as="font" type="font/woff2" crossorigin>
@@ -3113,7 +3113,7 @@ ${THEME_TOKENS}
               <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
               <a class="hero-cta-btn hero-cta-secondary" href="#mcp">Connect via MCP</a>
             </div>
-            <p class="hero-stats">Equities &amp; RWA &bull; Crypto &amp; On-chain &bull; General Agents &bull; 45 endpoints &bull; 5 free calls/day</p>
+            <p class="hero-stats">Equities &amp; RWA &bull; Crypto &amp; On-chain &bull; General Agents &bull; 45 endpoints &bull; 3 free calls/day</p>
           </div>
 
           <!-- Signature: real captured runs across the three product lines. -->
@@ -3266,7 +3266,7 @@ ${THEME_TOKENS}
             <div class="step-num">POST</div>
             <div class="step-icon">&lbrace;&nbsp;&rbrace;</div>
             <h3>Name a ticker</h3>
-            <p>One HTTP POST with the symbol you want researched. No account, no API key, no SDK. Your first 5 calls each day are free.</p>
+            <p>One HTTP POST with the symbol you want researched. No account, no API key, no SDK. Your first 3 calls each day are free.</p>
             <span class="step-arrow">&rarr;</span>
           </div>
           <div class="step-card">
@@ -3295,7 +3295,7 @@ ${THEME_TOKENS}
           </div>
           <div class="prop-card">
             <h3>Priced like <span class="accent">a query</span></h3>
-            <p>$0.10 a report. No seat, no subscription, no minimum. Pay in USDC per call, or run 5 free every day.</p>
+            <p>$0.10 a report. No seat, no subscription, no minimum. Pay in USDC per call, or run 3 free every day.</p>
           </div>
           <div class="prop-card">
             <h3>Callable by <span class="accent">agents</span></h3>
@@ -5238,7 +5238,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     var FACES = ['GeistPixelSquare', 'GeistPixelCircle', 'GeistPixelTriangle', 'GeistPixelGrid'];
     var text = el.textContent;
     var canvas = null, ctx = null, W = 0, H = 0;
-    var particles = [], targetSets = [], setIdx = 0, kick = 7;
+    var particles = [], targetSets = [], setIdx = 0, kick = 7, sampleGap = 3;
     var running = false, raf = 0, t = 0, migrating = 0;
 
     /* Ask the browser where it actually laid out each word (any wrap, any
@@ -5276,16 +5276,17 @@ console.log(<span class="kw">await</span> res.json());</div>
       }
       var img = octx.getImageData(0, 0, w, h).data;
       /* Sampling must be finer than the font's block size (~px/10), or small
-         mobile text degrades into sparse dust that never reads as letters. */
+         mobile text degrades into sparse dust that never reads as letters.
+         The chosen gap also drives particle size so squares tile the grid. */
       var baseGap = px < 44 ? 2 : 3;
       for (var gap = baseGap; gap <= baseGap + 2; gap++) {
         var pts = [];
         for (var y = 1; y < h; y += gap) {
           for (var x = 0; x < w; x += gap) {
-            if (img[(y * w + x) * 4 + 3] > 128) pts.push([x, y]);
+            if (img[(y * w + x) * 4 + 3] > 128) pts.push([Math.round(x), Math.round(y)]);
           }
         }
-        if (pts.length <= 2600 || gap === baseGap + 2) return pts;
+        if (pts.length <= 2600 || gap === baseGap + 2) { sampleGap = gap; return pts; }
       }
       return [];
     }
@@ -5321,8 +5322,9 @@ console.log(<span class="kw">await</span> res.json());</div>
           vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
           ph: Math.random() * 6.283,
           fr: 0.5 + Math.random() * 1.3,
-          sz: 1.7 + Math.random() * 1.2,
-          al: 0.5 + Math.random() * 0.5,
+          /* size ~= grid step so squares tile crisply; a few run 1px larger */
+          sz: sampleGap + (Math.random() < 0.25 ? 1 : 0),
+          al: 0.78 + Math.random() * 0.22,
           tx: 0, ty: 0
         });
       }
@@ -5344,13 +5346,16 @@ console.log(<span class="kw">await</span> res.json());</div>
 
     function frame() {
       t += 0.016;
-      var k = migrating > 0 ? 0.016 : 0.09;
-      var damp = migrating > 0 ? 0.93 : 0.8;
-      var wob = migrating > 0 ? 0.55 : 0.07;
+      /* Settled: stiff spring + minimal wobble so letters lock in crisp.
+         Migrating: loose + wobbly for the in-flight swarm look. */
+      var k = migrating > 0 ? 0.016 : 0.16;
+      var damp = migrating > 0 ? 0.93 : 0.74;
+      var wob = migrating > 0 ? 0.55 : 0.025;
       if (migrating > 0) migrating--;
       else {
-        /* a few bugs buzz off at random and get pulled back — keeps it alive */
-        for (var d = 0; d < 3; d++) {
+        /* a couple bugs buzz off at random and snap back — keeps it alive
+           without smearing the text (the stiff spring pulls them home fast) */
+        for (var d = 0; d < 2; d++) {
           var j = (Math.random() * particles.length) | 0;
           particles[j].vx += (Math.random() - 0.5) * kick;
           particles[j].vy += (Math.random() - 0.5) * kick;
@@ -5364,7 +5369,8 @@ console.log(<span class="kw">await</span> res.json());</div>
         p.vy = (p.vy + (p.ty - p.y) * k + Math.sin(t * p.fr * 2.3 + p.ph) * wob) * damp;
         p.x += p.vx; p.y += p.vy;
         ctx.globalAlpha = p.al;
-        ctx.fillRect(p.x, p.y, p.sz, p.sz);
+        /* integer coords → crisp pixel edges (fractional = anti-aliased blur) */
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), p.sz, p.sz);
       }
       ctx.globalAlpha = 1;
       if (running) raf = requestAnimationFrame(frame);

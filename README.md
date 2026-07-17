@@ -21,7 +21,7 @@ Three analysts — **WASP** (bull), **HORNET** (bear), **LOCUST** (risk) — arg
 
 ## Try it now (free, no wallet)
 
-Every endpoint gives **5 free calls per day with full output** — the only gate is the count.
+Every endpoint gives **3 free calls per day with full output** — the only gate is the count.
 
 ```bash
 curl -X POST https://swarmx.io/x402/rwa/stock-dd \

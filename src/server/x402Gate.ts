@@ -65,9 +65,9 @@ function usdToAtomic(usd: string): string {
  * // Payment verified — proceed with response
  * ```
  */
-// ── Free Tier: 5 calls/day per IP + cookie ───────────────────────────────────
+// ── Free Tier: 3 calls/day per IP + cookie ───────────────────────────────────
 
-const FREE_TIER_LIMIT = 5;
+const FREE_TIER_LIMIT = 3;
 const freeTierMap = new Map<string, { count: number; resetAt: number }>();
 
 /** Running total of free tier calls (resets when all IPs expire). */
