@@ -1170,8 +1170,7 @@ function buildReportPageHtml(report: AuditReport): string {
   const paidLabel = report.paid ? "Paid via x402" : "Free tier";
 
   // Base URL for badge embed — prefer custom domain
-  const baseUrl = process.env.SWARMX_BASE_URL
-    ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${PORT}`);
+  const baseUrl = process.env.SWARMX_BASE_URL ?? "https://swarmx.io";
   const badgeUrl = `${baseUrl}/badge/${report.id}`;
   const reportUrl = `${baseUrl}/report/${report.id}`;
   const badgeMarkdown = `[![SwarmX Audit](${badgeUrl})](${reportUrl})`;
@@ -2240,6 +2239,15 @@ ${THEME_TOKENS}
       text-transform: uppercase; color: var(--text-dim);
       border: 0.67px solid var(--border); border-radius: 4px; padding: 2px 7px;
     }
+    .term-tabs { display: flex; gap: 4px; }
+    .term-tab {
+      background: none; border: 0.67px solid transparent; color: var(--text-muted);
+      font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.4px;
+      padding: 3px 9px; border-radius: 6px; cursor: pointer;
+    }
+    .term-tab:hover { color: var(--heading); }
+    .term-tab.active { color: var(--accent); border-color: rgba(255, 46, 46, 0.35); background: var(--brand-bg); }
+    @media (max-width: 480px) { .term-tag { display: none; } }
     .term-body {
       font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
       padding: 16px; min-height: 400px;
@@ -3100,7 +3108,7 @@ ${THEME_TOKENS}
           <div class="hero-thesis">
             <div class="hero-eyebrow">Tokenized equities &middot; Crypto &middot; Real-world assets</div>
             <h1 class="hero-headline">AI due diligence on<br><em id="hero-px" class="px-square">everything tradeable.</em></h1>
-            <p class="hero-sub">Adversarial analyst panels &mdash; bull, bear, risk &mdash; read the real market data on any tokenized stock, crypto token, or wallet and return a structured verdict you can act on. Flagship Stock DD $0.10 a report, paid in USDC. No account.</p>
+            <p class="hero-sub">Adversarial AI swarms for anything you can trade &mdash; tokenized stocks, crypto tokens, wallets, smart contracts &mdash; plus research pipelines, audits, and live on-chain data. 45 endpoints, $0.01&ndash;$0.19 a call in USDC. No account, no API key.</p>
             <div class="hero-ctas">
               <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
               <a class="hero-cta-btn hero-cta-secondary" href="#mcp">Connect via MCP</a>
@@ -3108,13 +3116,18 @@ ${THEME_TOKENS}
             <p class="hero-stats">Equities &amp; RWA &bull; Crypto &amp; On-chain &bull; General Agents &bull; 45 endpoints &bull; 5 free calls/day</p>
           </div>
 
-          <!-- Signature: a real captured stock-dd run, replayed. -->
-          <div class="term" aria-label="Sample SwarmX stock due-diligence output">
+          <!-- Signature: real captured runs across the three product lines. -->
+          <div class="term" aria-label="Sample SwarmX outputs — stock DD, contract audit, token price">
             <div class="term-bar">
-              <span class="term-title">swarmx &mdash; stock-dd</span>
-              <span class="term-tag">sample run</span>
+              <span class="term-title">swarmx</span>
+              <div class="term-tabs" role="tablist">
+                <button class="term-tab active" type="button" data-term="0">stock-dd</button>
+                <button class="term-tab" type="button" data-term="1">contract-audit</button>
+                <button class="term-tab" type="button" data-term="2">token-price</button>
+              </div>
+              <span class="term-tag">sample runs</span>
             </div>
-            <div class="term-body">
+            <div class="term-body" id="term-body">
               <div class="term-line in" style="--d:0s">$ swarmx stock-dd --ticker AAPL</div>
               <div class="term-line dim" style="--d:.3s">&nbsp;</div>
               <div class="term-line muted" style="--d:.4s">POST /x402/rwa/stock-dd</div>
@@ -3138,6 +3151,44 @@ ${THEME_TOKENS}
               </div>
             </div>
           </div>
+
+          <template id="term-run-1">
+              <div class="term-line in" style="--d:0s">$ swarmx contract-audit --file Vault.sol</div>
+              <div class="term-line dim" style="--d:.3s">&nbsp;</div>
+              <div class="term-line muted" style="--d:.4s">POST /x402/contract-audit</div>
+              <div class="term-line dim" style="--d:.48s">402 &rarr; settle 0.10 USDC &rarr; <span style="color:var(--green)">200 OK</span></div>
+              <div class="term-line dim" style="--d:.56s">&nbsp;</div>
+              <div class="term-line agent" style="--d:.64s"><span class="who">panel  </span> 4 agents &middot; security / economic / copy / gas</div>
+              <div class="term-line dim" style="--d:.72s">&nbsp;</div>
+              <div class="term-line risk" style="--d:.8s"><span class="who">finding</span> CRITICAL &middot; Reentrancy in withdraw()</div>
+              <div class="term-line dim" style="--d:.88s"><span class="who">       </span> balances[msg.sender] zeroed after the external call</div>
+              <div class="term-line dim" style="--d:.96s"><span class="who">       </span> &mdash; attacker can re-enter and drain the contract</div>
+              <div class="term-line risk" style="--d:1.04s"><span class="who">plus   </span> HIGH &middot; no reentrancy guard</div>
+              <div class="term-line dim" style="--d:1.12s">&nbsp;</div>
+              <div class="term-line in" style="--d:1.2s"><span class="who">verdict</span> DANGER &middot; risk 85/100 &middot; 14.2s<span class="term-cursor"></span></div>
+              <div class="term-foot" style="--d:1.28s">
+                <a class="term-run" href="/x402/benchmark">See the benchmark &rarr;</a>
+                <span class="term-note">Real detection &mdash; live-tested &middot; 93.3% rate across 15 contracts.</span>
+              </div>
+          </template>
+
+          <template id="term-run-2">
+              <div class="term-line in" style="--d:0s">$ swarmx token-price --mint So1111&hellip;1112</div>
+              <div class="term-line dim" style="--d:.3s">&nbsp;</div>
+              <div class="term-line muted" style="--d:.4s">POST /x402/token-price</div>
+              <div class="term-line dim" style="--d:.48s">402 &rarr; settle 0.01 USDC &rarr; <span style="color:var(--green)">200 OK</span></div>
+              <div class="term-line dim" style="--d:.56s">&nbsp;</div>
+              <div class="term-line agent" style="--d:.64s"><span class="who">price  </span> SOL 75.20 USD &middot; confidence high</div>
+              <div class="term-line dim" style="--d:.72s"><span class="who">source </span> helius &middot; sub-second cache</div>
+              <div class="term-line dim" style="--d:.8s">&nbsp;</div>
+              <div class="term-line ok" style="--d:.88s"><span class="who">time   </span> 182ms round-trip<span class="term-cursor"></span></div>
+              <div class="term-line dim" style="--d:.96s">&nbsp;</div>
+              <div class="term-line muted" style="--d:1.04s">45 endpoints &middot; audits, research, wallets, live data &middot; $0.01&ndash;$0.19</div>
+              <div class="term-foot" style="--d:1.12s">
+                <a class="term-run" href="#endpoints">Browse all endpoints &rarr;</a>
+                <span class="term-note">Real output, captured 2026-07-17.</span>
+              </div>
+          </template>
 
         </div>
       </div>
@@ -5142,6 +5193,37 @@ console.log(<span class="kw">await</span> res.json());</div>
     } catch (e) { /* older browsers: harmless */ }
     agentRefreshSession();
     setInterval(agentRefreshSession, 30000);
+  })();
+
+  /* Hero terminal: rotate three REAL captured runs (stock-dd, contract-audit,
+     token-price). Tabs switch manually; auto-advance until first interaction. */
+  (function () {
+    var body = document.getElementById('term-body');
+    var t1 = document.getElementById('term-run-1');
+    var t2 = document.getElementById('term-run-2');
+    var tabs = document.querySelectorAll('.term-tab');
+    if (!body || !t1 || !t2 || tabs.length !== 3) return;
+    var runs = [body.innerHTML, t1.innerHTML, t2.innerHTML];
+    var cur = 0, auto = null;
+    function show(i) {
+      cur = i;
+      body.innerHTML = runs[i];
+      for (var k = 0; k < tabs.length; k++) {
+        tabs[k].classList.toggle('active', k === i);
+        tabs[k].setAttribute('aria-selected', k === i ? 'true' : 'false');
+      }
+    }
+    for (var k = 0; k < tabs.length; k++) {
+      (function (idx) {
+        tabs[idx].addEventListener('click', function () {
+          if (auto) { clearInterval(auto); auto = null; }
+          show(idx);
+        });
+      })(k);
+    }
+    if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      auto = setInterval(function () { show((cur + 1) % runs.length); }, 9000);
+    }
   })();
 
   /* Geist Pixel particle swarm: ~2k pixel "bugs" fly in as one organism and

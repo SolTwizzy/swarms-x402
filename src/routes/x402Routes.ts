@@ -35,8 +35,11 @@ const FREE_TIER_PREVIEW_CHARS = 300;
  * For multi-agent endpoints (research, analyze, agent): truncate output for free tier.
  * Returns the full text if paid, or a preview + CTA if free.
  */
-function truncateOutputForFreeTier(text: string, gate: X402GateResult, priceUsd: string): string | Record<string, unknown> {
-  if (gate.amountUsd > 0) return text; // paid — full output
+function truncateOutputForFreeTier(output: unknown, gate: X402GateResult, priceUsd: string): unknown {
+  if (gate.amountUsd > 0) return output; // paid — full output
+  // Callers pass strings OR structured objects — stringify the latter so the
+  // preview is readable (an array sliced raw renders "[object Object],...").
+  const text = typeof output === "string" ? output : JSON.stringify(output) ?? String(output);
   const preview = text.slice(0, FREE_TIER_PREVIEW_CHARS);
   const suffix = text.length > FREE_TIER_PREVIEW_CHARS ? "..." : "";
   return {

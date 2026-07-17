@@ -322,7 +322,7 @@ export const taskRoutes: Route[] = [
         // Save report for shareable link + badge
         const base =
           process.env.SWARMX_BASE_URL
-            ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "https://api.swarmx.io");
+            ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "https://swarmx.io");
         const reportId = saveReport({
           type: "code-review",
           createdAt: new Date().toISOString(),

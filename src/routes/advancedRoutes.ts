@@ -88,7 +88,7 @@ function reportUrls(id: string): {
 } {
   const base =
     process.env.SWARMX_BASE_URL
-      ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "https://api.swarmx.io");
+      ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "https://swarmx.io");
   return {
     reportUrl: `${base}/report/${id}`,
     badgeUrl: `${base}/badge/${id}`,
