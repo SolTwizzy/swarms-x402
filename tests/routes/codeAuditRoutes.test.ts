@@ -291,13 +291,12 @@ describe("codeAuditRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       const response = res.json.mock.calls[0][0];
       expect(response.overallScore).toBeDefined();
       expect(response.verdict).toBeDefined();
-      expect(response._preview).toBe(true);
-      // Should show counts, not full findings
-      expect(response.security.findingCount).toBeDefined();
-      expect(response.security.findings).toBeUndefined();
+      expect(response._preview).toBeUndefined();
+      expect(response.security.findings).toEqual([{ severity: "high", title: "XSS" }]);
     });
 
     it("does not proceed when gate is not paid", async () => {

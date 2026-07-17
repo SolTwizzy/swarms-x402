@@ -120,7 +120,6 @@ export const CRYPTO_ANALYSIS_CATALOG: X402ServiceEndpoint[] = [
 ];
 
 // ── Free tier placeholder ──────────────────────────────────────────────
-const FREE_TIER_PLACEHOLDER = "[Connect wallet to see full details]";
 
 // ── Routes ─────────────────────────────────────────────────────────────
 export const cryptoAnalysisRoutes: Route[] = [
@@ -239,18 +238,8 @@ export const cryptoAnalysisRoutes: Route[] = [
           summary: raw.slice(0, 200),
         };
 
-        // Free tier: show type + summary only
-        let responseData: Record<string, unknown>;
-        if (gate.amountUsd === 0) {
-          responseData = {
-            type: (explanation as any).type ?? "unknown",
-            summary: (explanation as any).summary ?? FREE_TIER_PLACEHOLDER,
-            _preview: true,
-            _message: `Type: ${(explanation as any).type ?? "unknown"}. Pay $0.03 to see full explanation.`,
-          };
-        } else {
-          responseData = explanation as Record<string, unknown>;
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseData: Record<string, unknown> = explanation as Record<string, unknown>;
 
         // Save report
         const reportId = saveReport({
@@ -472,19 +461,8 @@ export const cryptoAnalysisRoutes: Route[] = [
 
         const fullResult = { score, verdict, contract, tokenomics, redFlags, summary };
 
-        // Free tier: show score + verdict + redFlag count only
-        let responseData: Record<string, unknown>;
-        if (gate.amountUsd === 0) {
-          responseData = {
-            score,
-            verdict,
-            redFlagCount: redFlags.length,
-            _preview: true,
-            _message: `Verdict: ${verdict} (${score}/100). ${redFlags.length} red flags found. Pay $0.05 to see full details.`,
-          };
-        } else {
-          responseData = fullResult;
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseData: Record<string, unknown> = fullResult;
 
         // Save report
         const reportId = saveReport({
@@ -703,18 +681,8 @@ export const cryptoAnalysisRoutes: Route[] = [
 
         const fullResult = { riskScore, riskLevel, patterns, flags, summary };
 
-        // Free tier: show riskScore + riskLevel only
-        let responseData: Record<string, unknown>;
-        if (gate.amountUsd === 0) {
-          responseData = {
-            riskScore,
-            riskLevel,
-            _preview: true,
-            _message: `Risk: ${riskLevel} (${riskScore}/100). Pay $0.05 to see full details.`,
-          };
-        } else {
-          responseData = fullResult;
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseData: Record<string, unknown> = fullResult;
 
         // Save report
         const reportId = saveReport({

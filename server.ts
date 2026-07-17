@@ -5238,7 +5238,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     var FACES = ['GeistPixelSquare', 'GeistPixelCircle', 'GeistPixelTriangle', 'GeistPixelGrid'];
     var text = el.textContent;
     var canvas = null, ctx = null, W = 0, H = 0;
-    var particles = [], targetSets = [], setIdx = 0;
+    var particles = [], targetSets = [], setIdx = 0, kick = 7;
     var running = false, raf = 0, t = 0, migrating = 0;
 
     /* Ask the browser where it actually laid out each word (any wrap, any
@@ -5275,7 +5275,9 @@ console.log(<span class="kw">await</span> res.json());</div>
         octx.fillText(boxes[b].word, boxes[b].x, boxes[b].y + boxes[b].h / 2);
       }
       var img = octx.getImageData(0, 0, w, h).data;
-      var baseGap = w < 460 ? 4 : 3;
+      /* Sampling must be finer than the font's block size (~px/10), or small
+         mobile text degrades into sparse dust that never reads as letters. */
+      var baseGap = px < 44 ? 2 : 3;
       for (var gap = baseGap; gap <= baseGap + 2; gap++) {
         var pts = [];
         for (var y = 1; y < h; y += gap) {
@@ -5291,6 +5293,7 @@ console.log(<span class="kw">await</span> res.json());</div>
     function build() {
       var rect = el.getBoundingClientRect();
       var px = parseFloat(window.getComputedStyle(el).fontSize) || 48;
+      kick = Math.max(4.5, px * 0.15); /* darter kicks scale with font size */
       if (rect.width < 40 || rect.height > px * 5) { window.SWARMX_PX.stage = 'static: layout'; return false; }
       var boxes = domWordBoxes();
       if (!boxes) { window.SWARMX_PX.stage = 'static: no boxes'; return false; }
@@ -5349,8 +5352,8 @@ console.log(<span class="kw">await</span> res.json());</div>
         /* a few bugs buzz off at random and get pulled back — keeps it alive */
         for (var d = 0; d < 3; d++) {
           var j = (Math.random() * particles.length) | 0;
-          particles[j].vx += (Math.random() - 0.5) * 7;
-          particles[j].vy += (Math.random() - 0.5) * 7;
+          particles[j].vx += (Math.random() - 0.5) * kick;
+          particles[j].vy += (Math.random() - 0.5) * kick;
         }
       }
       ctx.clearRect(0, 0, W, H);

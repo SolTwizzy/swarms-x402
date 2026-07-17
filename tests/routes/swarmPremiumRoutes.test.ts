@@ -347,17 +347,15 @@ describe("swarmPremiumRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          _preview: true,
-          _message: expect.stringContaining("$0.15"),
           template: "DeepResearch",
         }),
       );
-      // Should NOT have full report
       const response = (res.json as any).mock.calls[0][0];
-      expect(response.report).toBeUndefined();
-      expect(response.factCheck).toBeUndefined();
+      expect(response._preview).toBeUndefined();
+      expect(response.report).toBeDefined();
     });
 
     it("returns early when gate not paid", async () => {
@@ -633,18 +631,16 @@ describe("swarmPremiumRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          _preview: true,
-          _message: expect.stringContaining("$0.10"),
           template: "Monitor",
           status: expect.any(String),
         }),
       );
-      // Should NOT have full signals array
       const response = (res.json as any).mock.calls[0][0];
-      expect(response.signals).toBeUndefined();
-      expect(response.triggeredAlerts).toBeUndefined();
+      expect(response._preview).toBeUndefined();
+      expect(response.signals).toBeDefined();
     });
 
     it("returns early when gate not paid", async () => {

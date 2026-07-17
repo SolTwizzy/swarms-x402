@@ -310,15 +310,16 @@ describe("swarmRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          _preview: true,
-          redFlagCount: expect.any(Number),
+          overallScore: expect.any(Number),
+          verdict: expect.any(String),
         }),
       );
-      // Should NOT have full dimensions, greenFlags, etc.
       const response = (res.json as any).mock.calls[0][0];
-      expect(response.greenFlags).toBeUndefined();
+      expect(response._preview).toBeUndefined();
+      expect(response.redFlags).toBeDefined();
     });
 
     it("returns early when gate not paid", async () => {
@@ -572,17 +573,17 @@ describe("swarmRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          _preview: true,
           rating: "A",
           overallScore: 75,
         }),
       );
-      // Should NOT have full dimensions, keyRisks, strengths, summary
       const response = (res.json as any).mock.calls[0][0];
-      expect(response.keyRisks).toBeUndefined();
-      expect(response.strengths).toBeUndefined();
+      expect(response._preview).toBeUndefined();
+      expect(response.keyRisks).toEqual(["Governance risk"]);
+      expect(response.strengths).toEqual(["High TVL"]);
     });
 
     it("returns early when gate not paid", async () => {
@@ -825,17 +826,15 @@ describe("swarmRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          _preview: true,
           overallVeracity: 90,
-          totalClaims: 1,
         }),
       );
-      // Should NOT have full verdicts array
       const response = (res.json as any).mock.calls[0][0];
-      expect(response.verdicts).toBeUndefined();
-      expect(response.claim).toBeUndefined();
+      expect(response._preview).toBeUndefined();
+      expect(response.verdicts).toBeDefined();
     });
 
     it("returns early when gate not paid", async () => {

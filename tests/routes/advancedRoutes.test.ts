@@ -270,12 +270,13 @@ describe("advancedRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       const jsonCall = res.json.mock.calls[0][0];
       expect(jsonCall.strategy).toBe("Conservative Yield");
       expect(jsonCall.expectedApy).toBe(8.5);
-      expect(jsonCall.positions).toBeUndefined();
-      expect(jsonCall.riskAssessment).toBeUndefined();
-      expect(jsonCall._preview).toBe(true);
+      expect(jsonCall.positions).toEqual([{ protocol: "aave", allocation: 100 }]);
+      expect(jsonCall.riskAssessment).toBe("Low risk portfolio");
+      expect(jsonCall._preview).toBeUndefined();
     });
 
     it("returns 503 when swarms service unavailable", async () => {
@@ -412,10 +413,11 @@ describe("advancedRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       const jsonCall = res.json.mock.calls[0][0];
-      expect(jsonCall._preview).toBe(true);
-      expect(jsonCall.executiveSummary.length).toBeLessThanOrEqual(303); // 300 + "..."
-      expect(jsonCall.fullReport).toBeUndefined();
+      expect(jsonCall._preview).toBeUndefined();
+      expect(jsonCall.executiveSummary.length).toBeGreaterThan(300);
+      expect(jsonCall.fullReport).toBeDefined();
     });
 
     it("saves report with type research-report", async () => {
@@ -633,14 +635,15 @@ describe("advancedRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       const jsonCall = res.json.mock.calls[0][0];
-      expect(jsonCall._preview).toBe(true);
+      expect(jsonCall._preview).toBeUndefined();
       expect(jsonCall.overallComplianceScore).toBe(65);
       expect(jsonCall.gaps).toEqual({ critical: 2, high: 3, medium: 5, low: 1 });
       expect(jsonCall.disclaimer).toBeDefined();
-      expect(jsonCall.report).toBeUndefined();
-      expect(jsonCall.criticalFindings).toBeUndefined();
-      expect(jsonCall.remediationRoadmap).toBeUndefined();
+      expect(jsonCall.report).toBe("Detailed compliance report that should be hidden");
+      expect(jsonCall.criticalFindings).toEqual(["Missing consent forms"]);
+      expect(jsonCall.remediationRoadmap).toEqual([{ priority: 1, action: "Fix consent" }]);
     });
 
     it("returns 503 when swarms service unavailable", async () => {
@@ -812,17 +815,16 @@ describe("advancedRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       const jsonCall = res.json.mock.calls[0][0];
-      expect(jsonCall._preview).toBe(true);
+      expect(jsonCall._preview).toBeUndefined();
       expect(jsonCall.overallScore).toBe(72);
       expect(jsonCall.recommendation).toBe("BUY");
-      expect(jsonCall.redFlagCount).toBe(1); // ["High insider allocation"]
-      expect(jsonCall.dimensionScores).toBeDefined();
-      // Full details should be hidden
-      expect(jsonCall.executiveSummary).toBeUndefined();
-      expect(jsonCall.bullCase).toBeUndefined();
-      expect(jsonCall.bearCase).toBeUndefined();
-      expect(jsonCall.keyFindings).toBeUndefined();
+      expect(jsonCall.dimensions).toBeDefined();
+      expect(jsonCall.executiveSummary).toBeDefined();
+      expect(jsonCall.bullCase).toBeDefined();
+      expect(jsonCall.bearCase).toBeDefined();
+      expect(jsonCall.keyFindings).toBeDefined();
     });
 
     it("returns 503 when swarms service unavailable", async () => {

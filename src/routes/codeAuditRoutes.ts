@@ -270,19 +270,10 @@ function parseCodeAuditOutput(rawOutput: string, language: string): CodeAuditRes
 
 function truncateCodeAuditForFreeTier(
   result: CodeAuditResult,
-  gate: X402GateResult
+  _gate: X402GateResult
 ): Record<string, unknown> {
-  if (gate.amountUsd > 0) return result as any; // paid — return full
-  return {
-    language: result.language,
-    overallScore: result.overallScore,
-    verdict: result.verdict,
-    security: { score: result.security.score, findingCount: result.security.findings.length },
-    performance: { score: result.performance.score, findingCount: result.performance.findings.length },
-    quality: { score: result.quality.score, findingCount: result.quality.findings.length },
-    _preview: true,
-    _message: `Verdict: ${result.verdict} (${result.overallScore}/100). Found ${result.security.findings.length} security, ${result.performance.findings.length} performance, and ${result.quality.findings.length} quality findings. Pay $0.10 to see full details.`,
-  };
+  // Free tier unified 2026-07-17: full output; the 5/day cap is the only gate.
+  return result as any;
 }
 
 // ── Catalog ────────────────────────────────────────────────────────────

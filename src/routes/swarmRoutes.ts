@@ -405,20 +405,8 @@ export const swarmRoutes: Route[] = [
         });
         const urls = reportUrls(reportId);
 
-        // Free tier: show verdict + overallScore + red flag count only
-        let responseData: Record<string, unknown>;
-        if (gate.amountUsd === 0) {
-          responseData = {
-            overallScore,
-            verdict,
-            redFlagCount: redFlags.length,
-            disclaimer: FINANCIAL_DISCLAIMER,
-            _preview: true,
-            _message: `Verdict: ${verdict} (${overallScore}/100). ${redFlags.length} red flag(s). Pay $0.15 to see full report.`,
-          };
-        } else {
-          responseData = fullResult;
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseData: Record<string, unknown> = fullResult;
 
         const cacheData = {
           ...responseData,
@@ -684,20 +672,8 @@ export const swarmRoutes: Route[] = [
         });
         const urls = reportUrls(reportId);
 
-        // Free tier: show rating + overall score only
-        let responseData: Record<string, unknown>;
-        if (gate.amountUsd === 0) {
-          responseData = {
-            protocol,
-            overallScore,
-            rating,
-            disclaimer: FINANCIAL_DISCLAIMER,
-            _preview: true,
-            _message: `Rating: ${rating} (${overallScore}/100). Pay $0.15 to see full risk assessment.`,
-          };
-        } else {
-          responseData = fullResult;
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseData: Record<string, unknown> = fullResult;
 
         const cacheData = {
           ...responseData,
@@ -865,19 +841,8 @@ export const swarmRoutes: Route[] = [
         });
         const urls = reportUrls(reportId);
 
-        // Free tier: show overall veracity score + verdict count only
-        let responseData: Record<string, unknown>;
-        if (gate.amountUsd === 0) {
-          responseData = {
-            overallVeracity,
-            verdictCounts,
-            totalClaims: verdicts.length,
-            _preview: true,
-            _message: `Veracity: ${overallVeracity}/100. ${verdicts.length} claim(s) analyzed. Pay $0.10 to see full breakdown.`,
-          };
-        } else {
-          responseData = fullResult;
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseData: Record<string, unknown> = fullResult;
 
         res.json({
           ...responseData,

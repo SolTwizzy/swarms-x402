@@ -98,7 +98,6 @@ function reportUrls(id: string): {
 
 // ── Free tier placeholder ───────────────────────────────────────────────
 
-const FREE_TIER_PLACEHOLDER = "[Connect wallet to see full details]";
 
 // ── Caches ──────────────────────────────────────────────────────────────
 
@@ -318,27 +317,16 @@ export const advancedRoutes: Route[] = [
         const riskAssessment = (parsed?.riskAssessment as string) ?? rawOutput.slice(0, 1000);
         const executionSteps = Array.isArray(parsed?.executionSteps) ? parsed.executionSteps : [];
 
-        // Free tier: show strategy name + expectedApy + disclaimer. Hide positions/riskAssessment.
-        let responseBody: Record<string, unknown>;
-        if (gate.amountUsd > 0) {
-          responseBody = {
-            strategy,
-            positions,
-            expectedApy,
-            riskAssessment,
-            executionSteps,
-            disclaimer: YIELD_DISCLAIMER,
-            rawOutput,
-          };
-        } else {
-          responseBody = {
-            strategy,
-            expectedApy,
-            disclaimer: YIELD_DISCLAIMER,
-            _preview: true,
-            _message: `Strategy: ${strategy}. Expected APY: ${expectedApy}%. Pay $0.10 to see positions and risk assessment.`,
-          };
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseBody: Record<string, unknown> = {
+          strategy,
+          positions,
+          expectedApy,
+          riskAssessment,
+          executionSteps,
+          disclaimer: YIELD_DISCLAIMER,
+          rawOutput,
+        };
 
         res.json({
           ...responseBody,
@@ -495,27 +483,12 @@ export const advancedRoutes: Route[] = [
         });
         const urls = reportUrls(reportId);
 
-        // Free tier: first 300 chars of executive summary + 2 key findings
-        let responseBody: Record<string, unknown>;
-        if (gate.amountUsd > 0) {
-          responseBody = {
-            executiveSummary,
-            keyFindings,
-            fullReport: rawOutput,
-          };
-        } else {
-          // Extract first 2 findings
-          const findingLines = keyFindings
-            .split("\n")
-            .filter((l) => l.trim().length > 10)
-            .slice(0, 2);
-          responseBody = {
-            executiveSummary: executiveSummary.slice(0, 300) + (executiveSummary.length > 300 ? "..." : ""),
-            keyFindings: findingLines.join("\n"),
-            _preview: true,
-            _message: `Report preview. Pay $0.15 to see the full report.`,
-          };
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseBody: Record<string, unknown> = {
+          executiveSummary,
+          keyFindings,
+          fullReport: rawOutput,
+        };
 
         const fullResponse = {
           ...responseBody,
@@ -666,27 +639,16 @@ export const advancedRoutes: Route[] = [
         const remediationRoadmap = Array.isArray(parsed?.remediationRoadmap) ? parsed.remediationRoadmap : [];
         const reportText = (parsed?.report as string) ?? rawOutput;
 
-        // Free tier: show overallComplianceScore + gap counts by severity + disclaimer
-        let responseBody: Record<string, unknown>;
-        if (gate.amountUsd > 0) {
-          responseBody = {
-            overallComplianceScore,
-            frameworks,
-            gaps,
-            criticalFindings,
-            remediationRoadmap,
-            report: reportText,
-            disclaimer: COMPLIANCE_DISCLAIMER,
-          };
-        } else {
-          responseBody = {
-            overallComplianceScore,
-            gaps,
-            disclaimer: COMPLIANCE_DISCLAIMER,
-            _preview: true,
-            _message: `Compliance score: ${overallComplianceScore}/100. Gaps: ${gaps.critical ?? 0} critical, ${gaps.high ?? 0} high, ${gaps.medium ?? 0} medium, ${gaps.low ?? 0} low. Pay $0.15 to see full report.`,
-          };
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseBody: Record<string, unknown> = {
+          overallComplianceScore,
+          frameworks,
+          gaps,
+          criticalFindings,
+          remediationRoadmap,
+          report: reportText,
+          disclaimer: COMPLIANCE_DISCLAIMER,
+        };
 
         res.json({
           ...responseBody,
@@ -931,42 +893,20 @@ export const advancedRoutes: Route[] = [
         });
         const urls = reportUrls(reportId);
 
-        // Free tier: show dimension scores + recommendation + red flag count + disclaimer
-        let responseBody: Record<string, unknown>;
-        if (gate.amountUsd > 0) {
-          responseBody = {
-            project,
-            projectType,
-            overallScore,
-            recommendation,
-            dimensions,
-            keyFindings,
-            redFlags,
-            bullCase,
-            bearCase,
-            executiveSummary,
-            disclaimer: DD_DISCLAIMER,
-          };
-        } else {
-          // Extract just scores from dimensions
-          const dimScores: Record<string, number> = {};
-          for (const [key, val] of Object.entries(dimensions)) {
-            if (val && typeof val === "object" && "score" in (val as Record<string, unknown>)) {
-              dimScores[key] = (val as Record<string, unknown>).score as number;
-            }
-          }
-          responseBody = {
-            project,
-            projectType,
-            overallScore,
-            recommendation,
-            dimensionScores: dimScores,
-            redFlagCount: redFlags.length,
-            disclaimer: DD_DISCLAIMER,
-            _preview: true,
-            _message: `Score: ${overallScore}/100 (${recommendation}). ${redFlags.length} red flag(s). Pay $0.19 to see full report.`,
-          };
-        }
+        // Free tier unified: full output; the 5/day count cap is the only gate.
+        const responseBody: Record<string, unknown> = {
+          project,
+          projectType,
+          overallScore,
+          recommendation,
+          dimensions,
+          keyFindings,
+          redFlags,
+          bullCase,
+          bearCase,
+          executiveSummary,
+          disclaimer: DD_DISCLAIMER,
+        };
 
         const fullResponse = {
           ...responseBody,

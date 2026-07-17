@@ -377,67 +377,28 @@ function parseDaoAnalyzeText(text: string): {
 }
 
 // ── Free tier output truncation ──────────────────────────────────────────
-// Free calls get scores and finding COUNTS but not full finding details.
-
-const FREE_TIER_PLACEHOLDER = "[Connect wallet to see full details]";
+// Free tier unified 2026-07-17: full output on free calls — the 5/day count
+// cap in x402Gate is the only gate, matching the flagship RWA endpoints.
 
 function truncateContractAuditForFreeTier(
   result: ContractAuditResult,
-  gate: X402GateResult
+  _gate: X402GateResult
 ): Record<string, unknown> {
-  if (gate.amountUsd > 0) return result as any; // paid — return full
-  return {
-    riskScore: result.riskScore,
-    verdict: result.verdict,
-    findings: {
-      security: result.findings.security.length,
-      economic: result.findings.economic.length,
-      gas: result.findings.gas.length,
-    },
-    copyLikelihoodScore: result.copyLikelihoodScore,
-    complexityScore: result.complexityScore,
-    summary: FREE_TIER_PLACEHOLDER,
-    _preview: true,
-    _message: `Verdict: ${result.verdict}. Found ${result.findings.security.length} security, ${result.findings.economic.length} economic, and ${result.findings.gas.length} gas findings. Pay $0.10 to see full details.`,
-  };
+  return result as any;
 }
 
 function truncateTokenRiskForFreeTier(
   result: TokenRiskResult,
-  gate: X402GateResult
+  _gate: X402GateResult
 ): Record<string, unknown> {
-  if (gate.amountUsd > 0) return result as any; // paid — return full
-  return {
-    riskScore: result.riskScore,
-    verdict: result.verdict,
-    findings: {
-      contract: result.findings.contract.length,
-      tokenomics: result.findings.tokenomics.length,
-    },
-    copyLikelihoodScore: result.copyLikelihoodScore,
-    summary: FREE_TIER_PLACEHOLDER,
-    _preview: true,
-    _message: `Verdict: ${result.verdict} (${result.riskScore}/100). Found ${result.findings.contract.length} contract and ${result.findings.tokenomics.length} tokenomics findings. Pay $0.05 to see full details.`,
-  };
+  return result as any;
 }
 
 function truncateDaoAnalyzeForFreeTier(
   result: { recommendation: string; confidence: number; analysis: { economic: string; technical: string; risk: string }; summary: string },
-  gate: X402GateResult
+  _gate: X402GateResult
 ): Record<string, unknown> {
-  if (gate.amountUsd > 0) return result as any; // paid — return full
-  return {
-    recommendation: result.recommendation,
-    confidence: result.confidence,
-    analysis: {
-      economic: FREE_TIER_PLACEHOLDER,
-      technical: FREE_TIER_PLACEHOLDER,
-      risk: FREE_TIER_PLACEHOLDER,
-    },
-    summary: FREE_TIER_PLACEHOLDER,
-    _preview: true,
-    _message: `Recommendation: ${result.recommendation} (${result.confidence}% confidence). Pay $0.10 to see full analysis.`,
-  };
+  return result as any;
 }
 
 // ── Catalog entries for the 3 crypto-native endpoints ──────────────────

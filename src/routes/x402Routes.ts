@@ -28,26 +28,12 @@ import { taskQueue } from "../utils/taskQueue.js";
 // ── Free tier output truncation for multi-agent endpoints ───────────────
 // Free calls get a preview; paid calls get full output.
 
-const FREE_TIER_TRUNCATE_MSG = "[Connect wallet to see full output]";
-const FREE_TIER_PREVIEW_CHARS = 300;
-
 /**
- * For multi-agent endpoints (research, analyze, agent): truncate output for free tier.
- * Returns the full text if paid, or a preview + CTA if free.
+ * Free tier unified 2026-07-17: full output on free calls across every
+ * product line — the 5/day count cap in x402Gate is the only gate.
  */
-function truncateOutputForFreeTier(output: unknown, gate: X402GateResult, priceUsd: string): unknown {
-  if (gate.amountUsd > 0) return output; // paid — full output
-  // Callers pass strings OR structured objects — stringify the latter so the
-  // preview is readable (an array sliced raw renders "[object Object],...").
-  const text = typeof output === "string" ? output : JSON.stringify(output) ?? String(output);
-  const preview = text.slice(0, FREE_TIER_PREVIEW_CHARS);
-  const suffix = text.length > FREE_TIER_PREVIEW_CHARS ? "..." : "";
-  return {
-    preview: preview + suffix,
-    _preview: true,
-    _message: `Output truncated. Pay $${priceUsd} to see the full result.`,
-    _fullLength: text.length,
-  };
+function truncateOutputForFreeTier(output: unknown, _gate: X402GateResult, _priceUsd: string): unknown {
+  return output;
 }
 
 // ── Product lines (brand architecture) ──────────────────────────────────

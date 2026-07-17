@@ -223,15 +223,14 @@ describe("contentRoutes", () => {
       await route!.handler(req, res, runtime);
 
       expect(res.json).toHaveBeenCalled();
+      // Free tier unified: full output, no preview gating
       const response = res.json.mock.calls[0][0];
-      expect(response._preview).toBe(true);
+      expect(response._preview).toBeUndefined();
       expect(response.title).toBe("SEO Article Title");
       expect(response.metaDescription).toBe("A great meta description");
       expect(response.wordCount).toBe(1500);
-      expect(response.articlePreview).toHaveLength(200);
-      // Full article should NOT be present
-      expect(response.article).toBeUndefined();
-      expect(response.readabilityScore).toBeUndefined();
+      expect(response.article).toBe(longArticle);
+      expect(response.readabilityScore).toBe(90);
       expect(response.freeRemaining).toBe(4);
     });
 
@@ -435,13 +434,12 @@ describe("contentRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       const response = res.json.mock.calls[0][0];
-      expect(response._preview).toBe(true);
+      expect(response._preview).toBeUndefined();
       expect(response.fieldsFound).toBe(3);
       expect(response.confidence).toBe(0.92);
-      expect(response.fieldNames).toEqual(["name", "email", "phone"]);
-      // Extracted values should NOT be present
-      expect(response.extracted).toBeUndefined();
+      expect(response.extracted).toEqual({ name: "Secret Name", email: "secret@email.com", phone: "555-1234" });
       expect(response.freeRemaining).toBe(3);
     });
 

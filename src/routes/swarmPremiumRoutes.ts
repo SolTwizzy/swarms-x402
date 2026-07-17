@@ -609,24 +609,7 @@ export const swarmPremiumRoutes: Route[] = [
           },
         };
 
-        // Free tier truncation
-        if (gate.amountUsd === 0) {
-          const preview = result.report.slice(0, 300);
-          const suffix = result.report.length > 300 ? "..." : "";
-          res.json({
-            topic,
-            template: "DeepResearch",
-            _preview: true,
-            _message: "Output truncated. Pay $0.15 to see the full research report.",
-            reportPreview: preview + suffix,
-            agentsUsed: result.agentsUsed.length,
-            sourcesQueried: result.sourcesQueried,
-            overallReliability,
-            disclaimer: RESEARCH_DISCLAIMER,
-          });
-          return;
-        }
-
+        // Free tier unified: full output; the 5/day count cap is the only gate.
         deepResearchCache.set(cacheKey, fullResponse);
         res.json(fullResponse);
       } catch (err) {
@@ -767,22 +750,7 @@ export const swarmPremiumRoutes: Route[] = [
           },
         };
 
-        // Free tier truncation
-        if (gate.amountUsd === 0) {
-          res.json({
-            target,
-            type,
-            status,
-            template: "Monitor",
-            _preview: true,
-            _message: "Output truncated. Pay $0.10 to see full signals and alerts.",
-            signalCount: allSignals.length,
-            alertCount: triggeredAlerts.length,
-            summary,
-          });
-          return;
-        }
-
+        // Free tier unified: full output; the 5/day count cap is the only gate.
         monitorCache.set(cacheKey, fullResponse);
         res.json(fullResponse);
       } catch (err) {

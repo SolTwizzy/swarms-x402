@@ -331,17 +331,16 @@ describe("cryptoAnalysisRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           type: "transfer",
-          _preview: true,
-          _message: expect.stringContaining("Pay $0.03"),
         })
       );
-      // Should NOT include full explanation or participants
       const jsonArg = (res.json as any).mock.calls[0][0];
-      expect(jsonArg.explanation).toBeUndefined();
-      expect(jsonArg.participants).toBeUndefined();
+      expect(jsonArg._preview).toBeUndefined();
+      expect(jsonArg.explanation).toBeDefined();
+      expect(jsonArg.participants).toBeDefined();
     });
 
     it("handles non-JSON LLM output gracefully", async () => {
@@ -517,19 +516,17 @@ describe("cryptoAnalysisRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           score: 80,
           verdict: "DANGER",
-          redFlagCount: 2,
-          _preview: true,
-          _message: expect.stringContaining("Pay $0.05"),
         })
       );
-      // Should NOT include full contract/tokenomics/summary
       const jsonArg = (res.json as any).mock.calls[0][0];
-      expect(jsonArg.contract).toBeUndefined();
-      expect(jsonArg.tokenomics).toBeUndefined();
+      expect(jsonArg._preview).toBeUndefined();
+      expect(jsonArg.redFlags).toEqual(["Mint authority active", "Top holder owns 90%"]);
+      expect(jsonArg.summary).toBe("High risk memecoin.");
     });
 
     it("saves report after successful execution", async () => {
@@ -778,18 +775,17 @@ describe("cryptoAnalysisRoutes", () => {
 
       await route!.handler(req, res, runtime);
 
+      // Free tier unified: full output, no preview gating
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           riskScore: 65,
           riskLevel: "high",
-          _preview: true,
-          _message: expect.stringContaining("Pay $0.05"),
         })
       );
-      // Should NOT include full patterns/flags/summary
       const jsonArg = (res.json as any).mock.calls[0][0];
-      expect(jsonArg.patterns).toBeUndefined();
-      expect(jsonArg.flags).toBeUndefined();
+      expect(jsonArg._preview).toBeUndefined();
+      expect(jsonArg.flags).toEqual(["Frequent sandwich attacks"]);
+      expect(jsonArg.summary).toBe("High risk wallet.");
     });
 
     it("saves report after successful execution", async () => {

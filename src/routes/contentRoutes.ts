@@ -119,17 +119,10 @@ function truncateSeoArticleForFreeTier(
     keywordDensity: Record<string, number> | null;
     editsApplied: string[];
   },
-  gate: X402GateResult
+  _gate: X402GateResult
 ): Record<string, unknown> {
-  if (gate.amountUsd > 0) return result as any; // paid — full output
-  return {
-    title: result.title,
-    metaDescription: result.metaDescription,
-    wordCount: result.wordCount,
-    articlePreview: result.article.slice(0, 200),
-    _preview: true,
-    _message: `Article "${result.title}" (${result.wordCount} words) generated. Pay $0.10 to see full article.`,
-  };
+  // Free tier unified 2026-07-17: full output; the 5/day cap is the only gate.
+  return result as any;
 }
 
 function truncateDocumentExtractForFreeTier(
@@ -140,17 +133,10 @@ function truncateDocumentExtractForFreeTier(
     fieldsRequested: number | string;
     notes: string[];
   },
-  gate: X402GateResult
+  _gate: X402GateResult
 ): Record<string, unknown> {
-  if (gate.amountUsd > 0) return result as any; // paid — full output
-  const fieldNames = Object.keys(result.extracted);
-  return {
-    fieldsFound: result.fieldsFound,
-    confidence: result.confidence,
-    fieldNames,
-    _preview: true,
-    _message: `Extracted ${result.fieldsFound} fields (confidence: ${result.confidence}). Pay $0.05 to see values.`,
-  };
+  // Free tier unified 2026-07-17: full output; the 5/day cap is the only gate.
+  return result as any;
 }
 
 // ── Routes ─────────────────────────────────────────────────────────────
