@@ -94,7 +94,7 @@ describe("registerSwarmTemplate", () => {
         {
           agent_name: "Idea1",
           system_prompt: "Generate ideas",
-          model_name: "gpt-4o-mini",
+          model_name: "gpt-5-mini",
           temperature: 0.8,
         },
       ],
@@ -117,7 +117,7 @@ describe("registerSwarmTemplate", () => {
         {
           agent_name: "IdeaGen",
           system_prompt: "Generate ideas",
-          model_name: "gpt-4o-mini",
+          model_name: "gpt-5-mini",
           temperature: 0.9,
         },
       ],

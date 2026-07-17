@@ -177,7 +177,7 @@ export const ADVANCED_CATALOG: X402ServiceEndpoint[] = [
       "4-agent research pipeline with fact-checking — researcher, fact-checker (VERIFIED/UNVERIFIED/DISPUTED/OUTDATED/FABRICATED), analyst, writer (SequentialWorkflow, 4 agents)",
     path: "/x402/research-report",
     method: "POST",
-    priceUsd: "0.50",
+    priceUsd: "0.15",
   },
   {
     name: "Compliance Check",
@@ -185,7 +185,7 @@ export const ADVANCED_CATALOG: X402ServiceEndpoint[] = [
       "3-agent compliance analysis — auto-detects or targets GDPR/SOC2/HIPAA/MiCA/AML/PCI-DSS/CCPA, gap analysis, remediation roadmap (SequentialWorkflow, 3 agents)",
     path: "/x402/compliance-check",
     method: "POST",
-    priceUsd: "0.50",
+    priceUsd: "0.15",
   },
   {
     name: "Investment Due Diligence",
@@ -193,7 +193,7 @@ export const ADVANCED_CATALOG: X402ServiceEndpoint[] = [
       "5-agent concurrent analysis + synthesis — team, tokenomics, tech, community, market scoring with cross-check penalties and STRONG_BUY/BUY/HOLD/AVOID/STRONG_AVOID recommendation (ConcurrentWorkflow + synthesis, 5+1 agents)",
     path: "/x402/investment-dd",
     method: "POST",
-    priceUsd: "5.00",
+    priceUsd: "0.19",
   },
 ];
 
@@ -258,7 +258,7 @@ export const advancedRoutes: Route[] = [
                 "You are a DeFi yield rate scanner. Analyze the provided yield data and identify the top 10 opportunities. " +
                 "Consider APY, TVL (higher = safer), protocol reputation, and yield sustainability. " +
                 "Output a JSON array of the top 10: [{ \"protocol\": \"...\", \"chain\": \"...\", \"symbol\": \"...\", \"apy\": ..., \"tvl\": ..., \"riskLevel\": \"low\"|\"medium\"|\"high\", \"notes\": \"...\" }]",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -271,7 +271,7 @@ export const advancedRoutes: Route[] = [
                 "Consider: smart contract audit status, time in production, TVL trends, protocol team, past incidents, " +
                 "complexity of strategy, impermanent loss exposure, and depeg risk for stablecoins. " +
                 "Output a JSON array: [{ \"protocol\": \"...\", \"riskScore\": <1-10>, \"auditStatus\": \"...\", \"concerns\": [\"...\"], \"safeForRisk\": \"low\"|\"medium\"|\"high\" }]",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -293,7 +293,7 @@ export const advancedRoutes: Route[] = [
                 '  "riskAssessment": "overall risk narrative",\n' +
                 '  "executionSteps": ["step 1", "step 2", ...]\n' +
                 "}",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 8192,
@@ -360,13 +360,13 @@ export const advancedRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/research-report — $0.50 ───────────────────────────────
+  // ── POST /x402/research-report — $0.15 ───────────────────────────────
   {
     type: "POST",
     path: "/x402/research-report",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.50",
+        amountUsd: "0.15",
         description: "Fact-checked research report (4 agents, SequentialWorkflow)",
       });
       if (!gate.paid) return;
@@ -410,7 +410,7 @@ export const advancedRoutes: Route[] = [
                 "Tag each claim with a confidence indicator: [HIGH], [MEDIUM], or [LOW]. " +
                 "Be exhaustive in your coverage. Structure your findings clearly with headings. " +
                 "Include data points, statistics, and source references where possible.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 8192,
@@ -424,7 +424,7 @@ export const advancedRoutes: Route[] = [
                 "If unsure, mark UNVERIFIED not DISPUTED. Do NOT fabricate corrections. " +
                 "For each claim, provide your reasoning for the status. " +
                 "Output structured findings with the original claim, your verdict, and brief justification.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 6144,
@@ -437,7 +437,7 @@ export const advancedRoutes: Route[] = [
                 "Downweight claims marked UNVERIFIED or DISPUTED. Highlight VERIFIED claims prominently. " +
                 "Flag any FABRICATED claims as warnings. " +
                 "Identify patterns, trends, implications, and areas that need further investigation.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 6144,
@@ -455,7 +455,7 @@ export const advancedRoutes: Route[] = [
                 "6. Recommendations\n\n" +
                 "Write in a professional, concise style. Use the analyst's insights as the primary input. " +
                 "Preserve confidence indicators on key claims.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 16384,
@@ -513,7 +513,7 @@ export const advancedRoutes: Route[] = [
             executiveSummary: executiveSummary.slice(0, 300) + (executiveSummary.length > 300 ? "..." : ""),
             keyFindings: findingLines.join("\n"),
             _preview: true,
-            _message: `Report preview. Pay $0.50 to see the full report.`,
+            _message: `Report preview. Pay $0.15 to see the full report.`,
           };
         }
 
@@ -525,7 +525,7 @@ export const advancedRoutes: Route[] = [
           template: "ResearchReport",
           freeRemaining: gate.freeRemaining,
           payment: {
-            amount: "0.50",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -545,13 +545,13 @@ export const advancedRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/compliance-check — $0.50 ──────────────────────────────
+  // ── POST /x402/compliance-check — $0.15 ──────────────────────────────
   {
     type: "POST",
     path: "/x402/compliance-check",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.50",
+        amountUsd: "0.15",
         description: "Compliance analysis (3 agents, SequentialWorkflow)",
       });
       if (!gate.paid) return;
@@ -597,7 +597,7 @@ export const advancedRoutes: Route[] = [
                 "For each framework, cite specific article/section references. " +
                 "ANTI-HALLUCINATION: If unsure about a specific article number, say 'approximately'. Note that regulatory info may be outdated. " +
                 "Output a structured list of applicable frameworks with their key requirements.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 6144,
@@ -610,7 +610,7 @@ export const advancedRoutes: Route[] = [
                 "For each requirement, assign a status: compliant, partially-compliant, non-compliant, or not-applicable. " +
                 "Group findings by severity: critical (immediate legal risk), high (significant gaps), medium (improvement needed), low (minor issues). " +
                 "Output structured gap analysis with requirement, status, severity, and specific evidence from the document.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 8192,
@@ -635,7 +635,7 @@ export const advancedRoutes: Route[] = [
                 '  "remediationRoadmap": [{ "priority": <1-N>, "action": "...", "effort": "low|medium|high", "impact": "..." }],\n' +
                 '  "report": "full text report"\n' +
                 "}",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 16384,
@@ -684,7 +684,7 @@ export const advancedRoutes: Route[] = [
             gaps,
             disclaimer: COMPLIANCE_DISCLAIMER,
             _preview: true,
-            _message: `Compliance score: ${overallComplianceScore}/100. Gaps: ${gaps.critical ?? 0} critical, ${gaps.high ?? 0} high, ${gaps.medium ?? 0} medium, ${gaps.low ?? 0} low. Pay $0.50 to see full report.`,
+            _message: `Compliance score: ${overallComplianceScore}/100. Gaps: ${gaps.critical ?? 0} critical, ${gaps.high ?? 0} high, ${gaps.medium ?? 0} medium, ${gaps.low ?? 0} low. Pay $0.15 to see full report.`,
           };
         }
 
@@ -693,7 +693,7 @@ export const advancedRoutes: Route[] = [
           template: "ComplianceCheck",
           freeRemaining: gate.freeRemaining,
           payment: {
-            amount: "0.50",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -708,13 +708,13 @@ export const advancedRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/investment-dd — $5.00 ─────────────────────────────────
+  // ── POST /x402/investment-dd — $0.19 ─────────────────────────────────
   {
     type: "POST",
     path: "/x402/investment-dd",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "5.00",
+        amountUsd: "0.19",
         description: "Investment due diligence (5+1 agents, ConcurrentWorkflow + synthesis)",
       });
       if (!gate.paid) return;
@@ -762,7 +762,7 @@ export const advancedRoutes: Route[] = [
                 "LinkedIn/Twitter presence, advisory board quality, team size, relevant experience. " +
                 "Output a JSON object: { \"score\": <0-100>, \"summary\": \"...\", \"doxxed\": true|false, " +
                 "\"trackRecord\": \"...\", \"concerns\": [\"...\"], \"strengths\": [\"...\"] }",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -778,7 +778,7 @@ export const advancedRoutes: Route[] = [
                 "Output a JSON object: { \"score\": <0-100>, \"summary\": \"...\", " +
                 "\"insiderAllocation\": <percentage>, \"vestingDetails\": \"...\", " +
                 "\"concerns\": [\"...\"], \"strengths\": [\"...\"] }",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -794,7 +794,7 @@ export const advancedRoutes: Route[] = [
                 "Output a JSON object: { \"score\": <0-100>, \"summary\": \"...\", " +
                 "\"openSource\": true|false, \"auditHistory\": [\"...\"], " +
                 "\"concerns\": [\"...\"], \"strengths\": [\"...\"] }",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -809,7 +809,7 @@ export const advancedRoutes: Route[] = [
                 "governance participation, content quality vs hype ratio. " +
                 "Output a JSON object: { \"score\": <0-100>, \"summary\": \"...\", " +
                 "\"concerns\": [\"...\"], \"strengths\": [\"...\"] }",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -824,7 +824,7 @@ export const advancedRoutes: Route[] = [
                 "regulatory environment, macro trends affecting the sector. " +
                 "Output a JSON object: { \"score\": <0-100>, \"summary\": \"...\", " +
                 "\"competitors\": [\"...\"], \"concerns\": [\"...\"], \"strengths\": [\"...\"] }",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -845,7 +845,7 @@ export const advancedRoutes: Route[] = [
         if (openaiKey) {
           synthesisOutput = await callOpenAI({
             apiKey: openaiKey,
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             systemPrompt:
               "You are an investment due diligence synthesizer. You receive outputs from 5 specialist analysts " +
               "(Team, Tokenomics, Tech, Community, Market). Synthesize into a final DD report.\n\n" +
@@ -888,7 +888,7 @@ export const advancedRoutes: Route[] = [
           const synthResult = await swarmsService.runAgent(
             {
               agent_name: "DDSynthesizer",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               system_prompt: "Synthesize the specialist analyses into a final DD report with overallScore, recommendation, dimensions, keyFindings, redFlags, bullCase, bearCase, executiveSummary. Output JSON.",
               max_loops: 1,
               max_tokens: 16384,
@@ -964,7 +964,7 @@ export const advancedRoutes: Route[] = [
             redFlagCount: redFlags.length,
             disclaimer: DD_DISCLAIMER,
             _preview: true,
-            _message: `Score: ${overallScore}/100 (${recommendation}). ${redFlags.length} red flag(s). Pay $5.00 to see full report.`,
+            _message: `Score: ${overallScore}/100 (${recommendation}). ${redFlags.length} red flag(s). Pay $0.19 to see full report.`,
           };
         }
 
@@ -974,7 +974,7 @@ export const advancedRoutes: Route[] = [
           template: "InvestmentDD",
           freeRemaining: gate.freeRemaining,
           payment: {
-            amount: "5.00",
+            amount: "0.19",
             transaction: gate.transaction,
             network: gate.network,
           },

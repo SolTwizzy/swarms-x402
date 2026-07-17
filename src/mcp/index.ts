@@ -136,7 +136,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_contract_audit_deep",
     description:
-      "Comprehensive 6-agent deep smart contract audit. Security, economic, gas, copy/clone detection, plus additional verification pass. $0.25/call via x402.",
+      "Comprehensive 6-agent deep smart contract audit. Security, economic, gas, copy/clone detection, plus additional verification pass. $0.15/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -155,7 +155,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/contract-audit/deep",
       method: "POST",
-      priceUsd: "0.25",
+      priceUsd: "0.15",
       category: "crypto",
       free: false,
     },
@@ -421,7 +421,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_seo_article",
     description:
-      "Multi-agent SEO article generation. 3 agents (SEOResearcher, ContentWriter, Editor) produce a keyword-optimized article with meta description and readability score. $0.25/call via x402.",
+      "Multi-agent SEO article generation. 3 agents (SEOResearcher, ContentWriter, Editor) produce a keyword-optimized article with meta description and readability score. $0.10/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -457,7 +457,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/seo-article",
       method: "POST",
-      priceUsd: "0.25",
+      priceUsd: "0.10",
       category: "content",
       free: false,
     },
@@ -621,7 +621,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
         model: {
           type: "string",
           description:
-            "LLM model name (e.g. 'gpt-4o-mini', 'gpt-4o'). Defaults to 'gpt-4o-mini'.",
+            "LLM model name (e.g. 'gpt-5-mini', 'gpt-5.1'). Defaults to 'gpt-5-mini'.",
         },
         systemPrompt: {
           type: "string",
@@ -645,7 +645,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_research_report",
     description:
-      "4-agent fact-checked research report. Researcher, FactChecker (VERIFIED/UNVERIFIED/DISPUTED/OUTDATED/FABRICATED), Analyst, and Writer produce a rigorous report. $0.50/call via x402.",
+      "4-agent fact-checked research report. Researcher, FactChecker (VERIFIED/UNVERIFIED/DISPUTED/OUTDATED/FABRICATED), Analyst, and Writer produce a rigorous report. $0.15/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -669,7 +669,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/research-report",
       method: "POST",
-      priceUsd: "0.50",
+      priceUsd: "0.15",
       category: "research",
       free: false,
     },
@@ -859,7 +859,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_token_price",
     description:
-      "Real-time token price in USD via Jupiter. Sub-second cached, designed for HFT bot loops. $0.001/call via x402.",
+      "Real-time token price in USD via Jupiter. Sub-second cached, designed for HFT bot loops. $0.01/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -873,7 +873,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/token-price",
       method: "POST",
-      priceUsd: "0.001",
+      priceUsd: "0.01",
       category: "trading",
       free: false,
     },
@@ -881,7 +881,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_token_supply",
     description:
-      "Get total supply and decimals for any SPL token mint via Solana RPC. $0.001/call via x402.",
+      "Get total supply and decimals for any SPL token mint via Solana RPC. $0.01/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -895,7 +895,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/token-supply",
       method: "POST",
-      priceUsd: "0.001",
+      priceUsd: "0.01",
       category: "trading",
       free: false,
     },
@@ -903,7 +903,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_slot_info",
     description:
-      "Current Solana slot and block time. Network health monitoring for trading bots. $0.001/call via x402.",
+      "Current Solana slot and block time. Network health monitoring for trading bots. $0.01/call via x402.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -912,7 +912,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/slot-info",
       method: "POST",
-      priceUsd: "0.001",
+      priceUsd: "0.01",
       category: "trading",
       free: false,
     },
@@ -920,7 +920,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_token_accounts",
     description:
-      "List all SPL token accounts for a wallet. Portfolio monitoring with optional mint filter. $0.002/call via x402.",
+      "List all SPL token accounts for a wallet. Portfolio monitoring with optional mint filter. $0.01/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -939,7 +939,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/token-accounts",
       method: "POST",
-      priceUsd: "0.002",
+      priceUsd: "0.01",
       category: "trading",
       free: false,
     },
@@ -947,7 +947,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_recent_blockhash",
     description:
-      "Get latest blockhash for transaction building. Every bot needs this before submitting a tx. $0.001/call via x402.",
+      "Get latest blockhash for transaction building. Every bot needs this before submitting a tx. $0.01/call via x402.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -956,7 +956,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/recent-blockhash",
       method: "POST",
-      priceUsd: "0.001",
+      priceUsd: "0.01",
       category: "trading",
       free: false,
     },
@@ -966,7 +966,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_compliance_check",
     description:
-      "3-agent compliance analysis. Auto-detects or targets GDPR/SOC2/HIPAA/MiCA/AML/PCI-DSS/CCPA. Returns gap analysis and remediation roadmap. $0.50/call via x402.",
+      "3-agent compliance analysis. Auto-detects or targets GDPR/SOC2/HIPAA/MiCA/AML/PCI-DSS/CCPA. Returns gap analysis and remediation roadmap. $0.15/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1003,7 +1003,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/compliance-check",
       method: "POST",
-      priceUsd: "0.50",
+      priceUsd: "0.15",
       category: "enterprise",
       free: false,
     },
@@ -1011,7 +1011,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_investment_dd",
     description:
-      "5-agent investment due diligence. Concurrent analysis of team, tokenomics, tech, community, and market. Returns STRONG_BUY/BUY/HOLD/AVOID/STRONG_AVOID recommendation. $5.00/call via x402.",
+      "5-agent investment due diligence. Concurrent analysis of team, tokenomics, tech, community, and market. Returns STRONG_BUY/BUY/HOLD/AVOID/STRONG_AVOID recommendation. $0.19/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1035,7 +1035,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/investment-dd",
       method: "POST",
-      priceUsd: "5.00",
+      priceUsd: "0.19",
       category: "enterprise",
       free: false,
     },
@@ -1045,7 +1045,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_stock_dd",
     description:
-      "Tokenized-stock due diligence. Fetches real market data (price, 6-month range, trend, volatility) then runs an adversarial 3-agent Swarm debate (bull / bear / risk) judged into a bullish/neutral/bearish verdict with confidence and supporting points. $0.29/call via x402.",
+      "Tokenized-stock due diligence. Fetches real market data (price, 6-month range, trend, volatility) then runs an adversarial 3-agent Swarm debate (bull / bear / risk) judged into a bullish/neutral/bearish verdict with confidence and supporting points. $0.10/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1060,7 +1060,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/rwa/stock-dd",
       method: "POST",
-      priceUsd: "0.29",
+      priceUsd: "0.10",
       category: "rwa",
       free: false,
     },
@@ -1068,7 +1068,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_stock_screen",
     description:
-      "Screen and rank a watchlist of 2-8 tokenized stocks. Fetches real market data for each, then a multi-agent Swarm ranks them best-to-worst with per-ticker rating, score, and rationale. $0.49/call via x402.",
+      "Screen and rank a watchlist of 2-8 tokenized stocks. Fetches real market data for each, then a multi-agent Swarm ranks them best-to-worst with per-ticker rating, score, and rationale. $0.15/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1083,7 +1083,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/rwa/screen",
       method: "POST",
-      priceUsd: "0.49",
+      priceUsd: "0.15",
       category: "rwa",
       free: false,
     },
@@ -1091,7 +1091,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_stock_compare",
     description:
-      "Head-to-head due diligence on two tokenized equities. Fetches real market data for both and runs an adversarial Swarm debate judged into a winner, per-ticker ratings, key points, and risks. $0.39/call via x402.",
+      "Head-to-head due diligence on two tokenized equities. Fetches real market data for both and runs an adversarial Swarm debate judged into a winner, per-ticker ratings, key points, and risks. $0.10/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1103,7 +1103,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/rwa/compare",
       method: "POST",
-      priceUsd: "0.39",
+      priceUsd: "0.10",
       category: "rwa",
       free: false,
     },
@@ -1111,7 +1111,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_rwa_eligibility",
     description:
-      "Compliance screen for a tokenized equity: identifies the underlying (name/exchange via real data) and returns a deterministic Robinhood-Chain access assessment by jurisdiction (US persons are not eligible). Informational only, not legal advice. $0.19/call via x402.",
+      "Compliance screen for a tokenized equity: identifies the underlying (name/exchange via real data) and returns a deterministic Robinhood-Chain access assessment by jurisdiction (US persons are not eligible). Informational only, not legal advice. $0.02/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1126,7 +1126,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/rwa/eligibility",
       method: "POST",
-      priceUsd: "0.19",
+      priceUsd: "0.02",
       category: "rwa",
       free: false,
     },
@@ -1134,7 +1134,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
   {
     name: "swarmx_stock_catalyst",
     description:
-      "Corporate-actions and catalyst brief for an equity: real dividend history + trailing yield, stock splits, and notable recent single-day moves from Yahoo Finance, summarized by an AI analyst. Future earnings dates are not fabricated when unavailable. $0.29/call via x402.",
+      "Corporate-actions and catalyst brief for an equity: real dividend history + trailing yield, stock splits, and notable recent single-day moves from Yahoo Finance, summarized by an AI analyst. Future earnings dates are not fabricated when unavailable. $0.05/call via x402.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1145,7 +1145,7 @@ const TOOL_DEFINITIONS: McpToolDefinition[] = [
     metadata: {
       endpoint: "/x402/rwa/catalyst",
       method: "POST",
-      priceUsd: "0.29",
+      priceUsd: "0.05",
       category: "rwa",
       free: false,
     },

@@ -2054,7 +2054,7 @@ async function startServer(): Promise<void> {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SwarmX — AI due diligence on everything tradeable.</title>
-  <meta name="description" content="Adversarial analyst panels research any tokenized stock, crypto token, or wallet — momentum, valuation, downside — and return a rated verdict. Flagship Stock DD $0.29 in USDC, or 5 free calls a day. No account.">
+  <meta name="description" content="Adversarial analyst panels research any tokenized stock, crypto token, or wallet — momentum, valuation, downside — and return a rated verdict. Flagship Stock DD $0.10 in USDC, or 5 free calls a day. No account.">
 ${THEME_FONTS}
 ${THEME_FAVICON}
   <style>
@@ -2976,7 +2976,7 @@ ${THEME_TOKENS}
           <div class="hero-thesis">
             <div class="hero-eyebrow">Tokenized equities &middot; Crypto &middot; Real-world assets</div>
             <h1 class="hero-headline">AI due diligence on<br><em>everything tradeable.</em></h1>
-            <p class="hero-sub">Adversarial analyst panels &mdash; bull, bear, risk &mdash; read the real market data on any tokenized stock, crypto token, or wallet and return a structured verdict you can act on. Flagship Stock DD $0.29 a report, paid in USDC. No account.</p>
+            <p class="hero-sub">Adversarial analyst panels &mdash; bull, bear, risk &mdash; read the real market data on any tokenized stock, crypto token, or wallet and return a structured verdict you can act on. Flagship Stock DD $0.10 a report, paid in USDC. No account.</p>
             <div class="hero-ctas">
               <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
             </div>
@@ -2993,7 +2993,7 @@ ${THEME_TOKENS}
               <div class="term-line in" style="--d:0s">$ swarmx stock-dd --ticker AAPL</div>
               <div class="term-line dim" style="--d:.3s">&nbsp;</div>
               <div class="term-line muted" style="--d:.4s">POST /x402/rwa/stock-dd</div>
-              <div class="term-line dim" style="--d:.48s">402 &rarr; settle 0.29 USDC &rarr; <span style="color:var(--green)">200 OK</span></div>
+              <div class="term-line dim" style="--d:.48s">402 &rarr; settle 0.10 USDC &rarr; <span style="color:var(--green)">200 OK</span></div>
               <div class="term-line dim" style="--d:.56s">&nbsp;</div>
               <div class="term-line agent" style="--d:.64s"><span class="who">market </span> AAPL  314.86 USD  <span style="color:var(--red)">-0.77%</span>  NasdaqGS</div>
               <div class="term-line dim" style="--d:.72s"><span class="who">       </span> 6mo 243.42 &mdash; 323.45 &middot; pos 89.3%</div>
@@ -3096,7 +3096,7 @@ ${THEME_TOKENS}
           <div class="step-card">
             <div class="step-num">402</div>
             <div class="step-icon">&#x25CE;</div>
-            <h3>Settle $0.29</h3>
+            <h3>Settle $0.10</h3>
             <p>The endpoint answers 402, your wallet settles USDC, the request retries itself. Market data is fetched before you are ever charged.</p>
             <span class="step-arrow">&rarr;</span>
           </div>
@@ -3119,7 +3119,7 @@ ${THEME_TOKENS}
           </div>
           <div class="prop-card">
             <h3>Priced like <span class="accent">a query</span></h3>
-            <p>$0.29 a report. No seat, no subscription, no minimum. Pay in USDC per call, or run 5 free every day.</p>
+            <p>$0.10 a report. No seat, no subscription, no minimum. Pay in USDC per call, or run 5 free every day.</p>
           </div>
           <div class="prop-card">
             <h3>Callable by <span class="accent">agents</span></h3>
@@ -3169,16 +3169,16 @@ ${THEME_TOKENS}
         <div class="tab-panel active" id="panel-crypto" role="tabpanel">
           <div class="tab-panel-header">
             <span class="tab-panel-title">Stock DD &amp; Crypto</span>
-            <span class="tab-panel-price" id="crypto-price">$0.29</span>
+            <span class="tab-panel-price" id="crypto-price">$0.10</span>
           </div>
           <p class="tab-panel-desc">Due diligence on any tokenized equity, plus the crypto suite &mdash; contract audits, token risk, wallet risk, transaction explanations, and DAO governance review.</p>
           <div class="form-group">
             <label class="form-label" for="crypto-endpoint">Endpoint</label>
             <select class="form-select" id="crypto-endpoint" onchange="updateCryptoForm()">
-              <option value="rwa/stock-dd" data-price="$0.29" selected>Stock DD &mdash; RWA ($0.29) &mdash; 3 agents</option>
+              <option value="rwa/stock-dd" data-price="$0.10" selected>Stock DD &mdash; RWA ($0.10) &mdash; 3 agents</option>
               <option value="contract-audit" data-price="$0.10">Contract Audit ($0.10) &mdash; 4 agents</option>
               <option value="contract-audit/quick" data-price="$0.03">Quick Audit ($0.03) &mdash; 1 agent</option>
-              <option value="contract-audit/deep" data-price="$0.25">Deep Audit ($0.25) &mdash; 6 agents</option>
+              <option value="contract-audit/deep" data-price="$0.15">Deep Audit ($0.15) &mdash; 6 agents</option>
               <option value="token-risk" data-price="$0.05">Token Risk ($0.05) &mdash; 3 agents</option>
               <option value="memecoin-score" data-price="$0.05">Memecoin Score ($0.05) &mdash; 3 agents</option>
               <option value="wallet-risk-score" data-price="$0.05">Wallet Risk Score ($0.05) &mdash; 2 agents</option>
@@ -3226,13 +3226,13 @@ ${THEME_TOKENS}
         <div class="tab-panel" id="panel-content" role="tabpanel">
           <div class="tab-panel-header">
             <span class="tab-panel-title">Content &amp; NLP</span>
-            <span class="tab-panel-price" id="content-price">$0.25</span>
+            <span class="tab-panel-price" id="content-price">$0.10</span>
           </div>
           <p class="tab-panel-desc">SEO articles, summaries, translations, document extraction, creative writing, sentiment analysis, and structured extraction.</p>
           <div class="form-group">
             <label class="form-label" for="content-endpoint">Endpoint</label>
             <select class="form-select" id="content-endpoint" onchange="updateContentForm()">
-              <option value="seo-article" data-price="$0.25">SEO Article ($0.25) &mdash; 3 agents</option>
+              <option value="seo-article" data-price="$0.10">SEO Article ($0.10) &mdash; 3 agents</option>
               <option value="summarize" data-price="$0.01">Summarize ($0.01) &mdash; 1 agent</option>
               <option value="translate" data-price="$0.02">Translate ($0.02) &mdash; 1 agent</option>
               <option value="document-extract" data-price="$0.05">Document Extract ($0.05) &mdash; AI</option>
@@ -3311,13 +3311,13 @@ ${THEME_TOKENS}
         <div class="tab-panel" id="panel-research" role="tabpanel">
           <div class="tab-panel-header">
             <span class="tab-panel-title">Research &amp; Analysis</span>
-            <span class="tab-panel-price" id="research-price">$0.50</span>
+            <span class="tab-panel-price" id="research-price">$0.15</span>
           </div>
           <p class="tab-panel-desc">Multi-agent research pipelines, analysis panels, adversarial debates, and general-purpose agents.</p>
           <div class="form-group">
             <label class="form-label" for="research-endpoint">Endpoint</label>
             <select class="form-select" id="research-endpoint" onchange="updateResearchForm()">
-              <option value="research-report" data-price="$0.50">Research Report ($0.50) &mdash; 4 agents</option>
+              <option value="research-report" data-price="$0.15">Research Report ($0.15) &mdash; 4 agents</option>
               <option value="research" data-price="$0.05">Research ($0.05) &mdash; 3 agents</option>
               <option value="analyze" data-price="$0.03">Analyze ($0.03) &mdash; 4 agents</option>
               <option value="debate" data-price="$0.05">Debate ($0.05) &mdash; 3 agents</option>
@@ -3390,17 +3390,17 @@ ${THEME_TOKENS}
         <div class="tab-panel" id="panel-trading" role="tabpanel">
           <div class="tab-panel-header">
             <span class="tab-panel-title">Trading Data</span>
-            <span class="tab-panel-price" id="trading-price">$0.001</span>
+            <span class="tab-panel-price" id="trading-price">$0.01</span>
           </div>
           <p class="tab-panel-desc">Real-time Solana data: token prices, supply info, slot data, token accounts, and recent blockhash &mdash; designed for trading bots.</p>
           <div class="form-group">
             <label class="form-label" for="trading-endpoint">Endpoint</label>
             <select class="form-select" id="trading-endpoint" onchange="updateTradingForm()">
-              <option value="token-price" data-price="$0.001">Token Price ($0.001)</option>
-              <option value="token-supply" data-price="$0.001">Token Supply ($0.001)</option>
-              <option value="slot-info" data-price="$0.001">Slot Info ($0.001)</option>
-              <option value="token-accounts" data-price="$0.002">Token Accounts ($0.002)</option>
-              <option value="recent-blockhash" data-price="$0.001">Recent Blockhash ($0.001)</option>
+              <option value="token-price" data-price="$0.01">Token Price ($0.01)</option>
+              <option value="token-supply" data-price="$0.01">Token Supply ($0.01)</option>
+              <option value="slot-info" data-price="$0.01">Slot Info ($0.01)</option>
+              <option value="token-accounts" data-price="$0.01">Token Accounts ($0.01)</option>
+              <option value="recent-blockhash" data-price="$0.01">Recent Blockhash ($0.01)</option>
             </select>
           </div>
           <div class="form-group" id="trading-mint-group">
@@ -3427,14 +3427,14 @@ ${THEME_TOKENS}
         <div class="tab-panel" id="panel-enterprise" role="tabpanel">
           <div class="tab-panel-header">
             <span class="tab-panel-title">Enterprise</span>
-            <span class="tab-panel-price" id="enterprise-price">$5.00</span>
+            <span class="tab-panel-price" id="enterprise-price">$0.19</span>
           </div>
           <p class="tab-panel-desc">High-value multi-agent analyses: investment due diligence (5+1 agents) and regulatory compliance checks (3 agents).</p>
           <div class="form-group">
             <label class="form-label" for="enterprise-endpoint">Endpoint</label>
             <select class="form-select" id="enterprise-endpoint" onchange="updateEnterpriseForm()">
-              <option value="investment-dd" data-price="$5.00">Investment DD ($5.00) &mdash; 5+1 agents</option>
-              <option value="compliance-check" data-price="$0.50">Compliance Check ($0.50) &mdash; 3 agents</option>
+              <option value="investment-dd" data-price="$0.19">Investment DD ($0.19) &mdash; 5+1 agents</option>
+              <option value="compliance-check" data-price="$0.15">Compliance Check ($0.15) &mdash; 3 agents</option>
             </select>
           </div>
           <div class="form-group">
@@ -3528,16 +3528,16 @@ ${THEME_TOKENS}
       <!-- ===== ALL ENDPOINTS BY CATEGORY ===== -->
       <div class="section">
         <div class="section-title">All Endpoints</div>
-        <div class="section-subtitle">Browse all 44 endpoints across 9 categories, from $0.001 data feeds to $5.00 enterprise analyses.</div>
+        <div class="section-subtitle">Browse all 44 endpoints across 9 categories, from $0.01 data feeds to $0.19 enterprise analyses.</div>
 
         <div class="cat-heading">Crypto Analysis (8 endpoints)</div>
         <div class="endpoints-grid">
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Contract Audit</span><span class="ep-price">$0.10</span></div><p class="ep-desc">4-agent security audit: vulns, economic attacks, copy detection, gas</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/contract-audit</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Quick Audit</span><span class="ep-price">$0.03</span></div><p class="ep-desc">Single-agent fast security scan</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/contract-audit/quick</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Deep Audit</span><span class="ep-price">$0.25</span></div><p class="ep-desc">6-agent comprehensive audit with cross-checks</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/contract-audit/deep</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Deep Audit</span><span class="ep-price">$0.15</span></div><p class="ep-desc">6-agent comprehensive audit with cross-checks</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/contract-audit/deep</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Risk</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent rug pull detection and risk verdict</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-risk</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Memecoin Score</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent memecoin risk: authorities, holders, verdict</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/memecoin-score</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Stock DD (RWA)</span><span class="ep-price">$0.29</span></div><p class="ep-desc">Real market data + 3-agent bull/bear/risk debate verdict for a stock ticker</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/stock-dd</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Stock DD (RWA)</span><span class="ep-price">$0.10</span></div><p class="ep-desc">Real market data + 3-agent bull/bear/risk debate verdict for a stock ticker</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/rwa/stock-dd</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Wallet Risk Score</span><span class="ep-price">$0.05</span></div><p class="ep-desc">2-agent wallet risk: tx patterns and risk level</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/wallet-risk-score</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">TX Explainer</span><span class="ep-price">$0.03</span></div><p class="ep-desc">Plain English Solana transaction explanation</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/tx-explainer</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">DAO Analysis</span><span class="ep-price">$0.10</span></div><p class="ep-desc">4-agent governance: economic, technical, risk + recommendation</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/dao-analyze</span></div></div>
@@ -3545,7 +3545,7 @@ ${THEME_TOKENS}
 
         <div class="cat-heading">Content &amp; NLP (7 endpoints)</div>
         <div class="endpoints-grid">
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">SEO Article</span><span class="ep-price">$0.25</span></div><p class="ep-desc">3-agent SEO article: research, write, edit</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/seo-article</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">SEO Article</span><span class="ep-price">$0.10</span></div><p class="ep-desc">3-agent SEO article: research, write, edit</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/seo-article</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Document Extract</span><span class="ep-price">$0.05</span></div><p class="ep-desc">AI data extraction from unstructured text</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/document-extract</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Write</span><span class="ep-price">$0.03</span></div><p class="ep-desc">3-agent writing: research, fact-check, compose</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/write</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Translate</span><span class="ep-price">$0.02</span></div><p class="ep-desc">AI translation to any language</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/translate</span></div></div>
@@ -3562,7 +3562,7 @@ ${THEME_TOKENS}
 
         <div class="cat-heading">Research &amp; Analysis (5 endpoints)</div>
         <div class="endpoints-grid">
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Research Report</span><span class="ep-price">$0.50</span></div><p class="ep-desc">4-agent fact-checked research with verification</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/research-report</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Research Report</span><span class="ep-price">$0.15</span></div><p class="ep-desc">4-agent fact-checked research with verification</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/research-report</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Research</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent pipeline: research, verify, write</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/research</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Analyze</span><span class="ep-price">$0.03</span></div><p class="ep-desc">4-expert panel: technical, economic, risk + synthesis</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/analyze</span></div></div>
           <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Debate</span><span class="ep-price">$0.05</span></div><p class="ep-desc">3-agent adversarial debate: pro, con, judge</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/debate</span></div></div>
@@ -3581,17 +3581,17 @@ ${THEME_TOKENS}
 
         <div class="cat-heading">Trading Data (5 endpoints)</div>
         <div class="endpoints-grid">
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Price</span><span class="ep-price">$0.001</span></div><p class="ep-desc">Real-time price via Jupiter, sub-second cached</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-price</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Supply</span><span class="ep-price">$0.001</span></div><p class="ep-desc">Total supply and decimals for any SPL token</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-supply</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Slot Info</span><span class="ep-price">$0.001</span></div><p class="ep-desc">Current Solana slot and block time</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/slot-info</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Accounts</span><span class="ep-price">$0.002</span></div><p class="ep-desc">All SPL accounts for a wallet, optional mint filter</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-accounts</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Recent Blockhash</span><span class="ep-price">$0.001</span></div><p class="ep-desc">Latest blockhash for transaction building</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/recent-blockhash</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Price</span><span class="ep-price">$0.01</span></div><p class="ep-desc">Real-time price via Jupiter, sub-second cached</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-price</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Supply</span><span class="ep-price">$0.01</span></div><p class="ep-desc">Total supply and decimals for any SPL token</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-supply</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Slot Info</span><span class="ep-price">$0.01</span></div><p class="ep-desc">Current Solana slot and block time</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/slot-info</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Token Accounts</span><span class="ep-price">$0.01</span></div><p class="ep-desc">All SPL accounts for a wallet, optional mint filter</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/token-accounts</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Recent Blockhash</span><span class="ep-price">$0.01</span></div><p class="ep-desc">Latest blockhash for transaction building</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/recent-blockhash</span></div></div>
         </div>
 
         <div class="cat-heading">Enterprise (2 endpoints)</div>
         <div class="endpoints-grid">
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Investment DD</span><span class="ep-price">$5.00</span></div><p class="ep-desc">5+1 agents: team, tokenomics, tech, community, market + synthesis</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/investment-dd</span></div></div>
-          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Compliance Check</span><span class="ep-price">$0.50</span></div><p class="ep-desc">3-agent regulatory: GDPR, SOC2, HIPAA, MiCA, AML</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/compliance-check</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Investment DD</span><span class="ep-price">$0.19</span></div><p class="ep-desc">5+1 agents: team, tokenomics, tech, community, market + synthesis</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/investment-dd</span></div></div>
+          <div class="ep-card"><div class="ep-card-top"><span class="ep-name">Compliance Check</span><span class="ep-price">$0.15</span></div><p class="ep-desc">3-agent regulatory: GDPR, SOC2, HIPAA, MiCA, AML</p><div class="ep-meta"><span class="method-badge post">POST</span><span class="ep-path">/x402/compliance-check</span></div></div>
         </div>
 
         <div class="cat-heading">Batch (1 endpoint)</div>
@@ -3611,16 +3611,16 @@ ${THEME_TOKENS}
             </thead>
             <tbody>
               <tr class="cat-row"><td colspan="4">Enterprise</td></tr>
-              <tr><td><span class="tier-label tier-enterprise">Enterprise</span></td><td>Investment DD</td><td class="price-val">$5.00</td><td>5+1 agents</td></tr>
-              <tr><td><span class="tier-label tier-enterprise">Enterprise</span></td><td>Compliance Check</td><td class="price-val">$0.50</td><td>3 agents</td></tr>
+              <tr><td><span class="tier-label tier-enterprise">Enterprise</span></td><td>Investment DD</td><td class="price-val">$0.19</td><td>5+1 agents</td></tr>
+              <tr><td><span class="tier-label tier-enterprise">Enterprise</span></td><td>Compliance Check</td><td class="price-val">$0.15</td><td>3 agents</td></tr>
               <tr class="cat-row"><td colspan="4">Research &amp; Analysis</td></tr>
-              <tr><td><span class="tier-label tier-multi">Research</span></td><td>Research Report</td><td class="price-val">$0.50</td><td>4 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Research</span></td><td>Research Report</td><td class="price-val">$0.15</td><td>4 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Research</span></td><td>Research</td><td class="price-val">$0.05</td><td>3 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Research</span></td><td>Debate</td><td class="price-val">$0.05</td><td>3 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Research</span></td><td>Analyze</td><td class="price-val">$0.03</td><td>4 agents</td></tr>
               <tr><td><span class="tier-label tier-single">Research</span></td><td>Single Agent</td><td class="price-val">$0.02</td><td>1 agent</td></tr>
               <tr class="cat-row"><td colspan="4">Crypto Analysis</td></tr>
-              <tr><td><span class="tier-label tier-multi">Crypto</span></td><td>Deep Audit</td><td class="price-val">$0.25</td><td>6 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Crypto</span></td><td>Deep Audit</td><td class="price-val">$0.15</td><td>6 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Crypto</span></td><td>Contract Audit</td><td class="price-val">$0.10</td><td>4 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Crypto</span></td><td>DAO Analysis</td><td class="price-val">$0.10</td><td>4 agents</td></tr>
               <tr><td><span class="tier-label tier-multi">Crypto</span></td><td>Token Risk</td><td class="price-val">$0.05</td><td>3 agents</td></tr>
@@ -3629,7 +3629,7 @@ ${THEME_TOKENS}
               <tr><td><span class="tier-label tier-single">Crypto</span></td><td>Quick Audit</td><td class="price-val">$0.03</td><td>1 agent</td></tr>
               <tr><td><span class="tier-label tier-single">Crypto</span></td><td>TX Explainer</td><td class="price-val">$0.03</td><td>AI</td></tr>
               <tr class="cat-row"><td colspan="4">Content &amp; NLP</td></tr>
-              <tr><td><span class="tier-label tier-multi">Content</span></td><td>SEO Article</td><td class="price-val">$0.25</td><td>3 agents</td></tr>
+              <tr><td><span class="tier-label tier-multi">Content</span></td><td>SEO Article</td><td class="price-val">$0.10</td><td>3 agents</td></tr>
               <tr><td><span class="tier-label tier-single">Content</span></td><td>Document Extract</td><td class="price-val">$0.05</td><td>AI</td></tr>
               <tr><td><span class="tier-label tier-multi">Content</span></td><td>Write</td><td class="price-val">$0.03</td><td>3 agents</td></tr>
               <tr><td><span class="tier-label tier-single">Content</span></td><td>Translate</td><td class="price-val">$0.02</td><td>1 agent</td></tr>
@@ -3647,11 +3647,11 @@ ${THEME_TOKENS}
               <tr><td><span class="tier-label tier-data">DeFi</span></td><td>Token Holders</td><td class="price-val">$0.01</td><td>&mdash;</td></tr>
               <tr><td><span class="tier-label tier-data">DeFi</span></td><td>TX History</td><td class="price-val">$0.01</td><td>&mdash;</td></tr>
               <tr class="cat-row"><td colspan="4">Trading Data</td></tr>
-              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Token Accounts</td><td class="price-val">$0.002</td><td>&mdash;</td></tr>
-              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Token Price</td><td class="price-val">$0.001</td><td>&mdash;</td></tr>
-              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Token Supply</td><td class="price-val">$0.001</td><td>&mdash;</td></tr>
-              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Slot Info</td><td class="price-val">$0.001</td><td>&mdash;</td></tr>
-              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Recent Blockhash</td><td class="price-val">$0.001</td><td>&mdash;</td></tr>
+              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Token Accounts</td><td class="price-val">$0.01</td><td>&mdash;</td></tr>
+              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Token Price</td><td class="price-val">$0.01</td><td>&mdash;</td></tr>
+              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Token Supply</td><td class="price-val">$0.01</td><td>&mdash;</td></tr>
+              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Slot Info</td><td class="price-val">$0.01</td><td>&mdash;</td></tr>
+              <tr><td><span class="tier-label tier-data">Trading</span></td><td>Recent Blockhash</td><td class="price-val">$0.01</td><td>&mdash;</td></tr>
               <tr class="cat-row"><td colspan="4">Batch</td></tr>
               <tr><td><span class="tier-label tier-batch">Batch</span></td><td>Batch Tasks (up to 10)</td><td class="price-val">20% off</td><td>varies</td></tr>
               <tr class="cat-row"><td colspan="4">Free</td></tr>
@@ -4570,10 +4570,10 @@ console.log(<span class="kw">await</span> res.json());</div>
     var html = '';
     if (d.kind === 'equity') {
       if (AGENT.linked) {
-        html += '<button class="market-action" type="button" data-agent-pay="/x402/rwa/stock-dd" data-agent-ticker="' + d.symbol + '">Run Stock DD &mdash; $0.29 &middot; agent pays</button>';
-        html += '<button class="market-action secondary" type="button" data-agent-pay="/x402/rwa/catalyst" data-agent-ticker="' + d.symbol + '">Catalyst Brief &mdash; $0.29</button>';
+        html += '<button class="market-action" type="button" data-agent-pay="/x402/rwa/stock-dd" data-agent-ticker="' + d.symbol + '">Run Stock DD &mdash; $0.10 &middot; agent pays</button>';
+        html += '<button class="market-action secondary" type="button" data-agent-pay="/x402/rwa/catalyst" data-agent-ticker="' + d.symbol + '">Catalyst Brief &mdash; $0.05</button>';
       } else {
-        html += '<button class="market-action" type="button" data-mkt-dd="' + d.symbol + '">Run Stock DD &mdash; $0.29</button>';
+        html += '<button class="market-action" type="button" data-mkt-dd="' + d.symbol + '">Run Stock DD &mdash; $0.10</button>';
         html += '<a class="market-action secondary" href="#playground">More endpoints &rarr;</a>';
       }
     } else {

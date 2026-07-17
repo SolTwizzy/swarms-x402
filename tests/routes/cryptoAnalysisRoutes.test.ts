@@ -227,7 +227,7 @@ describe("cryptoAnalysisRoutes", () => {
       expect(callOpenAI).toHaveBeenCalledWith(
         expect.objectContaining({
           apiKey: "test-openai",
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           temperature: 0.2,
           maxTokens: 2048,
         })

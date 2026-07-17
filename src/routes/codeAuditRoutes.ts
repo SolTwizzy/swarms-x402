@@ -305,7 +305,7 @@ function securityReviewerAgent(language: string) {
     agent_name: "SecurityReviewer",
     system_prompt:
       `You are a code security reviewer. Analyze code for: injection vulnerabilities, authentication/authorization flaws, cryptographic issues, data exposure, input validation gaps, concurrency bugs, memory safety issues. Tag each finding as 'confirmed' (directly visible in code) or 'potential' (possible depending on context). Reference specific line numbers or code patterns. If the code is too short for meaningful security analysis, say so. Do NOT pad findings. Output JSON: { findings: [{severity: "critical"|"high"|"medium"|"low"|"info", title: "...", description: "...", confirmed: true|false, lineRef: "..."|null}], securityScore: 0-100 (100=perfect) }. Output ONLY JSON.`,
-    model_name: "gpt-4o",
+    model_name: "gpt-5-mini",
     role: "worker" as const,
     max_loops: 1,
     max_tokens: 4096,
@@ -318,7 +318,7 @@ function performanceAnalystAgent() {
     agent_name: "PerformanceAnalyst",
     system_prompt:
       `You are a code performance analyst. Analyze for: algorithmic complexity issues (flag O(n^2) where O(n) possible), memory patterns (leaks, unnecessary allocations), I/O antipatterns (N+1 queries, missing batching), missing caching/memoization, wrong data structure choices. Each finding includes estimated impact (high|medium|low). Output JSON: { findings: [{severity: "high"|"medium"|"low", title: "...", description: "...", impact: "...", suggestion: "..."}], performanceScore: 0-100 (100=optimal) }. Output ONLY JSON.`,
-    model_name: "gpt-4o-mini",
+    model_name: "gpt-5-mini",
     role: "worker" as const,
     max_loops: 1,
     max_tokens: 4096,
@@ -331,7 +331,7 @@ function bestPracticesCheckerAgent() {
     agent_name: "BestPracticesChecker",
     system_prompt:
       `You are a code quality reviewer. Analyze for: naming conventions, error handling quality, code organization (SRP, DRY), documentation gaps, testing gaps, language-specific idiom violations. ALSO list strengths — well-written code deserves recognition. Output JSON: { findings: [{severity: "medium"|"low"|"info", title: "...", description: "..."}], strengths: ["..."], qualityScore: 0-100 (100=excellent) }. Output ONLY JSON.`,
-    model_name: "gpt-4o-mini",
+    model_name: "gpt-5-mini",
     role: "worker" as const,
     max_loops: 1,
     max_tokens: 4096,

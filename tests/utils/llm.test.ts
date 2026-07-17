@@ -31,7 +31,7 @@ function createMockRuntime(settings: Record<string, string | null> = {}) {
   };
 }
 
-describe("callLLM — smart routing (Swarms → OpenAI)", () => {
+describe("callLLM — smart routing (OpenAI → Swarms)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchByUrl();
@@ -41,7 +41,7 @@ describe("callLLM — smart routing (Swarms → OpenAI)", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("prefers Swarms when SWARMS_API_KEY is set (over OpenAI)", async () => {
+  it("prefers OpenAI when both keys are set", async () => {
     const runtime = createMockRuntime({
       SWARMS_API_KEY: "swarms-test",
       OPENAI_API_KEY: "sk-test",
@@ -52,7 +52,7 @@ describe("callLLM — smart routing (Swarms → OpenAI)", () => {
       userPrompt: "Do the task.",
     });
 
-    expect(result).toBe("swarms response");
+    expect(result).toBe("openai response");
   });
 
   it("falls back to OpenAI when only OpenAI key is present", async () => {
@@ -68,15 +68,15 @@ describe("callLLM — smart routing (Swarms → OpenAI)", () => {
     expect(result).toBe("openai response");
   });
 
-  it("cascades Swarms → OpenAI when Swarms fails", async () => {
-    // Swarms 500s → cascade to OpenAI.
+  it("cascades OpenAI → Swarms when OpenAI fails", async () => {
+    // OpenAI 500s → cascade to Swarms.
     globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
       const u = String(url);
-      if (u.includes("api.swarms.world")) {
+      if (u.includes("api.openai.com")) {
         return new Response("upstream error", { status: 500 });
       }
       return new Response(
-        JSON.stringify({ choices: [{ message: { content: "openai response" } }] }),
+        JSON.stringify({ outputs: [{ role: "assistant", content: "swarms response" }] }),
         { status: 200 },
       );
     }) as unknown as typeof fetch;
@@ -87,7 +87,7 @@ describe("callLLM — smart routing (Swarms → OpenAI)", () => {
     });
 
     const result = await callLLM(runtime, { systemPrompt: "test", userPrompt: "test" });
-    expect(result).toBe("openai response");
+    expect(result).toBe("swarms response");
   });
 
   it("throws when no keys available", async () => {
@@ -201,7 +201,7 @@ describe("callLLM — smart routing (Swarms → OpenAI)", () => {
   });
 });
 
-describe("callOpenAI — Swarms-first cascade", () => {
+describe("callOpenAI — OpenAI-first cascade", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchByUrl();
@@ -211,7 +211,7 @@ describe("callOpenAI — Swarms-first cascade", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("uses Swarms first when swarmsApiKey is provided", async () => {
+  it("uses OpenAI first when both keys are provided", async () => {
     const result = await callOpenAI({
       apiKey: "sk-test",
       swarmsApiKey: "swarms-test",
@@ -219,16 +219,16 @@ describe("callOpenAI — Swarms-first cascade", () => {
       userPrompt: "test",
     });
 
-    expect(result).toBe("swarms response");
+    expect(result).toBe("openai response");
   });
 
-  it("cascades to OpenAI when Swarms fails", async () => {
+  it("cascades to Swarms when OpenAI fails", async () => {
     globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
-      if (String(url).includes("api.swarms.world")) {
+      if (String(url).includes("api.openai.com")) {
         return new Response("boom", { status: 500 });
       }
       return new Response(
-        JSON.stringify({ choices: [{ message: { content: "openai response" } }] }),
+        JSON.stringify({ outputs: [{ role: "assistant", content: "swarms response" }] }),
         { status: 200 },
       );
     }) as unknown as typeof fetch;
@@ -240,7 +240,7 @@ describe("callOpenAI — Swarms-first cascade", () => {
       userPrompt: "test",
     });
 
-    expect(result).toBe("openai response");
+    expect(result).toBe("swarms response");
   });
 
   it("falls through to OpenAI when only apiKey is provided (no swarms)", async () => {
@@ -272,7 +272,7 @@ describe("callOpenAI — Swarms-first cascade", () => {
         systemPrompt: "test",
         userPrompt: "test",
       }),
-    ).rejects.toThrow(/All LLM providers failed.*Swarms agent returned empty output.*OpenAI API returned empty output/);
+    ).rejects.toThrow(/All LLM providers failed.*OpenAI API returned empty output.*Swarms agent returned empty output/);
   });
 });
 

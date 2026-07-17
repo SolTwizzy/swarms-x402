@@ -28,7 +28,7 @@ import { callLLM, runLocalPanel, type PanelAgent } from "../utils/llm.js";
 // Uppercase A–Z, 1–6 chars. Reject junk (digits, symbols, empty).
 const TICKER_RE = /^[A-Z]{1,6}$/;
 
-const STOCK_DD_PRICE_USD = "0.29";
+const STOCK_DD_PRICE_USD = "0.10";
 const STOCK_DD_DESCRIPTION =
   "Tokenized-stock due diligence — real market data + adversarial bull/bear/risk Swarm (DebateWithJudge, 3 agents)";
 
@@ -318,7 +318,7 @@ async function structureVerdict(
     const raw = await callLLM(runtime, {
       systemPrompt: STRUCTURE_SYSTEM_PROMPT,
       userPrompt,
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       temperature: 0,
       maxTokens: 700,
     });
@@ -371,10 +371,10 @@ const DISCLAIMER =
 
 // ── RWA suite prices ───────────────────────────────────────────────────
 
-const SCREEN_PRICE_USD = "0.49";
-const COMPARE_PRICE_USD = "0.39";
-const ELIGIBILITY_PRICE_USD = "0.19";
-const CATALYST_PRICE_USD = "0.29";
+const SCREEN_PRICE_USD = "0.15";
+const COMPARE_PRICE_USD = "0.10";
+const ELIGIBILITY_PRICE_USD = "0.02";
+const CATALYST_PRICE_USD = "0.05";
 
 // ── Analyst panels (run locally via runLocalPanel; judge = the structurer) ─
 
@@ -581,7 +581,7 @@ async function llmExtractJson(
     const raw = await callLLM(runtime, {
       systemPrompt: system,
       userPrompt: user,
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       temperature: 0,
       maxTokens: 900,
     });
@@ -764,7 +764,7 @@ export const RWA_CATALOG: X402ServiceEndpoint[] = [
       "(DebateWithJudge, 3 agents). v1 analyzes the underlying equity behind Robinhood-Chain stock tokens.",
     path: "/x402/rwa/stock-dd",
     method: "POST",
-    priceUsd: "0.29",
+    priceUsd: STOCK_DD_PRICE_USD,
   },
   {
     name: "Tokenized-Stock Screener",
@@ -810,7 +810,7 @@ export const RWA_CATALOG: X402ServiceEndpoint[] = [
 // ── Routes ─────────────────────────────────────────────────────────────
 
 export const rwaRoutes: Route[] = [
-  // ── POST /x402/rwa/stock-dd — $0.29 ──────────────────────────────────
+  // ── POST /x402/rwa/stock-dd — $0.10 ──────────────────────────────────
   {
     type: "POST",
     path: "/x402/rwa/stock-dd",
@@ -909,7 +909,7 @@ export const rwaRoutes: Route[] = [
         const panel = await runLocalPanel(runtime, {
           agents: STOCK_DD_AGENTS,
           task: agentTask,
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           maxTokens: 350,
           temperature: 0.4,
         });
@@ -1072,7 +1072,7 @@ export const rwaRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/rwa/screen — $0.49 ────────────────────────────────────
+  // ── POST /x402/rwa/screen — $0.15 ────────────────────────────────────
   {
     type: "POST",
     path: "/x402/rwa/screen",
@@ -1153,7 +1153,7 @@ export const rwaRoutes: Route[] = [
             `Screen and RANK these tokenized-stock candidates best-to-worst for a medium-term investor, using ` +
             `ONLY the factual data briefs below plus general knowledge. Ground every quantitative claim in the ` +
             `briefs. Do NOT fabricate fundamentals. Make your case concisely.\n\n${briefs}`,
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           maxTokens: 400,
           temperature: 0.3,
         });
@@ -1249,7 +1249,7 @@ export const rwaRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/rwa/compare — $0.39 ───────────────────────────────────
+  // ── POST /x402/rwa/compare — $0.10 ───────────────────────────────────
   {
     type: "POST",
     path: "/x402/rwa/compare",
@@ -1339,7 +1339,7 @@ export const rwaRoutes: Route[] = [
             `Argue which is the better medium-term buy: ${a} or ${b}. Use ONLY the factual briefs below plus ` +
             `general knowledge; do NOT fabricate fundamentals. Ground every quantitative claim. Make your case ` +
             `concisely.\n\n${brief}`,
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           maxTokens: 350,
           temperature: 0.4,
         });
@@ -1410,7 +1410,7 @@ export const rwaRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/rwa/eligibility — $0.19 (deterministic, no LLM) ────────
+  // ── POST /x402/rwa/eligibility — $0.02 (deterministic, no LLM) ────────
   {
     type: "POST",
     path: "/x402/rwa/eligibility",
@@ -1481,7 +1481,7 @@ export const rwaRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/rwa/catalyst — $0.29 ──────────────────────────────────
+  // ── POST /x402/rwa/catalyst — $0.05 ──────────────────────────────────
   {
     type: "POST",
     path: "/x402/rwa/catalyst",

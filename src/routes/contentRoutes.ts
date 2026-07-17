@@ -45,7 +45,7 @@ export const CONTENT_CATALOG: X402ServiceEndpoint[] = [
       "Multi-agent SEO article generation — research, write, and edit with keyword optimization",
     path: "/x402/seo-article",
     method: "POST",
-    priceUsd: "0.25",
+    priceUsd: "0.10",
   },
   {
     name: "Document Extract",
@@ -128,7 +128,7 @@ function truncateSeoArticleForFreeTier(
     wordCount: result.wordCount,
     articlePreview: result.article.slice(0, 200),
     _preview: true,
-    _message: `Article "${result.title}" (${result.wordCount} words) generated. Pay $0.25 to see full article.`,
+    _message: `Article "${result.title}" (${result.wordCount} words) generated. Pay $0.10 to see full article.`,
   };
 }
 
@@ -156,13 +156,13 @@ function truncateDocumentExtractForFreeTier(
 // ── Routes ─────────────────────────────────────────────────────────────
 
 export const contentRoutes: Route[] = [
-  // ── POST /x402/seo-article — $0.25 ───────────────────────────────
+  // ── POST /x402/seo-article — $0.10 ───────────────────────────────
   {
     type: "POST",
     path: "/x402/seo-article",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.25",
+        amountUsd: "0.10",
         description: "Multi-agent SEO article generation",
       });
       if (!gate.paid) return;
@@ -201,7 +201,7 @@ export const contentRoutes: Route[] = [
           agents: [
             {
               agent_name: "SEOResearcher",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               system_prompt:
                 "You are an SEO research specialist. Given a topic and optional keywords, create a detailed article outline. " +
                 "Output ONLY valid JSON with this structure: " +
@@ -215,7 +215,7 @@ export const contentRoutes: Route[] = [
             },
             {
               agent_name: "ContentWriter",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               system_prompt:
                 `You are an expert content writer. Given an SEO outline (from the previous agent), write a full article in markdown. ` +
                 `Target approximately ${wordCount} words. Use a ${tone} tone. ` +
@@ -229,7 +229,7 @@ export const contentRoutes: Route[] = [
             },
             {
               agent_name: "Editor",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               system_prompt:
                 "You are a professional editor. Polish the article from the previous agent. Fix grammar, improve flow, " +
                 "ensure keyword density is natural (1-3%). " +
@@ -297,7 +297,7 @@ export const contentRoutes: Route[] = [
           tone,
           freeRemaining: gate.freeRemaining,
           payment: {
-            amount: "0.25",
+            amount: "0.10",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -358,7 +358,7 @@ export const contentRoutes: Route[] = [
         if (openaiKey) {
           raw = await callOpenAI({
             apiKey: openaiKey,
-            model: "gpt-4o-mini",
+            model: "gpt-5-mini",
             systemPrompt,
             userPrompt,
             maxTokens: 4096,
@@ -373,7 +373,7 @@ export const contentRoutes: Route[] = [
           const result = await swarmsService.runAgent(
             {
               agent_name: "document-extractor",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               system_prompt: systemPrompt,
               max_loops: 1,
               max_tokens: 4096,

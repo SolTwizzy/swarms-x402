@@ -323,7 +323,7 @@ describe("3. SignalHawk analystSwarm", () => {
 
     for (const agent of params.agents) {
       expect(agent.system_prompt).toBeTruthy();
-      expect(agent.model_name).toBe("gpt-4o-mini");
+      expect(agent.model_name).toBe("gpt-5-mini");
       expect(agent.role).toBe("worker");
       expect(agent.max_loops).toBe(1);
       expect(agent.max_tokens).toBe(4096);

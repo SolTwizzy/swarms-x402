@@ -112,7 +112,7 @@ describe("swarmPremiumRoutes", () => {
 
     it("has correct prices", () => {
       const byPath = Object.fromEntries(SWARM_PREMIUM_CATALOG.map((e) => [e.path, e.priceUsd]));
-      expect(byPath["/swarm/deep-research"]).toBe("1.00");
+      expect(byPath["/swarm/deep-research"]).toBe("0.15");
       expect(byPath["/swarm/monitor"]).toBe("0.10");
     });
   });
@@ -166,7 +166,7 @@ describe("swarmPremiumRoutes", () => {
       );
     });
 
-    it("calls x402Gate with $1.00", async () => {
+    it("calls x402Gate with $0.15", async () => {
       const runtime = createMockRuntime({
         settings: { SWARMS_API_KEY: "test-swarms", OPENAI_API_KEY: "test-openai" },
       });
@@ -179,7 +179,7 @@ describe("swarmPremiumRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "1.00" }),
+        expect.objectContaining({ amountUsd: "0.15" }),
       );
     });
 
@@ -308,7 +308,7 @@ describe("swarmPremiumRoutes", () => {
             overallReliability: expect.any(Number),
           }),
           disclaimer: expect.stringContaining("AI-generated"),
-          payment: expect.objectContaining({ amount: "1.00" }),
+          payment: expect.objectContaining({ amount: "0.15" }),
         }),
       );
     });
@@ -350,7 +350,7 @@ describe("swarmPremiumRoutes", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           _preview: true,
-          _message: expect.stringContaining("$1.00"),
+          _message: expect.stringContaining("$0.15"),
           template: "DeepResearch",
         }),
       );

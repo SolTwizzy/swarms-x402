@@ -153,7 +153,7 @@ export const taskRoutes: Route[] = [
           const result = await swarmsService.runAgent(
             {
               agent_name: "summarizer",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               system_prompt: systemPrompt,
               max_loops: 1,
               max_tokens: 4096,
@@ -235,7 +235,7 @@ export const taskRoutes: Route[] = [
           const result = await swarmsService.runAgent(
             {
               agent_name: "translator",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               system_prompt: systemPrompt,
               max_loops: 1,
               max_tokens: 8192,
@@ -521,7 +521,7 @@ export const taskRoutes: Route[] = [
           const result = await swarmsService.runAgent(
             {
               agent_name: "extractor",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               system_prompt: systemPrompt,
               max_loops: 1,
               max_tokens: 4096,
@@ -613,7 +613,7 @@ export const taskRoutes: Route[] = [
           const result = await swarmsService.runAgent(
             {
               agent_name: "sentiment-analyst",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               system_prompt: systemPrompt,
               max_loops: 1,
               max_tokens: 1024,

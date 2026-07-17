@@ -1,21 +1,22 @@
 /**
  * Single-agent LLM utilities.
  *
- * Provider priority (production): **Swarms → OpenAI.**
- *  - Swarms single-agent API (`/v1/agent/completions`) is the funded, working
- *    primary. Swarms runs the model server-side and bills it — this does NOT use
- *    our OpenAI key.
- *  - Direct OpenAI is the last-resort fallback (works only if the OpenAI quota is
- *    topped up).
- *
- * Historical note: single-agent tasks used to call OpenAI directly. The OpenAI
- * key went out of quota (HTTP 429 `insufficient_quota`), so `callOpenAI` was
- * reworked into a Swarms-first cascade. The name is kept for call-site
- * compatibility — it no longer calls OpenAI first. (Gemini was removed as a
- * provider — the platform runs on Swarms only.)
+ * Provider priority (production): **OpenAI → Swarms.**
+ *  - Direct OpenAI (funded key) is the primary: the Swarms single-agent API
+ *    has been returning empty `outputs: []` while still billing per call
+ *    (verified again 2026-07-17), so leading with it wasted a round-trip and
+ *    a micro-charge on every request.
+ *  - Swarms remains the fallback and takes over automatically if OpenAI errors.
  */
 
 const SWARMS_API_BASE = "https://api.swarms.world";
+
+/** Default model for both providers. gpt-5 family = reasoning models (see callOpenAIRaw). */
+export const DEFAULT_LLM_MODEL = "gpt-5-mini";
+
+/** Reasoning models reject `max_tokens`/custom `temperature` and burn part of the completion budget on reasoning tokens. */
+const REASONING_MODEL_RE = /^(gpt-5|o\d)/i;
+const REASONING_TOKEN_HEADROOM = 1024;
 
 /* ------------------------------------------------------------------ */
 /*  Raw provider calls                                                 */
@@ -27,12 +28,14 @@ const SWARMS_API_BASE = "https://api.swarms.world";
  */
 async function callOpenAIRaw(options: {
   apiKey: string;
-  model?: string; // default "gpt-4o-mini"
+  model?: string; // default DEFAULT_LLM_MODEL
   systemPrompt: string;
   userPrompt: string;
   maxTokens?: number; // default 4096
-  temperature?: number; // default 0.3
+  temperature?: number; // default 0.3 (ignored for reasoning models — they only allow the default)
 }): Promise<string> {
+  const model = options.model ?? DEFAULT_LLM_MODEL;
+  const isReasoningModel = REASONING_MODEL_RE.test(model);
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -40,13 +43,23 @@ async function callOpenAIRaw(options: {
       "Authorization": `Bearer ${options.apiKey}`,
     },
     body: JSON.stringify({
-      model: options.model ?? "gpt-4o-mini",
+      model,
       messages: [
         { role: "system", content: options.systemPrompt },
         { role: "user", content: options.userPrompt },
       ],
-      max_tokens: options.maxTokens ?? 4096,
-      temperature: options.temperature ?? 0.3,
+      ...(isReasoningModel
+        ? {
+            // Reasoning tokens are billed against the completion budget, so pad
+            // it — otherwise small caps (e.g. panel agents at 400) return empty.
+            max_completion_tokens:
+              (options.maxTokens ?? 4096) + REASONING_TOKEN_HEADROOM,
+            reasoning_effort: "low",
+          }
+        : {
+            max_tokens: options.maxTokens ?? 4096,
+            temperature: options.temperature ?? 0.3,
+          }),
     }),
     signal: AbortSignal.timeout(60_000),
   });
@@ -105,7 +118,7 @@ export interface SwarmsAgentOptions {
   swarmsApiKey: string;
   systemPrompt: string;
   userPrompt: string;
-  model?: string; // model Swarms runs server-side (default "gpt-4o-mini") — Swarms bills it
+  model?: string; // model Swarms runs server-side (default DEFAULT_LLM_MODEL) — Swarms bills it
   maxTokens?: number; // default 4096
   temperature?: number; // default 0.3
   agentName?: string;
@@ -130,7 +143,7 @@ export async function callSwarmsAgent(options: SwarmsAgentOptions): Promise<stri
         agent_name: options.agentName ?? "assistant",
         description: options.description ?? "Single-agent task executor",
         system_prompt: options.systemPrompt,
-        model_name: options.model ?? "gpt-4o-mini",
+        model_name: options.model ?? DEFAULT_LLM_MODEL,
         max_tokens: options.maxTokens ?? 4096,
         temperature: options.temperature ?? 0.3,
         max_loops: 1,
@@ -159,8 +172,8 @@ export async function callSwarmsAgent(options: SwarmsAgentOptions): Promise<stri
 /* ------------------------------------------------------------------ */
 
 export interface CallOpenAIOptions {
-  apiKey: string; // OpenAI key (last-resort provider; may be out of quota)
-  model?: string; // OpenAI model / Swarms server-side model (default "gpt-4o-mini")
+  apiKey: string; // OpenAI key (primary provider)
+  model?: string; // OpenAI model / Swarms server-side model (default DEFAULT_LLM_MODEL)
   systemPrompt: string;
   userPrompt: string;
   maxTokens?: number; // default 4096
@@ -174,9 +187,9 @@ export interface CallOpenAIOptions {
 }
 
 /**
- * Single-agent LLM call. Routes **Swarms → OpenAI**, cascading to the next
- * provider on error or empty output. Named `callOpenAI` for historical call-site
- * compatibility; it no longer calls OpenAI first.
+ * Single-agent LLM call. Routes **OpenAI → Swarms**, cascading to the next
+ * provider on error or empty output. (Named `callOpenAI` for historical
+ * call-site compatibility.)
  *
  * Returns the completion text. Throws only if every configured provider fails.
  */
@@ -185,21 +198,6 @@ export async function callOpenAI(options: CallOpenAIOptions): Promise<string> {
   const openaiKey = (options.apiKey ?? process.env.OPENAI_API_KEY ?? "").trim();
 
   const attempts: Array<{ name: string; run: () => Promise<string> }> = [];
-
-  if (swarmsKey) {
-    attempts.push({
-      name: "swarms",
-      run: () =>
-        callSwarmsAgent({
-          swarmsApiKey: swarmsKey,
-          systemPrompt: options.systemPrompt,
-          userPrompt: options.userPrompt,
-          model: options.model,
-          maxTokens: options.maxTokens,
-          temperature: options.temperature,
-        }),
-    });
-  }
 
   if (openaiKey) {
     attempts.push({
@@ -210,6 +208,21 @@ export async function callOpenAI(options: CallOpenAIOptions): Promise<string> {
           model: options.model,
           systemPrompt: options.systemPrompt,
           userPrompt: options.userPrompt,
+          maxTokens: options.maxTokens,
+          temperature: options.temperature,
+        }),
+    });
+  }
+
+  if (swarmsKey) {
+    attempts.push({
+      name: "swarms",
+      run: () =>
+        callSwarmsAgent({
+          swarmsApiKey: swarmsKey,
+          systemPrompt: options.systemPrompt,
+          userPrompt: options.userPrompt,
+          model: options.model,
           maxTokens: options.maxTokens,
           temperature: options.temperature,
         }),
@@ -327,7 +340,7 @@ export interface SmartLLMOptions {
 /**
  * Smart LLM router — reads provider keys from the runtime and picks a provider.
  *
- * Auto-routing (preferred order): **Swarms → OpenAI**, cascading to the next on
+ * Auto-routing (preferred order): **OpenAI → Swarms**, cascading to the next on
  * failure. An explicit `provider` override is honored and does NOT cascade (it
  * either runs that provider or throws if its key is missing).
  *
@@ -370,10 +383,10 @@ export async function callLLM(
     return runOpenAI(openaiKey);
   }
 
-  // Auto — Swarms → OpenAI, cascading on failure.
+  // Auto — OpenAI → Swarms, cascading on failure.
   const attempts: Array<{ name: string; run: () => Promise<string> }> = [];
-  if (swarmsKey) attempts.push({ name: "swarms", run: () => runSwarms(swarmsKey) });
   if (openaiKey) attempts.push({ name: "openai", run: () => runOpenAI(openaiKey) });
+  if (swarmsKey) attempts.push({ name: "swarms", run: () => runSwarms(swarmsKey) });
 
   if (attempts.length === 0) {
     throw new Error("No LLM API key configured (need SWARMS_API_KEY or OPENAI_API_KEY)");

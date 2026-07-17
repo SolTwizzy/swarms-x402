@@ -202,7 +202,7 @@ export const cryptoAnalysisRoutes: Route[] = [
         if (openaiKey) {
           raw = await callOpenAI({
             apiKey: openaiKey,
-            model: "gpt-4o-mini",
+            model: "gpt-5-mini",
             systemPrompt,
             userPrompt,
             maxTokens: 2048,
@@ -218,7 +218,7 @@ export const cryptoAnalysisRoutes: Route[] = [
           const result = await swarmsService.runAgent(
             {
               agent_name: "TxExplainer",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               system_prompt: systemPrompt,
               max_loops: 1,
               max_tokens: 2048,
@@ -396,7 +396,7 @@ export const cryptoAnalysisRoutes: Route[] = [
                 '  "findings": [{"severity": "...", "title": "...", "description": "..."}]\n' +
                 "}\n" +
                 "Output ONLY JSON — no markdown fences.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -421,7 +421,7 @@ export const cryptoAnalysisRoutes: Route[] = [
                 '  "findings": [{"severity": "...", "title": "...", "description": "..."}]\n' +
                 "}\n" +
                 "Output ONLY JSON — no markdown fences.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -442,7 +442,7 @@ export const cryptoAnalysisRoutes: Route[] = [
                 "}\n\n" +
                 "Scoring: 0-25 SAFE, 26-50 CAUTION, 51-75 DANGER, 76-100 SCAM.\n" +
                 "Only report REAL issues. Output ONLY JSON — no markdown fences.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -654,7 +654,7 @@ export const cryptoAnalysisRoutes: Route[] = [
                 '  "dominantActivity": "<description>"\n' +
                 "}\n" +
                 "Output ONLY JSON — no markdown fences.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -674,7 +674,7 @@ export const cryptoAnalysisRoutes: Route[] = [
                 "}\n\n" +
                 "Risk scoring: 0-20 low, 21-40 moderate, 41-60 elevated, 61-80 high, 81-100 critical.\n" +
                 "Only report REAL patterns found in the data. Output ONLY JSON — no markdown fences.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,

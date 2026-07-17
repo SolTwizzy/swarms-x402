@@ -100,7 +100,7 @@ describe("tradingRoutes", () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it("calls x402Gate with $0.001", async () => {
+    it("calls x402Gate with $0.01", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -125,7 +125,7 @@ describe("tradingRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.001" })
+        expect.objectContaining({ amountUsd: "0.01" })
       );
     });
 
@@ -178,7 +178,7 @@ describe("tradingRoutes", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           slot: expect.any(Number),
-          payment: expect.objectContaining({ amount: "0.001" }),
+          payment: expect.objectContaining({ amount: "0.01" }),
         })
       );
     });
@@ -196,7 +196,7 @@ describe("tradingRoutes", () => {
       );
     });
 
-    it("calls x402Gate with $0.001", async () => {
+    it("calls x402Gate with $0.01", async () => {
       (rpcCall as any)
         .mockResolvedValueOnce(300000000)
         .mockResolvedValueOnce({ epoch: 650, slotIndex: 100, slotsInEpoch: 432000 })
@@ -214,7 +214,7 @@ describe("tradingRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.001" })
+        expect.objectContaining({ amountUsd: "0.01" })
       );
     });
   });
@@ -252,7 +252,7 @@ describe("tradingRoutes", () => {
         expect.objectContaining({
           blockhash: "mock-blockhash-abc123",
           lastValidBlockHeight: 123456789,
-          payment: expect.objectContaining({ amount: "0.001" }),
+          payment: expect.objectContaining({ amount: "0.01" }),
         })
       );
     });
@@ -270,7 +270,7 @@ describe("tradingRoutes", () => {
       );
     });
 
-    it("calls x402Gate with $0.001", async () => {
+    it("calls x402Gate with $0.01", async () => {
       (rpcCall as any).mockResolvedValueOnce({
         value: {
           blockhash: "mock-blockhash-abc123",
@@ -290,7 +290,7 @@ describe("tradingRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.001" })
+        expect.objectContaining({ amountUsd: "0.01" })
       );
     });
 

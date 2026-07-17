@@ -13,7 +13,7 @@ const AgentSchema = z.object({
   task: z.string().min(1),
   agentName: z.string().optional().default("GeneralAgent"),
   systemPrompt: z.string().optional(),
-  modelName: z.string().optional().default("gpt-4o-mini"),
+  modelName: z.string().optional().default("gpt-5-mini"),
   maxTokens: z.number().optional().default(4096),
   temperature: z.number().optional().default(0.5),
 });
@@ -63,7 +63,7 @@ export const runSwarmAgent: Action = {
 - task: string (what the agent should do)
 - agentName: string (a descriptive name like "CodeReviewer", "DataAnalyst", "Writer")
 - systemPrompt: optional string (specific instructions for the agent)
-- modelName: optional string (e.g. "gpt-4o", "gpt-4o-mini", "claude-3-sonnet-20240229")
+- modelName: optional string (e.g. "gpt-5-mini", "gpt-5-mini", "claude-3-sonnet-20240229")
 - maxTokens: optional number (default 4096)
 - temperature: optional number (0.0-1.0, default 0.5)
 
@@ -79,7 +79,7 @@ Return only valid JSON, no markdown.`,
       params = {
         task: message.content.text ?? "unspecified task",
         agentName: "GeneralAgent",
-        modelName: "gpt-4o-mini",
+        modelName: "gpt-5-mini",
         maxTokens: 4096,
         temperature: 0.5,
       };

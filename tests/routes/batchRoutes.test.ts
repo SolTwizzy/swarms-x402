@@ -20,14 +20,14 @@ vi.mock("../../src/utils/llm.js", () => ({
 vi.mock("../../src/templates/swarmTemplates.js", () => ({
   codeReviewTemplate: {
     agents: [
-      { agent_name: "SecurityAuditor", system_prompt: "audit", model_name: "gpt-4o", role: "worker", max_loops: 1 },
+      { agent_name: "SecurityAuditor", system_prompt: "audit", model_name: "gpt-5-mini", role: "worker", max_loops: 1 },
     ],
     swarmType: "ConcurrentWorkflow",
     maxLoops: 1,
   },
   researchPipelineTemplate: {
     agents: [
-      { agent_name: "Researcher", system_prompt: "research", model_name: "gpt-4o", role: "worker", max_loops: 1 },
+      { agent_name: "Researcher", system_prompt: "research", model_name: "gpt-5-mini", role: "worker", max_loops: 1 },
     ],
     swarmType: "SequentialWorkflow",
     maxLoops: 1,
@@ -35,14 +35,14 @@ vi.mock("../../src/templates/swarmTemplates.js", () => ({
   },
   analysisPanelTemplate: {
     agents: [
-      { agent_name: "Analyst", system_prompt: "analyze", model_name: "gpt-4o", role: "worker", max_loops: 1 },
+      { agent_name: "Analyst", system_prompt: "analyze", model_name: "gpt-5-mini", role: "worker", max_loops: 1 },
     ],
     swarmType: "MixtureOfAgents",
     maxLoops: 1,
   },
   debateAndDecideTemplate: {
     agents: [
-      { agent_name: "Proponent", system_prompt: "argue for", model_name: "gpt-4o", role: "worker", max_loops: 1 },
+      { agent_name: "Proponent", system_prompt: "argue for", model_name: "gpt-5-mini", role: "worker", max_loops: 1 },
     ],
     swarmType: "SequentialWorkflow",
     maxLoops: 1,

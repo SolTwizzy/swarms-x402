@@ -45,7 +45,7 @@ REASONING: <one sentence>`,
 - Moving average relationships
 
 Be data-driven and specific. Reference actual numbers from the data. End with your structured VERDICT.`,
-        model_name: "gpt-4o-mini",
+        model_name: "gpt-5-mini",
         role: "worker",
         max_loops: 1,
         max_tokens: 4096,
@@ -61,7 +61,7 @@ Be data-driven and specific. Reference actual numbers from the data. End with yo
 - Contrarian indicators (extreme sentiment often precedes reversals)
 
 Focus on actionable sentiment signals, not just summarizing news. End with your structured VERDICT.`,
-        model_name: "gpt-4o-mini",
+        model_name: "gpt-5-mini",
         role: "worker",
         max_loops: 1,
         max_tokens: 4096,
@@ -77,7 +77,7 @@ Focus on actionable sentiment signals, not just summarizing news. End with your 
 - Stablecoin flows as a proxy for buying pressure
 
 If on-chain data is limited, extrapolate from price action and general market conditions. End with your structured VERDICT.`,
-        model_name: "gpt-4o-mini",
+        model_name: "gpt-5-mini",
         role: "worker",
         max_loops: 1,
         max_tokens: 4096,

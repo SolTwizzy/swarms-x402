@@ -135,9 +135,9 @@ describe("swarmRoutes", () => {
 
     it("has correct prices", () => {
       const byPath = Object.fromEntries(SWARM_ROUTE_CATALOG.map((e) => [e.path, e.priceUsd]));
-      expect(byPath["/swarm/token-diligence"]).toBe("1.00");
-      expect(byPath["/swarm/defi-risk-score"]).toBe("2.00");
-      expect(byPath["/swarm/fact-check"]).toBe("0.25");
+      expect(byPath["/swarm/token-diligence"]).toBe("0.15");
+      expect(byPath["/swarm/defi-risk-score"]).toBe("0.15");
+      expect(byPath["/swarm/fact-check"]).toBe("0.10");
     });
   });
 
@@ -180,7 +180,7 @@ describe("swarmRoutes", () => {
       );
     });
 
-    it("calls x402Gate with $1.00", async () => {
+    it("calls x402Gate with $0.15", async () => {
       const mockSwarms = createMockSwarmsService(
         JSON.stringify({ output: "agent analysis" }),
       );
@@ -198,7 +198,7 @@ describe("swarmRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "1.00" }),
+        expect.objectContaining({ amountUsd: "0.15" }),
       );
     });
 
@@ -370,7 +370,7 @@ describe("swarmRoutes", () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it("calls x402Gate with $2.00", async () => {
+    it("calls x402Gate with $0.15", async () => {
       // Set gate for defi-risk-score pricing
       (x402Gate as any).mockResolvedValue({
         paid: true,
@@ -409,7 +409,7 @@ describe("swarmRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "2.00" }),
+        expect.objectContaining({ amountUsd: "0.15" }),
       );
     });
 
@@ -634,12 +634,12 @@ describe("swarmRoutes", () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it("calls x402Gate with $0.25", async () => {
+    it("calls x402Gate with $0.10", async () => {
       (x402Gate as any).mockResolvedValue({
         paid: true,
         transaction: "tx-test-789",
         network: "base-mainnet",
-        amountUsd: 0.25,
+        amountUsd: 0.10,
       });
 
       const mockSwarms = createMockSwarmsService(
@@ -662,7 +662,7 @@ describe("swarmRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.25" }),
+        expect.objectContaining({ amountUsd: "0.10" }),
       );
     });
 
@@ -671,7 +671,7 @@ describe("swarmRoutes", () => {
         paid: true,
         transaction: "tx-test-789",
         network: "base-mainnet",
-        amountUsd: 0.25,
+        amountUsd: 0.10,
       });
 
       const mockSwarms = createMockSwarmsService(
@@ -707,7 +707,7 @@ describe("swarmRoutes", () => {
         paid: true,
         transaction: "tx-test-789",
         network: "base-mainnet",
-        amountUsd: 0.25,
+        amountUsd: 0.10,
       });
 
       const mockSwarms = createMockSwarmsService(
@@ -735,7 +735,7 @@ describe("swarmRoutes", () => {
         paid: true,
         transaction: "tx-test-789",
         network: "base-mainnet",
-        amountUsd: 0.25,
+        amountUsd: 0.10,
       });
 
       const mockSwarms = createMockSwarmsService(
@@ -767,7 +767,7 @@ describe("swarmRoutes", () => {
         paid: true,
         transaction: "tx-test-789",
         network: "base-mainnet",
-        amountUsd: 0.25,
+        amountUsd: 0.10,
       });
 
       const mockSwarms = createMockSwarmsService(
@@ -855,7 +855,7 @@ describe("swarmRoutes", () => {
         paid: true,
         transaction: "tx-test-789",
         network: "base-mainnet",
-        amountUsd: 0.25,
+        amountUsd: 0.10,
       });
 
       const runtime = createMockRuntime();

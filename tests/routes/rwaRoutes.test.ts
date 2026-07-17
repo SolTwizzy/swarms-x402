@@ -109,7 +109,7 @@ function rhPaymentHeader(): string {
         authorization: {
           from: "0xpayer",
           to: "0xpayee",
-          value: "290000",
+          value: "100000",
           validAfter: "0",
           validBefore: "9999999999",
           nonce: "0xnonce",
@@ -138,7 +138,7 @@ describe("POST /x402/rwa/stock-dd", () => {
     globalThis.fetch = vi.fn(async () => yahooResponse()) as unknown as typeof fetch;
     vi.mocked(x402Gate).mockResolvedValue({
       paid: true,
-      amountUsd: 0.29,
+      amountUsd: 0.10,
       transaction: "tx-rwa-paid",
       network: "base-mainnet",
     });
@@ -244,8 +244,8 @@ describe("POST /x402/rwa/stock-dd", () => {
     expect(response.payment).toEqual({
       network: "eip155:4663",
       asset: "USDG",
-      amount: "0.29",
-      listPriceUsd: "0.29",
+      amount: "0.10",
+      listPriceUsd: "0.10",
       transaction: "0xrh-transaction",
       payer: "0xpayer",
     });
@@ -341,11 +341,11 @@ describe("POST /x402/rwa/stock-dd", () => {
       name: "paid",
       gate: {
         paid: true,
-        amountUsd: 0.29,
+        amountUsd: 0.10,
         transaction: "tx-rwa-paid",
         network: "base-mainnet",
       },
-      expectedAmount: 0.29,
+      expectedAmount: 0.10,
       expectedRaw: expect.stringContaining("BullAnalyst"),
     },
   ])("reports $name payment metadata accurately", async ({ gate, expectedAmount, expectedRaw }) => {
@@ -354,7 +354,7 @@ describe("POST /x402/rwa/stock-dd", () => {
     await route!.handler({ body: { ticker: "NVDA" } } as any, res, llmRuntime());
     const response = vi.mocked(res.json).mock.calls[0][0];
     expect(response.payment).toEqual(
-      expect.objectContaining({ amount: expectedAmount, listPriceUsd: "0.29" }),
+      expect.objectContaining({ amount: expectedAmount, listPriceUsd: "0.10" }),
     );
     expect(response.raw).toEqual(expectedRaw);
     expect(runLocalPanel).toHaveBeenCalledTimes(1);
@@ -469,7 +469,7 @@ describe("POST /x402/rwa/screen", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async () => yahooResponse()) as unknown as typeof fetch;
-    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.49, transaction: "tx", network: "base-mainnet" });
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.15, transaction: "tx", network: "base-mainnet" });
     vi.mocked(runLocalPanel).mockResolvedValue(panelOk());
     vi.mocked(callLLM).mockRejectedValue(new Error("judge unavailable"));
   });
@@ -534,7 +534,7 @@ describe("POST /x402/rwa/screen", () => {
       expect.objectContaining({ ticker: "NVDA", rank: 1, rating: "bullish" }),
     );
     expect(typeof response.ranking[0].score).toBe("number");
-    expect(response.payment.listPriceUsd).toBe("0.49");
+    expect(response.payment.listPriceUsd).toBe("0.15");
   });
 
   it("falls back to a deterministic ranking when structuring fails", async () => {
@@ -551,7 +551,7 @@ describe("POST /x402/rwa/compare", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async () => yahooResponse()) as unknown as typeof fetch;
-    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.39, transaction: "tx", network: "base-mainnet" });
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.10, transaction: "tx", network: "base-mainnet" });
     vi.mocked(runLocalPanel).mockResolvedValue(panelOk());
     vi.mocked(callLLM).mockRejectedValue(new Error("judge unavailable"));
   });
@@ -619,7 +619,7 @@ describe("POST /x402/rwa/eligibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async () => yahooResponse()) as unknown as typeof fetch;
-    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.19, transaction: "tx", network: "base-mainnet" });
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.02, transaction: "tx", network: "base-mainnet" });
   });
   afterEach(() => {
     globalThis.fetch = originalFetch;
@@ -662,7 +662,7 @@ describe("POST /x402/rwa/catalyst", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async () => catalystYahooResponse()) as unknown as typeof fetch;
-    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.29, transaction: "tx", network: "base-mainnet" });
+    vi.mocked(x402Gate).mockResolvedValue({ paid: true, amountUsd: 0.10, transaction: "tx", network: "base-mainnet" });
     vi.mocked(callLLM).mockRejectedValue(new Error("brief unavailable"));
   });
   afterEach(() => {

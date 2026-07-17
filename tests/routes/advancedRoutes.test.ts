@@ -328,7 +328,7 @@ describe("advancedRoutes", () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it("calls x402Gate with $0.50", async () => {
+    it("calls x402Gate with $0.15", async () => {
       const mockSwarms = createMockSwarmsService("Executive Summary\nKey findings\nFull report");
       const runtime = createMockRuntime({
         services: { SWARMS: mockSwarms },
@@ -342,7 +342,7 @@ describe("advancedRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.50" }),
+        expect.objectContaining({ amountUsd: "0.15" }),
       );
     });
 
@@ -482,7 +482,7 @@ describe("advancedRoutes", () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it("calls x402Gate with $0.50", async () => {
+    it("calls x402Gate with $0.15", async () => {
       const mockSwarms = createMockSwarmsService(
         JSON.stringify({
           overallComplianceScore: 75,
@@ -505,7 +505,7 @@ describe("advancedRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.50" }),
+        expect.objectContaining({ amountUsd: "0.15" }),
       );
     });
 
@@ -690,7 +690,7 @@ describe("advancedRoutes", () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it("calls x402Gate with $5.00", async () => {
+    it("calls x402Gate with $0.19", async () => {
       const mockSwarms = createMockSwarmsService("Phase 1 output");
       const runtime = createMockRuntime({
         services: { SWARMS: mockSwarms },
@@ -705,7 +705,7 @@ describe("advancedRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "5.00" }),
+        expect.objectContaining({ amountUsd: "0.19" }),
       );
     });
 
@@ -739,7 +739,7 @@ describe("advancedRoutes", () => {
       // Phase 2: callOpenAI synthesis
       expect(callOpenAI).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: "gpt-4o",
+          model: "gpt-5-mini",
           maxTokens: 16384,
         }),
       );
@@ -861,9 +861,9 @@ describe("advancedRoutes", () => {
       const byPath = new Map(ADVANCED_CATALOG.map((e) => [e.path, e]));
 
       expect(byPath.get("/x402/yield-optimizer")?.priceUsd).toBe("0.10");
-      expect(byPath.get("/x402/research-report")?.priceUsd).toBe("0.50");
-      expect(byPath.get("/x402/compliance-check")?.priceUsd).toBe("0.50");
-      expect(byPath.get("/x402/investment-dd")?.priceUsd).toBe("5.00");
+      expect(byPath.get("/x402/research-report")?.priceUsd).toBe("0.15");
+      expect(byPath.get("/x402/compliance-check")?.priceUsd).toBe("0.15");
+      expect(byPath.get("/x402/investment-dd")?.priceUsd).toBe("0.19");
     });
   });
 });

@@ -507,7 +507,7 @@ export const x402Routes: Route[] = [
         typeof body.systemPrompt === "string"
           ? body.systemPrompt
           : "You are a helpful AI agent. Complete the given task thoroughly and concisely.";
-      const model: string = typeof body.model === "string" ? body.model : "gpt-4o-mini";
+      const model: string = typeof body.model === "string" ? body.model : "gpt-5-mini";
 
       try {
         let output: string;

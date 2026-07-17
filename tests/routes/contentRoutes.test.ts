@@ -7,7 +7,7 @@ vi.mock("../../src/server/x402Gate.js", () => ({
     paid: true,
     transaction: "tx-content-123",
     network: "base-mainnet",
-    amountUsd: 0.25,
+    amountUsd: 0.10,
   })),
 }));
 
@@ -45,7 +45,7 @@ describe("contentRoutes", () => {
       paid: true,
       transaction: "tx-content-123",
       network: "base-mainnet",
-      amountUsd: 0.25,
+      amountUsd: 0.10,
     });
   });
 
@@ -73,7 +73,7 @@ describe("contentRoutes", () => {
       );
     });
 
-    it("x402Gate called with $0.25", async () => {
+    it("x402Gate called with $0.10", async () => {
       const mockSwarms = createMockSwarmsService(
         JSON.stringify({
           article: "# Full article",
@@ -98,7 +98,7 @@ describe("contentRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.25" })
+        expect.objectContaining({ amountUsd: "0.10" })
       );
     });
 
@@ -332,7 +332,7 @@ describe("contentRoutes", () => {
       expect(callOpenAI).toHaveBeenCalledWith(
         expect.objectContaining({
           apiKey: "sk-test-key",
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           temperature: 0.1,
           maxTokens: 4096,
         })

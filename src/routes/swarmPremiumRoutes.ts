@@ -459,7 +459,7 @@ export const SWARM_PREMIUM_CATALOG: X402ServiceEndpoint[] = [
       "Provider-routed research pipeline — model-knowledge analysis (no live web retrieval), optional on-chain data from Helius, adversarial consistency checks, and a synthesis report.",
     path: "/swarm/deep-research",
     method: "POST",
-    priceUsd: "1.00",
+    priceUsd: "0.15",
   },
   {
     name: "Monitor Swarm",
@@ -476,14 +476,14 @@ export const SWARM_PREMIUM_CATALOG: X402ServiceEndpoint[] = [
 export const swarmPremiumRoutes: Route[] = [
 
   // ══════════════════════════════════════════════════════════════════════
-  // POST /swarm/deep-research — $1.00 (4 agents, orchestrated pipeline)
+  // POST /swarm/deep-research — $0.15 (4 agents, orchestrated pipeline)
   // ══════════════════════════════════════════════════════════════════════
   {
     type: "POST",
     path: "/swarm/deep-research",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "1.00",
+        amountUsd: "0.15",
         description: "Deep research swarm — 4-agent self-funding pipeline with web, on-chain, fact-check, synthesis",
       });
       if (!gate.paid) return;
@@ -521,7 +521,7 @@ export const swarmPremiumRoutes: Route[] = [
           ...cached,
           cached: true,
           payment: {
-            amount: "1.00",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -603,7 +603,7 @@ export const swarmPremiumRoutes: Route[] = [
           disclaimer: RESEARCH_DISCLAIMER,
           ...urls,
           payment: {
-            amount: "1.00",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -617,7 +617,7 @@ export const swarmPremiumRoutes: Route[] = [
             topic,
             template: "DeepResearch",
             _preview: true,
-            _message: "Output truncated. Pay $1.00 to see the full research report.",
+            _message: "Output truncated. Pay $0.15 to see the full research report.",
             reportPreview: preview + suffix,
             agentsUsed: result.agentsUsed.length,
             sourcesQueried: result.sourcesQueried,

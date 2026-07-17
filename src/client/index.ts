@@ -347,7 +347,7 @@ export class X402SwarmsClient {
    *
    * @param task - The task for the agent to complete.
    * @param options - Optional agent configuration.
-   * @param options.model - LLM model name (e.g. "gpt-4o-mini", "gpt-4o"). Defaults to "gpt-4o-mini".
+   * @param options.model - LLM model name (e.g. "gpt-5-mini", "gpt-5-mini"). Defaults to "gpt-5-mini".
    * @param options.systemPrompt - Custom system prompt for the agent.
    * @param options.agentName - Custom agent name. Defaults to "x402-agent".
    * @returns Agent output with payment receipt.
@@ -556,7 +556,7 @@ export class X402SwarmsClient {
   // ── Crypto-native endpoints ─────────────────────────────────────
 
   /**
-   * Multi-agent smart contract pre-audit ($0.50).
+   * Multi-agent smart contract pre-audit ($0.10).
    *
    * Runs SecurityAuditor, EconomicAttacker, GasOptimizer, and AuditReporter agents
    * concurrently to produce a structured risk report.

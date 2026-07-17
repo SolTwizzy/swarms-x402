@@ -465,7 +465,7 @@ export const CRYPTO_CATALOG: X402ServiceEndpoint[] = [
       "Comprehensive 6-agent deep audit — security, economic, gas, copy/clone detection, plus additional verification pass with GasOptimizer and CopyDetector cross-checks (ConcurrentWorkflow, 6 agents)",
     path: "/x402/contract-audit/deep",
     method: "POST",
-    priceUsd: "0.25",
+    priceUsd: "0.15",
   },
   {
     name: "Token Risk Assessment",
@@ -488,7 +488,7 @@ export const CRYPTO_CATALOG: X402ServiceEndpoint[] = [
 // ── Routes ─────────────────────────────────────────────────────────────
 
 export const cryptoRoutes: Route[] = [
-  // ── POST /x402/contract-audit — $0.50 ──────────────────────────────
+  // ── POST /x402/contract-audit — $0.10 ──────────────────────────────
   {
     type: "POST",
     path: "/x402/contract-audit",
@@ -549,7 +549,7 @@ export const cryptoRoutes: Route[] = [
                 "- recommendation: how to fix it\n\n" +
                 'Output a JSON object: { "findings": [{ "severity": "...", "title": "...", "description": "...", "location": "...", "recommendation": "..." }], ' +
                 '"legitimacy_score": <0-100> }',
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -581,7 +581,7 @@ export const cryptoRoutes: Route[] = [
                 '  "copy_likelihood_score": <0-100>,\n' +
                 '  "complexity_score": <0-100>\n' +
                 "}",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -598,7 +598,7 @@ export const cryptoRoutes: Route[] = [
                 "and opportunities for using unchecked blocks or assembly. " +
                 "Estimate gas savings for each suggestion. " +
                 "Output a JSON object: { \"findings\": [{ \"title\": \"...\", \"description\": \"...\", \"estimatedSavings\": \"...\" }] }",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -632,7 +632,7 @@ export const cryptoRoutes: Route[] = [
                 "0-29: Likely scam or severely compromised\n\n" +
                 "Only report REAL issues. Don't invent problems to make the report look thorough.\n" +
                 "Output ONLY the JSON object — no markdown fences, no extra text.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 8192,
@@ -750,7 +750,7 @@ export const cryptoRoutes: Route[] = [
               '  "summary": "Non-technical summary for a smart 15-year-old"\n' +
               "}\n\n" +
               "Output ONLY the JSON object — no markdown fences, no extra text.",
-            model_name: "gpt-4o",
+            model_name: "gpt-5-mini",
             role: "worker" as const,
             max_loops: 1,
             max_tokens: 4096,
@@ -800,13 +800,13 @@ export const cryptoRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/contract-audit/deep — $0.25 (6 agents) ────────────
+  // ── POST /x402/contract-audit/deep — $0.15 (6 agents) ────────────
   {
     type: "POST",
     path: "/x402/contract-audit/deep",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.25",
+        amountUsd: "0.15",
         description: "Deep smart contract audit with verification pass (6 agents, ConcurrentWorkflow)",
       });
       if (!gate.paid) return;
@@ -861,7 +861,7 @@ export const cryptoRoutes: Route[] = [
                 "- recommendation: how to fix it\n\n" +
                 'Output a JSON object: { "findings": [{ "severity": "...", "title": "...", "description": "...", "location": "...", "recommendation": "..." }], ' +
                 '"legitimacy_score": <0-100> }',
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -893,7 +893,7 @@ export const cryptoRoutes: Route[] = [
                 '  "copy_likelihood_score": <0-100>,\n' +
                 '  "complexity_score": <0-100>\n' +
                 "}",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -910,7 +910,7 @@ export const cryptoRoutes: Route[] = [
                 "and opportunities for using unchecked blocks or assembly. " +
                 "Estimate gas savings for each suggestion. " +
                 "Output a JSON object: { \"findings\": [{ \"title\": \"...\", \"description\": \"...\", \"estimatedSavings\": \"...\" }] }",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -934,7 +934,7 @@ export const cryptoRoutes: Route[] = [
                 '  "originality_assessment": "<detailed explanation>",\n' +
                 '  "customization_depth": "none|minimal|moderate|extensive"\n' +
                 "}",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -955,7 +955,7 @@ export const cryptoRoutes: Route[] = [
                 '  "missed_issues": [{ "severity": "...", "title": "...", "description": "..." }],\n' +
                 '  "verification_notes": "..."\n' +
                 "}",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -991,7 +991,7 @@ export const cryptoRoutes: Route[] = [
                 "0-29: Likely scam or severely compromised\n\n" +
                 "Only report CONFIRMED issues. Don't invent problems.\n" +
                 "Output ONLY the JSON object — no markdown fences, no extra text.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 8192,
@@ -1032,7 +1032,7 @@ export const cryptoRoutes: Route[] = [
           tier: "deep",
           freeRemaining: gate.freeRemaining,
           payment: {
-            amount: "0.25",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -1143,7 +1143,7 @@ export const cryptoRoutes: Route[] = [
                 'Output a JSON object: { "findings": [{ "risk": "critical|high|medium|low|info", "title": "...", "description": "..." }], ' +
                 '"mintAuthority": "active|renounced|unknown", "freezeAuthority": "active|renounced|unknown", ' +
                 '"timeline_anomalies": ["..."] }',
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -1170,7 +1170,7 @@ export const cryptoRoutes: Route[] = [
                 'Output a JSON object: { "findings": [{ "risk": "critical|high|medium|low|info", "title": "...", "description": "..." }], ' +
                 '"topHolderConcentration": "<percentage or unknown>", "liquidityLocked": "yes|no|unknown", ' +
                 '"copy_likelihood_score": <0-100> }',
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -1196,7 +1196,7 @@ export const cryptoRoutes: Route[] = [
                 "Risk score guide: 0-25 = SAFE, 26-60 = CAUTION, 61-100 = DANGER.\n" +
                 "Only report REAL issues. Don't invent problems.\n" +
                 "Output ONLY the JSON object — no markdown fences, no extra text.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -1293,7 +1293,7 @@ export const cryptoRoutes: Route[] = [
                 "Quantify where possible. " +
                 "Output a JSON object: { \"analysis\": \"<detailed economic analysis>\", " +
                 "\"impact\": \"positive|negative|neutral\", \"confidence\": <0-100> }",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -1309,7 +1309,7 @@ export const cryptoRoutes: Route[] = [
                 "testing requirements, and potential for unintended side effects. " +
                 "Output a JSON object: { \"analysis\": \"<detailed technical review>\", " +
                 "\"feasibility\": \"straightforward|moderate|complex|infeasible\", \"confidence\": <0-100> }",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -1326,7 +1326,7 @@ export const cryptoRoutes: Route[] = [
                 "Rate overall risk as Low/Medium/High/Critical. " +
                 "Output a JSON object: { \"analysis\": \"<detailed risk assessment>\", " +
                 "\"riskLevel\": \"low|medium|high|critical\", \"topRisks\": [\"...\"] }",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -1346,7 +1346,7 @@ export const cryptoRoutes: Route[] = [
                 "\"risk\": \"<summary of key risks>\" " +
                 "}, " +
                 "\"summary\": \"<2-3 sentence executive summary with clear recommendation and reasoning>\" }",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 8192,

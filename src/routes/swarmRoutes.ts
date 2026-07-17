@@ -117,7 +117,7 @@ export const SWARM_ROUTE_CATALOG: X402ServiceEndpoint[] = [
       "5-agent concurrent token launch analysis — contract audit, tokenomics, team credibility, market, liquidity — with weighted synthesis and APEWORTHY/PROMISING/CAUTION/HIGH_RISK/RUG_LIKELY verdict (ConcurrentWorkflow + synthesis, 5+1 agents)",
     path: "/swarm/token-diligence",
     method: "POST",
-    priceUsd: "1.00",
+    priceUsd: "0.15",
   },
   {
     name: "DeFi Protocol Risk Score",
@@ -125,7 +125,7 @@ export const SWARM_ROUTE_CATALOG: X402ServiceEndpoint[] = [
       "5-agent protocol risk assessment — contract security, tokenomics, on-chain activity, governance, historical risk — with AAA-to-D credit-style rating (ConcurrentWorkflow + synthesis, 5+1 agents)",
     path: "/swarm/defi-risk-score",
     method: "POST",
-    priceUsd: "2.00",
+    priceUsd: "0.15",
   },
   {
     name: "Adversarial Fact Check",
@@ -133,7 +133,7 @@ export const SWARM_ROUTE_CATALOG: X402ServiceEndpoint[] = [
       "4-agent adversarial fact-checking pipeline — claim extraction, evidence gathering, devil's advocate, judge verdict with VERIFIED/LIKELY_TRUE/UNVERIFIED/DISPUTED/FALSE rulings (SequentialWorkflow, 4 agents)",
     path: "/swarm/fact-check",
     method: "POST",
-    priceUsd: "0.25",
+    priceUsd: "0.10",
   },
 ];
 
@@ -142,14 +142,14 @@ export const SWARM_ROUTE_CATALOG: X402ServiceEndpoint[] = [
 export const swarmRoutes: Route[] = [
 
   // ══════════════════════════════════════════════════════════════════════
-  // POST /swarm/token-diligence — $1.00 (5 agents ConcurrentWorkflow + synthesis)
+  // POST /swarm/token-diligence — $0.15 (5 agents ConcurrentWorkflow + synthesis)
   // ══════════════════════════════════════════════════════════════════════
   {
     type: "POST",
     path: "/swarm/token-diligence",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "1.00",
+        amountUsd: "0.15",
         description: "Token launch due diligence (5+1 agents, ConcurrentWorkflow + synthesis)",
       });
       if (!gate.paid) return;
@@ -171,7 +171,7 @@ export const swarmRoutes: Route[] = [
         res.json({
           ...cached,
           payment: {
-            amount: "1.00",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -241,7 +241,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"contractScore\": <number>, \"findings\": [{\"severity\": \"...\", \"title\": \"...\", \"description\": \"...\"}], " +
                 "\"mintAuthorityRevoked\": true|false, \"freezeAuthorityRevoked\": true|false }. " +
                 "Only report issues supported by the data. Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -256,7 +256,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"tokenomicsScore\": <number>, \"topHolderPct\": <number|null>, \"top5Pct\": <number|null>, " +
                 "\"top10Pct\": <number|null>, \"liquidityFound\": true|false, \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -271,7 +271,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"credibilityScore\": <number>, \"creatorHistory\": \"...\", " +
                 "\"priorTokens\": <number|null>, \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -284,7 +284,7 @@ export const swarmRoutes: Route[] = [
                 "comparable tokens, market timing, volume patterns, price action if available. Score 0-100. " +
                 "Output JSON: { \"marketScore\": <number>, \"comparableTokens\": [\"...\"], \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -298,7 +298,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"liquidityScore\": <number>, \"lpLocked\": true|false|null, " +
                 "\"liquidityDepth\": \"...\", \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -320,7 +320,7 @@ export const swarmRoutes: Route[] = [
         if (openaiKey) {
           synthesisOutput = await callOpenAI({
             apiKey: openaiKey,
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             systemPrompt:
               "You are a crypto investment verdict synthesizer. Given 5 specialist reports, produce a final assessment.\n\n" +
               "WEIGHTED SCORING: contract 30%, tokenomics 25%, liquidity 20%, credibility 15%, market 10%.\n\n" +
@@ -360,7 +360,7 @@ export const swarmRoutes: Route[] = [
           const synthResult = await swarmsService.runAgent(
             {
               agent_name: "DiligenceSynthesizer",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               system_prompt:
                 "Synthesize the 5 specialist analyses into a final token due diligence verdict. " +
                 "Weighted scoring: contract 30%, tokenomics 25%, liquidity 20%, credibility 15%, market 10%. " +
@@ -414,7 +414,7 @@ export const swarmRoutes: Route[] = [
             redFlagCount: redFlags.length,
             disclaimer: FINANCIAL_DISCLAIMER,
             _preview: true,
-            _message: `Verdict: ${verdict} (${overallScore}/100). ${redFlags.length} red flag(s). Pay $1.00 to see full report.`,
+            _message: `Verdict: ${verdict} (${overallScore}/100). ${redFlags.length} red flag(s). Pay $0.15 to see full report.`,
           };
         } else {
           responseData = fullResult;
@@ -431,7 +431,7 @@ export const swarmRoutes: Route[] = [
         res.json({
           ...cacheData,
           payment: {
-            amount: "1.00",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -448,14 +448,14 @@ export const swarmRoutes: Route[] = [
   },
 
   // ══════════════════════════════════════════════════════════════════════
-  // POST /swarm/defi-risk-score — $2.00 (5 agents ConcurrentWorkflow + synthesis)
+  // POST /swarm/defi-risk-score — $0.15 (5 agents ConcurrentWorkflow + synthesis)
   // ══════════════════════════════════════════════════════════════════════
   {
     type: "POST",
     path: "/swarm/defi-risk-score",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "2.00",
+        amountUsd: "0.15",
         description: "DeFi protocol risk assessment (5+1 agents, ConcurrentWorkflow + synthesis)",
       });
       if (!gate.paid) return;
@@ -476,7 +476,7 @@ export const swarmRoutes: Route[] = [
         res.json({
           ...cached,
           payment: {
-            amount: "2.00",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -508,7 +508,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"securityScore\": <number>, \"auditHistory\": [\"...\"], " +
                 "\"upgradeability\": \"...\", \"adminKeys\": \"...\", \"findings\": [{\"severity\": \"...\", \"title\": \"...\", \"description\": \"...\"}] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -524,7 +524,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"tokenomicsScore\": <number>, \"inflationRate\": \"...\", " +
                 "\"stakingAPR\": \"...\", \"treasurySize\": \"...\", \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -540,7 +540,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"activityScore\": <number>, \"tvlTrend\": \"...\", " +
                 "\"userGrowth\": \"...\", \"whaleConcentration\": \"...\", \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -556,7 +556,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"governanceScore\": <number>, \"multisig\": \"...\", " +
                 "\"timelock\": \"...\", \"participationRate\": \"...\", \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -572,7 +572,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"historicalScore\": <number>, \"pastExploits\": [\"...\"], " +
                 "\"insuranceCoverage\": \"...\", \"regulatoryRisk\": \"...\", \"findings\": [\"...\"] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -595,7 +595,7 @@ export const swarmRoutes: Route[] = [
         if (openaiKey) {
           synthesisOutput = await callOpenAI({
             apiKey: openaiKey,
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             systemPrompt:
               "You are a DeFi protocol risk rating synthesizer. Given 5 specialist reports, " +
               "produce a final credit-style rating for the protocol.\n\n" +
@@ -637,7 +637,7 @@ export const swarmRoutes: Route[] = [
           const synthResult = await swarmsService.runAgent(
             {
               agent_name: "RiskSynthesizer",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               system_prompt:
                 "Synthesize the 5 specialist analyses into a final DeFi risk rating. " +
                 "Weighted scoring: contract 25%, tokenomics 20%, on-chain 20%, governance 20%, historical 15%. " +
@@ -693,7 +693,7 @@ export const swarmRoutes: Route[] = [
             rating,
             disclaimer: FINANCIAL_DISCLAIMER,
             _preview: true,
-            _message: `Rating: ${rating} (${overallScore}/100). Pay $2.00 to see full risk assessment.`,
+            _message: `Rating: ${rating} (${overallScore}/100). Pay $0.15 to see full risk assessment.`,
           };
         } else {
           responseData = fullResult;
@@ -710,7 +710,7 @@ export const swarmRoutes: Route[] = [
         res.json({
           ...cacheData,
           payment: {
-            amount: "2.00",
+            amount: "0.15",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -726,14 +726,14 @@ export const swarmRoutes: Route[] = [
   },
 
   // ══════════════════════════════════════════════════════════════════════
-  // POST /swarm/fact-check — $0.25 (4 agents SequentialWorkflow)
+  // POST /swarm/fact-check — $0.10 (4 agents SequentialWorkflow)
   // ══════════════════════════════════════════════════════════════════════
   {
     type: "POST",
     path: "/swarm/fact-check",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.25",
+        amountUsd: "0.10",
         description: "Adversarial fact-checking (4 agents, SequentialWorkflow)",
       });
       if (!gate.paid) return;
@@ -767,7 +767,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"claims\": [{\"text\": \"...\", \"verifiableCondition\": \"...\", \"category\": \"...\"}] }. " +
                 "Categories: factual, statistical, causal, predictive, opinion, definition. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o-mini",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 2048,
@@ -783,7 +783,7 @@ export const swarmRoutes: Route[] = [
                 "\"supporting\": [{\"source\": \"...\", \"detail\": \"...\"}], " +
                 "\"contradicting\": [{\"source\": \"...\", \"detail\": \"...\"}]}] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -799,7 +799,7 @@ export const swarmRoutes: Route[] = [
                 "Output JSON: { \"challenges\": [{\"claim\": \"...\", \"counterargument\": \"...\", " +
                 "\"strength\": \"weak\"|\"moderate\"|\"strong\"|\"devastating\"}] }. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -816,7 +816,7 @@ export const swarmRoutes: Route[] = [
                 "\"confidence\": <0-1>, \"reasoning\": \"...\"}], \"overallVeracity\": <0-100> }. " +
                 "overallVeracity: weighted average of claim confidences, adjusted for verdict severity. " +
                 "Output ONLY JSON.",
-              model_name: "gpt-4o",
+              model_name: "gpt-5-mini",
               role: "worker" as const,
               max_loops: 1,
               max_tokens: 4096,
@@ -873,7 +873,7 @@ export const swarmRoutes: Route[] = [
             verdictCounts,
             totalClaims: verdicts.length,
             _preview: true,
-            _message: `Veracity: ${overallVeracity}/100. ${verdicts.length} claim(s) analyzed. Pay $0.25 to see full breakdown.`,
+            _message: `Veracity: ${overallVeracity}/100. ${verdicts.length} claim(s) analyzed. Pay $0.10 to see full breakdown.`,
           };
         } else {
           responseData = fullResult;
@@ -885,7 +885,7 @@ export const swarmRoutes: Route[] = [
           template: "FactCheck",
           freeRemaining: gate.freeRemaining,
           payment: {
-            amount: "0.25",
+            amount: "0.10",
             transaction: gate.transaction,
             network: gate.network,
           },

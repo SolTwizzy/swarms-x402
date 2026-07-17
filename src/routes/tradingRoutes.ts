@@ -52,7 +52,7 @@ export const TRADING_CATALOG: X402ServiceEndpoint[] = [
       "Real-time token price in USD via Jupiter — sub-second cached, designed for HFT bot loops",
     path: "/x402/token-price",
     method: "POST",
-    priceUsd: "0.001",
+    priceUsd: "0.01",
   },
   {
     name: "Token Supply",
@@ -60,7 +60,7 @@ export const TRADING_CATALOG: X402ServiceEndpoint[] = [
       "Get total supply and decimals for any SPL token mint via Solana RPC",
     path: "/x402/token-supply",
     method: "POST",
-    priceUsd: "0.001",
+    priceUsd: "0.01",
   },
   {
     name: "Slot Info",
@@ -68,7 +68,7 @@ export const TRADING_CATALOG: X402ServiceEndpoint[] = [
       "Current Solana slot and block time — network health monitoring for trading bots",
     path: "/x402/slot-info",
     method: "POST",
-    priceUsd: "0.001",
+    priceUsd: "0.01",
   },
   {
     name: "Token Accounts",
@@ -76,7 +76,7 @@ export const TRADING_CATALOG: X402ServiceEndpoint[] = [
       "List all SPL token accounts for a wallet — portfolio monitoring with optional mint filter",
     path: "/x402/token-accounts",
     method: "POST",
-    priceUsd: "0.002",
+    priceUsd: "0.01",
   },
   {
     name: "Recent Blockhash",
@@ -84,7 +84,7 @@ export const TRADING_CATALOG: X402ServiceEndpoint[] = [
       "Get latest blockhash for transaction building — every bot needs this before submitting a tx",
     path: "/x402/recent-blockhash",
     method: "POST",
-    priceUsd: "0.001",
+    priceUsd: "0.01",
   },
 ];
 
@@ -135,13 +135,13 @@ async function fetchHeliusPrice(
 // ── Route definitions ───────────────────────────────────────────────────────
 
 export const tradingRoutes: Route[] = [
-  // ── POST /x402/token-price — $0.001 ──────────────────────────────────
+  // ── POST /x402/token-price — $0.01 ──────────────────────────────────
   {
     type: "POST",
     path: "/x402/token-price",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.001",
+        amountUsd: "0.01",
         description: "Real-time token price via Helius DAS",
       });
       if (!gate.paid) return;
@@ -171,7 +171,7 @@ export const tradingRoutes: Route[] = [
             ...cached,
             cached: true,
             payment: {
-              amount: "0.001",
+              amount: "0.01",
               transaction: gate.transaction,
               network: gate.network,
             },
@@ -201,7 +201,7 @@ export const tradingRoutes: Route[] = [
           ...payload,
           cached: false,
           payment: {
-            amount: "0.001",
+            amount: "0.01",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -217,13 +217,13 @@ export const tradingRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/token-supply — $0.001 ─────────────────────────────────
+  // ── POST /x402/token-supply — $0.01 ─────────────────────────────────
   {
     type: "POST",
     path: "/x402/token-supply",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.001",
+        amountUsd: "0.01",
         description: "Token supply via Solana RPC",
       });
       if (!gate.paid) return;
@@ -253,7 +253,7 @@ export const tradingRoutes: Route[] = [
             ...cached,
             cached: true,
             payment: {
-              amount: "0.001",
+              amount: "0.01",
               transaction: gate.transaction,
               network: gate.network,
             },
@@ -283,7 +283,7 @@ export const tradingRoutes: Route[] = [
           ...payload,
           cached: false,
           payment: {
-            amount: "0.001",
+            amount: "0.01",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -299,13 +299,13 @@ export const tradingRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/slot-info — $0.001 ────────────────────────────────────
+  // ── POST /x402/slot-info — $0.01 ────────────────────────────────────
   {
     type: "POST",
     path: "/x402/slot-info",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.001",
+        amountUsd: "0.01",
         description: "Current Solana slot and block time",
       });
       if (!gate.paid) return;
@@ -324,7 +324,7 @@ export const tradingRoutes: Route[] = [
             ...cached,
             cached: true,
             payment: {
-              amount: "0.001",
+              amount: "0.01",
               transaction: gate.transaction,
               network: gate.network,
             },
@@ -364,7 +364,7 @@ export const tradingRoutes: Route[] = [
           ...payload,
           cached: false,
           payment: {
-            amount: "0.001",
+            amount: "0.01",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -380,13 +380,13 @@ export const tradingRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/token-accounts — $0.002 ───────────────────────────────
+  // ── POST /x402/token-accounts — $0.01 ───────────────────────────────
   {
     type: "POST",
     path: "/x402/token-accounts",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.002",
+        amountUsd: "0.01",
         description: "Token accounts for a wallet",
       });
       if (!gate.paid) return;
@@ -421,7 +421,7 @@ export const tradingRoutes: Route[] = [
             ...cached,
             cached: true,
             payment: {
-              amount: "0.002",
+              amount: "0.01",
               transaction: gate.transaction,
               network: gate.network,
             },
@@ -472,7 +472,7 @@ export const tradingRoutes: Route[] = [
           ...payload,
           cached: false,
           payment: {
-            amount: "0.002",
+            amount: "0.01",
             transaction: gate.transaction,
             network: gate.network,
           },
@@ -488,13 +488,13 @@ export const tradingRoutes: Route[] = [
     },
   },
 
-  // ── POST /x402/recent-blockhash — $0.001 ─────────────────────────────
+  // ── POST /x402/recent-blockhash — $0.01 ─────────────────────────────
   {
     type: "POST",
     path: "/x402/recent-blockhash",
     handler: async (req, res, runtime) => {
       const gate = await x402Gate(runtime, req, res, {
-        amountUsd: "0.001",
+        amountUsd: "0.01",
         description: "Latest blockhash for transaction building",
       });
       if (!gate.paid) return;
@@ -513,7 +513,7 @@ export const tradingRoutes: Route[] = [
             ...cached,
             cached: true,
             payment: {
-              amount: "0.001",
+              amount: "0.01",
               transaction: gate.transaction,
               network: gate.network,
             },
@@ -541,7 +541,7 @@ export const tradingRoutes: Route[] = [
           ...payload,
           cached: false,
           payment: {
-            amount: "0.001",
+            amount: "0.01",
             transaction: gate.transaction,
             network: gate.network,
           },

@@ -105,7 +105,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
       const swarmsService = getSwarmsService(runtime);
       if (!swarmsService) throw new Error("Neither OPENAI_API_KEY nor Swarms service available");
       const result = await swarmsService.runAgent(
-        { agent_name: "summarizer", model_name: "gpt-4o-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 4096, temperature: 0.3, role: "worker" },
+        { agent_name: "summarizer", model_name: "gpt-5-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 4096, temperature: 0.3, role: "worker" },
         userPrompt
       );
       summary = String(result.outputs ?? result);
@@ -136,7 +136,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
       const swarmsService = getSwarmsService(runtime);
       if (!swarmsService) throw new Error("Neither OPENAI_API_KEY nor Swarms service available");
       const result = await swarmsService.runAgent(
-        { agent_name: "translator", model_name: "gpt-4o-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 8192, temperature: 0.2, role: "worker" },
+        { agent_name: "translator", model_name: "gpt-5-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 8192, temperature: 0.2, role: "worker" },
         userPrompt
       );
       raw = String(result.outputs ?? result);
@@ -178,7 +178,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
       const swarmsService = getSwarmsService(runtime);
       if (!swarmsService) throw new Error("Neither OPENAI_API_KEY nor Swarms service available");
       const result = await swarmsService.runAgent(
-        { agent_name: "extractor", model_name: "gpt-4o-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 4096, temperature: 0.1, role: "worker" },
+        { agent_name: "extractor", model_name: "gpt-5-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 4096, temperature: 0.1, role: "worker" },
         userPrompt
       );
       raw = String(result.outputs ?? result);
@@ -222,7 +222,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
       const swarmsService = getSwarmsService(runtime);
       if (!swarmsService) throw new Error("Neither OPENAI_API_KEY nor Swarms service available");
       const result = await swarmsService.runAgent(
-        { agent_name: "sentiment-analyst", model_name: "gpt-4o-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 1024, temperature: 0.1, role: "worker" },
+        { agent_name: "sentiment-analyst", model_name: "gpt-5-mini", system_prompt: systemPrompt, max_loops: 1, max_tokens: 1024, temperature: 0.1, role: "worker" },
         userPrompt
       );
       raw = String(result.outputs ?? result);
@@ -327,7 +327,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
         {
           agent_name: "SecurityAuditor",
           system_prompt: "You are an expert smart contract security auditor. Analyze the code for security vulnerabilities.",
-          model_name: "gpt-4o",
+          model_name: "gpt-5-mini",
           role: "worker" as const,
           max_loops: 1,
           max_tokens: 4096,
@@ -356,7 +356,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
         {
           agent_name: "TokenAnalyst",
           system_prompt: "You are a token risk analyst. Assess the given token for rug pull indicators and risk factors.",
-          model_name: "gpt-4o",
+          model_name: "gpt-5-mini",
           role: "worker" as const,
           max_loops: 1,
           max_tokens: 4096,
@@ -439,7 +439,7 @@ const EXECUTORS: Record<string, TaskExecutor> = {
       typeof params.systemPrompt === "string"
         ? params.systemPrompt
         : "You are a helpful AI agent. Complete the given task thoroughly and concisely.";
-    const model = typeof params.model === "string" ? params.model : "gpt-4o-mini";
+    const model = typeof params.model === "string" ? params.model : "gpt-5-mini";
 
     const openaiKey = String(runtime.getSetting("OPENAI_API_KEY") ?? "");
     let output: string;

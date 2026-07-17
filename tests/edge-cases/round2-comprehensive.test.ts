@@ -392,7 +392,7 @@ describe("2. Template system edge cases", () => {
         {
           agent_name: "A",
           system_prompt: "test",
-          model_name: "gpt-4o-mini",
+          model_name: "gpt-5-mini",
           temperature: 0.5,
         },
       ],
@@ -408,7 +408,7 @@ describe("2. Template system edge cases", () => {
         {
           agent_name: "B",
           system_prompt: "test",
-          model_name: "gpt-4o-mini",
+          model_name: "gpt-5-mini",
           temperature: 0.5,
         },
       ],

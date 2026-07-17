@@ -67,7 +67,7 @@ describe("runSwarmAgent", () => {
         useModelReturn: JSON.stringify({
           task: "Review this code for vulnerabilities",
           agentName: "SecurityAuditor",
-          modelName: "gpt-4o",
+          modelName: "gpt-5-mini",
           temperature: 0.3,
         }),
       });
@@ -80,7 +80,7 @@ describe("runSwarmAgent", () => {
       expect(swarmsService.runAgent).toHaveBeenCalledWith(
         expect.objectContaining({
           agent_name: "SecurityAuditor",
-          model_name: "gpt-4o",
+          model_name: "gpt-5-mini",
           temperature: 0.3,
         }),
         "Review this code for vulnerabilities"
@@ -102,7 +102,7 @@ describe("runSwarmAgent", () => {
       expect(swarmsService.runAgent).toHaveBeenCalledWith(
         expect.objectContaining({
           agent_name: "GeneralAgent",
-          model_name: "gpt-4o-mini",
+          model_name: "gpt-5-mini",
         }),
         "do something"
       );

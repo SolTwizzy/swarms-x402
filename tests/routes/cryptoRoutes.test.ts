@@ -376,7 +376,7 @@ describe("cryptoRoutes", () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    it("calls x402Gate with $0.25", async () => {
+    it("calls x402Gate with $0.15", async () => {
       const mockSwarms = createMockSwarmsService();
       const runtime = createMockRuntime({
         services: { SWARMS: mockSwarms },
@@ -391,7 +391,7 @@ describe("cryptoRoutes", () => {
         runtime,
         req,
         res,
-        expect.objectContaining({ amountUsd: "0.25" })
+        expect.objectContaining({ amountUsd: "0.15" })
       );
     });
 
@@ -447,7 +447,7 @@ describe("cryptoRoutes", () => {
           complexityScore: 78,
           template: "ContractAuditDeep",
           tier: "deep",
-          payment: expect.objectContaining({ amount: "0.25" }),
+          payment: expect.objectContaining({ amount: "0.15" }),
         })
       );
     });
