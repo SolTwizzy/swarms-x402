@@ -1878,6 +1878,20 @@ async function startServer(): Promise<void> {
           headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=86400" },
         });
       }
+      // Geist Pixel display fonts (vendored, SIL OFL 1.1 — assets/fonts/LICENSE-OFL.txt)
+      if (pathname.startsWith("/fonts/") && method === "GET") {
+        const fontName = pathname.slice("/fonts/".length);
+        if (/^GeistPixel-(Square|Grid|Circle|Triangle|Line)\.woff2$/.test(fontName)) {
+          const fontFile = Bun.file(join(import.meta.dir, "assets", "fonts", fontName));
+          if (await fontFile.exists()) {
+            return new Response(fontFile, {
+              status: 200,
+              headers: { "content-type": "font/woff2", "cache-control": "public, max-age=31536000, immutable" },
+            });
+          }
+        }
+        return new Response("Not found", { status: 404 });
+      }
 
       // ── Market data (free, cached) — powers the tape + charts ─────
       if (pathname === "/api/market/tape" && method === "GET") {
@@ -2073,6 +2087,14 @@ async function startServer(): Promise<void> {
   <meta name="twitter:description" content="Adversarial analyst panels — bull, bear, risk — return a rated verdict on any tokenized stock, crypto token, or wallet. Stock DD $0.10 in USDC, 5 free calls a day.">
   <meta name="twitter:image" content="${baseUrl}/og-card.jpg">
   <link rel="canonical" href="${baseUrl}/">
+  <link rel="preload" href="/fonts/GeistPixel-Square.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face { font-family: 'GeistPixelSquare'; src: url('/fonts/GeistPixel-Square.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+    @font-face { font-family: 'GeistPixelCircle'; src: url('/fonts/GeistPixel-Circle.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+    @font-face { font-family: 'GeistPixelTriangle'; src: url('/fonts/GeistPixel-Triangle.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+    @font-face { font-family: 'GeistPixelLine'; src: url('/fonts/GeistPixel-Line.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+    @font-face { font-family: 'GeistPixelGrid'; src: url('/fonts/GeistPixel-Grid.woff2') format('woff2'); font-weight: 500; font-display: swap; }
+  </style>
 ${THEME_FONTS}
 ${THEME_FAVICON}
   <style>
@@ -2151,6 +2173,18 @@ ${THEME_TOKENS}
     }
     .hero-headline em {
       font-style: normal; color: var(--accent);
+    }
+    /* Geist Pixel — the swarm voice. Variants share metrics, so swapping
+       the class morphs the letterform construction with zero layout shift. */
+    .px-square { font-family: 'GeistPixelSquare', var(--mono); }
+    .px-circle { font-family: 'GeistPixelCircle', var(--mono); }
+    .px-triangle { font-family: 'GeistPixelTriangle', var(--mono); }
+    .px-line { font-family: 'GeistPixelLine', var(--mono); }
+    .px-grid { font-family: 'GeistPixelGrid', var(--mono); }
+    .hero-headline em.px-square, .hero-headline em.px-circle, .hero-headline em.px-triangle,
+    .hero-headline em.px-line, .hero-headline em.px-grid {
+      font-size: 0.86em; font-weight: 500; letter-spacing: 0; line-height: 1.1;
+      text-shadow: 0 0 34px var(--accent-glow);
     }
     .hero-sub {
       font-size: 16px; color: var(--text-muted); max-width: 44ch; margin: 0 0 28px; line-height: 1.65;
@@ -2420,7 +2454,7 @@ ${THEME_TOKENS}
     .swarm-card-sym { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
     .swarm-verdict-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; padding: 22px 20px; border-bottom: 0.67px solid var(--border); }
     .swarm-verdict-kicker { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
-    .swarm-verdict-value { font-family: var(--display); font-size: 42px; font-weight: 700; letter-spacing: 1px; line-height: 1; text-transform: uppercase; }
+    .swarm-verdict-value { font-family: 'GeistPixelSquare', var(--display); font-size: 42px; font-weight: 500; letter-spacing: 1px; line-height: 1; text-transform: uppercase; }
     .swarm-verdict-value.up { color: var(--green); text-shadow: 0 0 28px rgba(0,200,5,0.35); }
     .swarm-verdict-value.down { color: var(--red); text-shadow: 0 0 28px rgba(248,113,113,0.35); }
     .swarm-verdict-value.flat { color: var(--yellow); text-shadow: 0 0 28px rgba(212,169,60,0.3); }
@@ -3037,7 +3071,7 @@ ${THEME_TOKENS}
 
           <div class="hero-thesis">
             <div class="hero-eyebrow">Tokenized equities &middot; Crypto &middot; Real-world assets</div>
-            <h1 class="hero-headline">AI due diligence on<br><em>everything tradeable.</em></h1>
+            <h1 class="hero-headline">AI due diligence on<br><em id="hero-px" class="px-square">everything tradeable.</em></h1>
             <p class="hero-sub">Adversarial analyst panels &mdash; bull, bear, risk &mdash; read the real market data on any tokenized stock, crypto token, or wallet and return a structured verdict you can act on. Flagship Stock DD $0.10 a report, paid in USDC. No account.</p>
             <div class="hero-ctas">
               <a class="hero-cta-btn hero-cta-primary" href="#playground">Run a report</a>
@@ -5075,6 +5109,55 @@ console.log(<span class="kw">await</span> res.json());</div>
     } catch (e) { /* older browsers: harmless */ }
     agentRefreshSession();
     setInterval(agentRefreshSession, 30000);
+  })();
+
+  /* Geist Pixel swarm type: glyphs scramble into place on load, then the
+     letterform construction cycles variants — the swarm reorganizing itself. */
+  (function () {
+    var el = document.getElementById('hero-px');
+    if (!el) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    /* Line variant excluded: its horizontal strokes read as strikethrough on
+       a headline (crossed-out "tradeable" says the opposite of the pitch). */
+    var variants = ['px-square', 'px-circle', 'px-triangle', 'px-grid'];
+    var vi = 0;
+    function setVariant(cls) {
+      for (var i = 0; i < variants.length; i++) el.classList.remove(variants[i]);
+      el.classList.add(cls);
+    }
+    var finalText = el.textContent;
+    var glyphs = '0123456789xX*#+%';
+    var steps = 14, step = 0;
+    var scramble = setInterval(function () {
+      step++;
+      if (step >= steps) {
+        clearInterval(scramble);
+        el.textContent = finalText;
+        startCycle();
+        return;
+      }
+      var reveal = (step / steps) * finalText.length;
+      var out = '';
+      for (var i = 0; i < finalText.length; i++) {
+        var ch = finalText.charAt(i);
+        if (ch === ' ' || ch === '.' || i < reveal) { out += ch; continue; }
+        out += glyphs.charAt(Math.floor(Math.random() * glyphs.length));
+      }
+      el.textContent = out;
+    }, 65);
+    function startCycle() {
+      setInterval(function () {
+        var n = variants.length;
+        var next = (vi + 1) % n;
+        var flicks = [variants[(vi + 2) % n], variants[(vi + 3) % n], variants[next]];
+        var k = 0;
+        var flick = setInterval(function () {
+          setVariant(flicks[k]);
+          k++;
+          if (k >= flicks.length) { clearInterval(flick); vi = next; }
+        }, 85);
+      }, 3400);
+    }
   })();
   </script>
 </body>

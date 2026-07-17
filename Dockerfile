@@ -35,6 +35,9 @@ COPY server.ts ./
 # Benchmark results served by /x402/benchmark (read at runtime from ./scripts)
 COPY scripts/benchmark-results.json scripts/
 
+# Vendored display fonts served at /fonts/ (Geist Pixel, SIL OFL 1.1)
+COPY assets/ assets/
+
 # Default port
 ENV PORT=3000
 EXPOSE 3000
