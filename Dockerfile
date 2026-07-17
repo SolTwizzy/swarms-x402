@@ -32,6 +32,9 @@ COPY tsconfig.json ./
 # Copy standalone server entry
 COPY server.ts ./
 
+# Benchmark results served by /x402/benchmark (read at runtime from ./scripts)
+COPY scripts/benchmark-results.json scripts/
+
 # Default port
 ENV PORT=3000
 EXPOSE 3000
